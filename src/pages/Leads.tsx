@@ -4,8 +4,7 @@ import { LeadStatusBadge } from "@/components/leads/LeadStatusBadge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import {
   Table,
   TableBody,
@@ -38,7 +37,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useToast } from "@/hooks/use-toast";
-import { Lead, Campaign, LeadStatus } from "@/types/crm";
+import { Lead, Campaign, LeadStatus, getLeadDisplayName, getLeadPhone, getLeadEmail, getLeadCompany } from "@/types/crm";
 import {
   Plus,
   Search,
@@ -71,21 +70,20 @@ export default function Leads() {
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [showImportDialog, setShowImportDialog] = useState(false);
   const [editingLead, setEditingLead] = useState<Lead | null>(null);
+  const [csvFields, setCsvFields] = useState<string[]>([]);
   const { user } = useAuth();
   const { isAdminOrManager } = useUserRole();
   const { toast } = useToast();
 
-  // Form state
-  const [formData, setFormData] = useState({
-    first_name: "",
-    last_name: "",
-    company: "",
-    phone: "",
-    email: "",
-    notes: "",
-    status: "new" as LeadStatus,
-    campaign_id: "",
-  });
+  // Form state - dynamic fields
+  const [formData, setFormData] = useState<Record<string, string>>({});
+  const [formStatus, setFormStatus] = useState<LeadStatus>("new");
+  const [formCampaignId, setFormCampaignId] = useState("");
+
+  // Derive available fields from all leads
+  const allFields = Array.from(
+    new Set(leads.flatMap((lead) => Object.keys(lead.data || {})))
+  ).sort();
 
   const fetchData = async () => {
     setLoading(true);
@@ -107,12 +105,12 @@ export default function Leads() {
   }, [user]);
 
   const filteredLeads = leads.filter((lead) => {
+    const searchLower = searchQuery.toLowerCase();
     const matchesSearch =
-      lead.first_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (lead.last_name?.toLowerCase().includes(searchQuery.toLowerCase()) ?? false) ||
-      (lead.company?.toLowerCase().includes(searchQuery.toLowerCase()) ?? false) ||
-      (lead.email?.toLowerCase().includes(searchQuery.toLowerCase()) ?? false) ||
-      (lead.phone?.includes(searchQuery) ?? false);
+      searchQuery === "" ||
+      Object.values(lead.data || {}).some((val) =>
+        String(val).toLowerCase().includes(searchLower)
+      );
 
     const matchesStatus = statusFilter === "all" || lead.status === statusFilter;
     const matchesCampaign =
@@ -125,14 +123,9 @@ export default function Leads() {
     e.preventDefault();
 
     const payload = {
-      first_name: formData.first_name,
-      last_name: formData.last_name || null,
-      company: formData.company || null,
-      phone: formData.phone || null,
-      email: formData.email || null,
-      notes: formData.notes || null,
-      status: formData.status,
-      campaign_id: formData.campaign_id || null,
+      data: formData,
+      status: formStatus,
+      campaign_id: formCampaignId || null,
     };
 
     if (editingLead) {
@@ -163,29 +156,19 @@ export default function Leads() {
   };
 
   const resetForm = () => {
-    setFormData({
-      first_name: "",
-      last_name: "",
-      company: "",
-      phone: "",
-      email: "",
-      notes: "",
-      status: "new",
-      campaign_id: "",
-    });
+    setFormData({});
+    setFormStatus("new");
+    setFormCampaignId("");
   };
 
   const handleEdit = (lead: Lead) => {
-    setFormData({
-      first_name: lead.first_name,
-      last_name: lead.last_name || "",
-      company: lead.company || "",
-      phone: lead.phone || "",
-      email: lead.email || "",
-      notes: lead.notes || "",
-      status: lead.status,
-      campaign_id: lead.campaign_id || "",
+    const data: Record<string, string> = {};
+    Object.entries(lead.data || {}).forEach(([key, value]) => {
+      data[key] = String(value ?? "");
     });
+    setFormData(data);
+    setFormStatus(lead.status);
+    setFormCampaignId(lead.campaign_id || "");
     setEditingLead(lead);
     setShowAddDialog(true);
   };
@@ -210,25 +193,23 @@ export default function Leads() {
     reader.onload = async (event) => {
       const csv = event.target?.result as string;
       const lines = csv.split("\n").filter((line) => line.trim());
-      const headers = lines[0].split(",").map((h) => h.trim().toLowerCase());
+      const headers = lines[0].split(",").map((h) => h.trim());
+
+      // Store detected fields
+      setCsvFields(headers);
 
       const newLeads = [];
       for (let i = 1; i < lines.length; i++) {
         const values = lines[i].split(",").map((v) => v.trim());
-        const lead: Record<string, string> = {};
+        const data: Record<string, string> = {};
         headers.forEach((header, idx) => {
-          lead[header] = values[idx] || "";
+          if (values[idx]) {
+            data[header] = values[idx];
+          }
         });
 
-        if (lead.first_name || lead.firstname) {
-          newLeads.push({
-            first_name: lead.first_name || lead.firstname,
-            last_name: lead.last_name || lead.lastname || null,
-            company: lead.company || null,
-            phone: lead.phone || lead.telephone || null,
-            email: lead.email || null,
-            notes: lead.notes || null,
-          });
+        if (Object.keys(data).length > 0) {
+          newLeads.push({ data });
         }
       }
 
@@ -237,7 +218,7 @@ export default function Leads() {
         if (error) {
           toast({ title: "Import failed", description: error.message, variant: "destructive" });
         } else {
-          toast({ title: `Imported ${newLeads.length} leads` });
+          toast({ title: `Imported ${newLeads.length} leads with ${headers.length} fields` });
           fetchData();
         }
       }
@@ -246,6 +227,23 @@ export default function Leads() {
     };
     reader.readAsText(file);
   };
+
+  // Dynamic field management
+  const [newFieldName, setNewFieldName] = useState("");
+  const addField = () => {
+    if (newFieldName && !Object.keys(formData).includes(newFieldName)) {
+      setFormData({ ...formData, [newFieldName]: "" });
+      setNewFieldName("");
+    }
+  };
+
+  const removeField = (field: string) => {
+    const { [field]: _, ...rest } = formData;
+    setFormData(rest);
+  };
+
+  // Determine which fields to show in table (first 4 + status)
+  const displayFields = allFields.slice(0, 4);
 
   if (loading) {
     return (
@@ -280,7 +278,7 @@ export default function Leads() {
                 </DialogHeader>
                 <div className="space-y-4 pt-4">
                   <p className="text-sm text-muted-foreground">
-                    Upload a CSV file with columns: first_name, last_name, company, phone, email, notes
+                    Upload any CSV file. The column headers will become field names for your leads.
                   </p>
                   <Input type="file" accept=".csv" onChange={handleCsvImport} />
                 </div>
@@ -302,70 +300,78 @@ export default function Leads() {
                   Add Lead
                 </Button>
               </DialogTrigger>
-              <DialogContent className="max-w-md">
+              <DialogContent className="max-w-lg max-h-[80vh] overflow-y-auto">
                 <DialogHeader>
                   <DialogTitle>{editingLead ? "Edit Lead" : "Add New Lead"}</DialogTitle>
                 </DialogHeader>
                 <form onSubmit={handleSubmit} className="space-y-4 pt-4">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label>First Name *</Label>
+                  {/* Dynamic Fields */}
+                  {Object.entries(formData).map(([field, value]) => (
+                    <div key={field} className="flex items-end gap-2">
+                      <div className="flex-1 space-y-2">
+                        <Label className="capitalize">{field.replace(/_/g, " ")}</Label>
+                        <Input
+                          value={value}
+                          onChange={(e) =>
+                            setFormData({ ...formData, [field]: e.target.value })
+                          }
+                        />
+                      </div>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => removeField(field)}
+                      >
+                        <Trash2 className="w-4 h-4 text-destructive" />
+                      </Button>
+                    </div>
+                  ))}
+
+                  {/* Add New Field */}
+                  <div className="flex items-end gap-2 pt-2 border-t">
+                    <div className="flex-1 space-y-2">
+                      <Label>Add Field</Label>
                       <Input
-                        value={formData.first_name}
-                        onChange={(e) =>
-                          setFormData({ ...formData, first_name: e.target.value })
-                        }
-                        required
+                        placeholder="Field name (e.g., phone, company)"
+                        value={newFieldName}
+                        onChange={(e) => setNewFieldName(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") {
+                            e.preventDefault();
+                            addField();
+                          }
+                        }}
                       />
                     </div>
-                    <div className="space-y-2">
-                      <Label>Last Name</Label>
-                      <Input
-                        value={formData.last_name}
-                        onChange={(e) =>
-                          setFormData({ ...formData, last_name: e.target.value })
-                        }
-                      />
-                    </div>
+                    <Button type="button" variant="outline" onClick={addField}>
+                      <Plus className="w-4 h-4" />
+                    </Button>
                   </div>
-                  <div className="space-y-2">
-                    <Label>Company</Label>
-                    <Input
-                      value={formData.company}
-                      onChange={(e) =>
-                        setFormData({ ...formData, company: e.target.value })
-                      }
-                    />
-                  </div>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label>Phone</Label>
-                      <Input
-                        value={formData.phone}
-                        onChange={(e) =>
-                          setFormData({ ...formData, phone: e.target.value })
-                        }
-                      />
+
+                  {/* Quick add common fields */}
+                  {Object.keys(formData).length === 0 && (
+                    <div className="flex flex-wrap gap-2">
+                      {["name", "phone", "email", "company", "notes"].map((field) => (
+                        <Button
+                          key={field}
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setFormData({ ...formData, [field]: "" })}
+                        >
+                          + {field}
+                        </Button>
+                      ))}
                     </div>
-                    <div className="space-y-2">
-                      <Label>Email</Label>
-                      <Input
-                        type="email"
-                        value={formData.email}
-                        onChange={(e) =>
-                          setFormData({ ...formData, email: e.target.value })
-                        }
-                      />
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-2 gap-4">
+                  )}
+
+                  <div className="grid grid-cols-2 gap-4 pt-4 border-t">
                     <div className="space-y-2">
                       <Label>Status</Label>
                       <Select
-                        value={formData.status}
-                        onValueChange={(v) =>
-                          setFormData({ ...formData, status: v as LeadStatus })
-                        }
+                        value={formStatus}
+                        onValueChange={(v) => setFormStatus(v as LeadStatus)}
                       >
                         <SelectTrigger>
                           <SelectValue />
@@ -382,10 +388,8 @@ export default function Leads() {
                     <div className="space-y-2">
                       <Label>Campaign</Label>
                       <Select
-                        value={formData.campaign_id}
-                        onValueChange={(v) =>
-                          setFormData({ ...formData, campaign_id: v })
-                        }
+                        value={formCampaignId}
+                        onValueChange={setFormCampaignId}
                       >
                         <SelectTrigger>
                           <SelectValue placeholder="None" />
@@ -401,16 +405,8 @@ export default function Leads() {
                       </Select>
                     </div>
                   </div>
-                  <div className="space-y-2">
-                    <Label>Notes</Label>
-                    <Textarea
-                      value={formData.notes}
-                      onChange={(e) =>
-                        setFormData({ ...formData, notes: e.target.value })
-                      }
-                    />
-                  </div>
-                  <Button type="submit" className="w-full">
+
+                  <Button type="submit" className="w-full" disabled={Object.keys(formData).length === 0}>
                     {editingLead ? "Update Lead" : "Create Lead"}
                   </Button>
                 </form>
@@ -468,9 +464,11 @@ export default function Leads() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Name</TableHead>
-                  <TableHead>Company</TableHead>
-                  <TableHead>Contact</TableHead>
+                  {displayFields.map((field) => (
+                    <TableHead key={field} className="capitalize">
+                      {field.replace(/_/g, " ")}
+                    </TableHead>
+                  ))}
                   <TableHead>Status</TableHead>
                   <TableHead>Calls</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
@@ -479,34 +477,29 @@ export default function Leads() {
               <TableBody>
                 {filteredLeads.map((lead) => (
                   <TableRow key={lead.id}>
-                    <TableCell>
-                      <div className="font-medium">
-                        {lead.first_name} {lead.last_name}
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-muted-foreground">
-                      {lead.company || "-"}
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        {lead.phone && (
+                    {displayFields.map((field) => (
+                      <TableCell key={field}>
+                        {field === "phone" ? (
                           <a
-                            href={`tel:${lead.phone}`}
+                            href={`tel:${lead.data?.[field]}`}
                             className="text-primary hover:underline flex items-center gap-1"
                           >
                             <Phone className="w-3 h-3" />
+                            {String(lead.data?.[field] || "-")}
                           </a>
-                        )}
-                        {lead.email && (
+                        ) : field === "email" ? (
                           <a
-                            href={`mailto:${lead.email}`}
+                            href={`mailto:${lead.data?.[field]}`}
                             className="text-primary hover:underline flex items-center gap-1"
                           >
                             <Mail className="w-3 h-3" />
+                            {String(lead.data?.[field] || "-")}
                           </a>
+                        ) : (
+                          String(lead.data?.[field] || "-")
                         )}
-                      </div>
-                    </TableCell>
+                      </TableCell>
+                    ))}
                     <TableCell>
                       <LeadStatusBadge status={lead.status} />
                     </TableCell>
@@ -539,7 +532,10 @@ export default function Leads() {
                 ))}
                 {filteredLeads.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                    <TableCell
+                      colSpan={displayFields.length + 3}
+                      className="text-center py-8 text-muted-foreground"
+                    >
                       No leads found
                     </TableCell>
                   </TableRow>

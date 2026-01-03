@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Lead, CallOutcome, LeadStatus } from "@/types/crm";
+import React, { useState } from "react";
+import { Lead, CallOutcome, LeadStatus, getLeadDisplayName, getLeadPhone, getLeadEmail, getLeadCompany, getLeadNotes } from "@/types/crm";
 import { LeadStatusBadge } from "./LeadStatusBadge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -83,7 +83,7 @@ export function LeadCard({
   emailLogs = [],
   onGiveBack,
 }: LeadCardProps) {
-  const [notes, setNotes] = useState(lead.notes || "");
+  const [notes, setNotes] = useState(getLeadNotes(lead));
   const [callNotes, setCallNotes] = useState("");
   const [showCallDialog, setShowCallDialog] = useState(false);
   const [showCallbackDialog, setShowCallbackDialog] = useState(false);
@@ -95,26 +95,34 @@ export function LeadCard({
   const [followUpDuration, setFollowUpDuration] = useState("27 hours");
   const { toast } = useToast();
 
-  const fullName = [lead.first_name, lead.last_name].filter(Boolean).join(" ");
+  const fullName = getLeadDisplayName(lead);
+  const phone = getLeadPhone(lead);
+  const email = getLeadEmail(lead);
+  const company = getLeadCompany(lead);
   const activityCount = callLogs.length + emailLogs.length;
 
+  // Get all custom data fields for display
+  const dataFields = Object.entries(lead.data || {}).filter(
+    ([key]) => !["first_name", "last_name", "firstname", "lastname", "name", "phone", "telephone", "mobile", "email", "e-mail", "company", "organization", "business", "notes", "note", "comments"].includes(key.toLowerCase())
+  );
+
   const handleCall = () => {
-    if (lead.phone) {
-      window.location.href = `tel:${lead.phone}`;
+    if (phone) {
+      window.location.href = `tel:${phone}`;
       onCall(lead);
       setShowCallDialog(true);
     }
   };
 
   const handleSms = () => {
-    if (lead.phone) {
-      window.location.href = `sms:${lead.phone}`;
+    if (phone) {
+      window.location.href = `sms:${phone}`;
     }
   };
 
   const copyPhone = async () => {
-    if (lead.phone) {
-      await navigator.clipboard.writeText(lead.phone);
+    if (phone) {
+      await navigator.clipboard.writeText(phone);
       setCopiedPhone(true);
       toast({ title: "Phone number copied" });
       setTimeout(() => setCopiedPhone(false), 2000);
@@ -171,10 +179,10 @@ export function LeadCard({
               <div className="flex-1">
                 <div className="flex items-center gap-2">
                   <h2 className="text-xl font-display font-bold text-foreground">
-                    {lead.company || fullName}
+                    {company || fullName}
                   </h2>
                   <a 
-                    href={`https://www.linkedin.com/search/results/all/?keywords=${encodeURIComponent(lead.company || fullName)}`}
+                    href={`https://www.linkedin.com/search/results/all/?keywords=${encodeURIComponent(company || fullName)}`}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="text-[#0077b5] hover:opacity-80"
@@ -184,13 +192,13 @@ export function LeadCard({
                 </div>
                 
                 {/* Phone Number */}
-                {lead.phone && (
+                {phone && (
                   <div className="flex items-center gap-2 mt-2">
                     <a 
-                      href={`tel:${lead.phone}`}
+                      href={`tel:${phone}`}
                       className="text-primary hover:underline font-medium"
                     >
-                      {lead.phone}
+                      {phone}
                     </a>
                     <button
                       onClick={copyPhone}
@@ -212,20 +220,29 @@ export function LeadCard({
 
             {/* Contact Details Grid */}
             <div className="grid grid-cols-[auto_1fr] gap-x-6 gap-y-2 text-sm">
-              {lead.email && (
+              {email && (
                 <>
                   <span className="text-muted-foreground text-right font-medium">Email</span>
-                  <a href={`mailto:${lead.email}`} className="text-primary hover:underline">
-                    {lead.email}
+                  <a href={`mailto:${email}`} className="text-primary hover:underline">
+                    {email}
                   </a>
                 </>
               )}
-              {lead.company && fullName && (
+              {company && fullName && (
                 <>
                   <span className="text-muted-foreground text-right font-medium">Contact</span>
                   <span>{fullName}</span>
                 </>
               )}
+              {/* Custom data fields */}
+              {dataFields.map(([key, value]) => (
+                <React.Fragment key={key}>
+                  <span className="text-muted-foreground text-right font-medium capitalize">
+                    {key.replace(/_/g, " ")}
+                  </span>
+                  <span>{String(value)}</span>
+                </React.Fragment>
+              ))}
               <span className="text-muted-foreground text-right font-medium">First created</span>
               <span>
                 {format(new Date(lead.created_at), "dd-MM-yyyy HH:mm")}
@@ -299,7 +316,7 @@ export function LeadCard({
                     variant="outline" 
                     className="w-full"
                     onClick={() => onSendEmail(lead)}
-                    disabled={!lead.email}
+                    disabled={!email}
                   >
                     <Mail className="w-4 h-4 mr-2" />
                     Compose Email
@@ -314,7 +331,7 @@ export function LeadCard({
                   <Button 
                     variant="outline"
                     onClick={handleSms}
-                    disabled={!lead.phone}
+                    disabled={!phone}
                   >
                     <MessageSquare className="w-4 h-4 mr-2" />
                     Send SMS
