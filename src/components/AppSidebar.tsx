@@ -1,0 +1,167 @@
+import { NavLink, useLocation } from "react-router-dom";
+import { cn } from "@/lib/utils";
+import { useAuth } from "@/hooks/useAuth";
+import { useUserRole } from "@/hooks/useUserRole";
+import { Button } from "@/components/ui/button";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  Phone,
+  Users,
+  LayoutGrid,
+  BarChart3,
+  Settings,
+  LogOut,
+  Menu,
+  X,
+  Briefcase,
+} from "lucide-react";
+import { useState } from "react";
+
+const navItems = [
+  { to: "/", icon: Phone, label: "Work", roles: ["admin", "manager", "agent"] },
+  { to: "/leads", icon: Users, label: "Leads", roles: ["admin", "manager", "agent"] },
+  { to: "/campaigns", icon: LayoutGrid, label: "Campaigns", roles: ["admin", "manager", "agent"] },
+  { to: "/reports", icon: BarChart3, label: "Reports", roles: ["admin", "manager", "agent"] },
+  { to: "/team", icon: Briefcase, label: "Team", roles: ["admin"] },
+  { to: "/settings", icon: Settings, label: "Settings", roles: ["admin", "manager", "agent"] },
+];
+
+export function AppSidebar() {
+  const { user, signOut } = useAuth();
+  const { role, isAdmin } = useUserRole();
+  const location = useLocation();
+  const [mobileOpen, setMobileOpen] = useState(false);
+
+  const visibleItems = navItems.filter(
+    (item) => item.roles.includes(role || "agent")
+  );
+
+  const userInitials = user?.user_metadata?.full_name
+    ?.split(" ")
+    .map((n: string) => n[0])
+    .join("")
+    .toUpperCase() || user?.email?.[0].toUpperCase() || "U";
+
+  return (
+    <>
+      {/* Mobile Header */}
+      <div className="lg:hidden fixed top-0 left-0 right-0 h-16 bg-sidebar border-b border-sidebar-border z-50 flex items-center justify-between px-4">
+        <div className="flex items-center gap-3">
+          <div className="w-8 h-8 rounded-lg bg-sidebar-primary flex items-center justify-center">
+            <Phone className="w-4 h-4 text-sidebar-primary-foreground" />
+          </div>
+          <span className="font-display font-semibold text-sidebar-foreground">CallFlow</span>
+        </div>
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={() => setMobileOpen(!mobileOpen)}
+          className="text-sidebar-foreground hover:bg-sidebar-accent"
+        >
+          {mobileOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+        </Button>
+      </div>
+
+      {/* Mobile Menu Overlay */}
+      {mobileOpen && (
+        <div
+          className="lg:hidden fixed inset-0 bg-black/50 z-40 pt-16"
+          onClick={() => setMobileOpen(false)}
+        >
+          <nav
+            className="bg-sidebar w-64 h-full p-4 space-y-2"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {visibleItems.map((item) => (
+              <NavLink
+                key={item.to}
+                to={item.to}
+                onClick={() => setMobileOpen(false)}
+                className={cn(
+                  "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors",
+                  location.pathname === item.to
+                    ? "bg-sidebar-primary text-sidebar-primary-foreground"
+                    : "text-sidebar-foreground hover:bg-sidebar-accent"
+                )}
+              >
+                <item.icon className="w-5 h-5" />
+                {item.label}
+              </NavLink>
+            ))}
+          </nav>
+        </div>
+      )}
+
+      {/* Desktop Sidebar */}
+      <aside className="hidden lg:flex fixed left-0 top-0 bottom-0 w-64 bg-sidebar border-r border-sidebar-border flex-col z-40">
+        {/* Logo */}
+        <div className="h-16 flex items-center gap-3 px-6 border-b border-sidebar-border">
+          <div className="w-9 h-9 rounded-xl bg-sidebar-primary flex items-center justify-center">
+            <Phone className="w-5 h-5 text-sidebar-primary-foreground" />
+          </div>
+          <span className="font-display font-bold text-lg text-sidebar-foreground">CallFlow</span>
+        </div>
+
+        {/* Navigation */}
+        <nav className="flex-1 p-4 space-y-1">
+          {visibleItems.map((item) => (
+            <NavLink
+              key={item.to}
+              to={item.to}
+              className={cn(
+                "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors",
+                location.pathname === item.to
+                  ? "bg-sidebar-primary text-sidebar-primary-foreground"
+                  : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+              )}
+            >
+              <item.icon className="w-5 h-5" />
+              {item.label}
+            </NavLink>
+          ))}
+        </nav>
+
+        {/* User Menu */}
+        <div className="p-4 border-t border-sidebar-border">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-sidebar-accent transition-colors text-left">
+                <Avatar className="w-8 h-8">
+                  <AvatarFallback className="bg-sidebar-primary text-sidebar-primary-foreground text-sm">
+                    {userInitials}
+                  </AvatarFallback>
+                </Avatar>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-sidebar-foreground truncate">
+                    {user?.user_metadata?.full_name || user?.email}
+                  </p>
+                  <p className="text-xs text-sidebar-muted capitalize">{role}</p>
+                </div>
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-56">
+              <DropdownMenuItem asChild>
+                <NavLink to="/settings" className="flex items-center gap-2">
+                  <Settings className="w-4 h-4" />
+                  Settings
+                </NavLink>
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={signOut} className="text-destructive">
+                <LogOut className="w-4 h-4 mr-2" />
+                Sign out
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+      </aside>
+    </>
+  );
+}
