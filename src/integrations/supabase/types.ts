@@ -196,15 +196,10 @@ export type Database = {
           campaign_id: string | null
           claimed_at: string | null
           claimed_by: string | null
-          company: string | null
           created_at: string
-          email: string | null
-          first_name: string
+          data: Json | null
           id: string
           last_contacted_at: string | null
-          last_name: string | null
-          notes: string | null
-          phone: string | null
           status: string
           updated_at: string
         }
@@ -215,15 +210,10 @@ export type Database = {
           campaign_id?: string | null
           claimed_at?: string | null
           claimed_by?: string | null
-          company?: string | null
           created_at?: string
-          email?: string | null
-          first_name: string
+          data?: Json | null
           id?: string
           last_contacted_at?: string | null
-          last_name?: string | null
-          notes?: string | null
-          phone?: string | null
           status?: string
           updated_at?: string
         }
@@ -234,15 +224,10 @@ export type Database = {
           campaign_id?: string | null
           claimed_at?: string | null
           claimed_by?: string | null
-          company?: string | null
           created_at?: string
-          email?: string | null
-          first_name?: string
+          data?: Json | null
           id?: string
           last_contacted_at?: string | null
-          last_name?: string | null
-          notes?: string | null
-          phone?: string | null
           status?: string
           updated_at?: string
         }

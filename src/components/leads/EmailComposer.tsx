@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Lead } from "@/types/crm";
+import { Lead, getLeadDisplayName, getLeadEmail, getLeadCompany, getLeadField } from "@/types/crm";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -51,11 +51,16 @@ export function EmailComposer({
 
   const personalize = (text: string) => {
     if (!lead) return text;
+    const firstName = getLeadField(lead, "first_name") || getLeadField(lead, "firstname") || getLeadField(lead, "name");
+    const lastName = getLeadField(lead, "last_name") || getLeadField(lead, "lastname");
+    const company = getLeadCompany(lead);
+    const email = getLeadEmail(lead);
+    
     return text
-      .replace(/\{\{first_name\}\}/g, lead.first_name || "")
-      .replace(/\{\{last_name\}\}/g, lead.last_name || "")
-      .replace(/\{\{company\}\}/g, lead.company || "")
-      .replace(/\{\{email\}\}/g, lead.email || "");
+      .replace(/\{\{first_name\}\}/g, firstName)
+      .replace(/\{\{last_name\}\}/g, lastName)
+      .replace(/\{\{company\}\}/g, company)
+      .replace(/\{\{email\}\}/g, email);
   };
 
   const handleTemplateSelect = (templateId: string) => {
@@ -67,17 +72,18 @@ export function EmailComposer({
   };
 
   const handleSend = async () => {
-    if (!lead?.email || !user) return;
+    const email = lead ? getLeadEmail(lead) : "";
+    if (!email || !user) return;
 
     setSending(true);
     try {
       // Call edge function to send email via SMTP
       const { data, error } = await supabase.functions.invoke("send-email", {
         body: {
-          to: lead.email,
+          to: email,
           subject,
           body,
-          leadId: lead.id,
+          leadId: lead!.id,
         },
       });
 
@@ -85,7 +91,7 @@ export function EmailComposer({
 
       // Log the email
       await supabase.from("email_logs").insert({
-        lead_id: lead.id,
+        lead_id: lead!.id,
         user_id: user.id,
         subject,
         body,
@@ -111,7 +117,8 @@ export function EmailComposer({
 
   if (!lead) return null;
 
-  const fullName = [lead.first_name, lead.last_name].filter(Boolean).join(" ");
+  const fullName = getLeadDisplayName(lead);
+  const email = getLeadEmail(lead);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -123,7 +130,7 @@ export function EmailComposer({
           <div className="flex items-center gap-4">
             <div className="flex-1">
               <Label className="text-muted-foreground">To</Label>
-              <p className="font-medium">{lead.email}</p>
+              <p className="font-medium">{email || "No email"}</p>
             </div>
             {templates.length > 0 && (
               <div className="w-48">
@@ -169,7 +176,7 @@ export function EmailComposer({
             </Button>
             <Button
               onClick={handleSend}
-              disabled={!subject || !body || sending}
+              disabled={!subject || !body || sending || !email}
             >
               {sending ? "Sending..." : "Send Email"}
             </Button>

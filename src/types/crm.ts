@@ -3,12 +3,7 @@ export type CallOutcome = "answered" | "no_answer" | "busy" | "voicemail" | "cal
 
 export interface Lead {
   id: string;
-  first_name: string;
-  last_name: string | null;
-  company: string | null;
-  phone: string | null;
-  email: string | null;
-  notes: string | null;
+  data: Record<string, unknown>;
   status: LeadStatus;
   campaign_id: string | null;
   assigned_to: string | null;
@@ -19,6 +14,36 @@ export interface Lead {
   callback_scheduled_at: string | null;
   created_at: string;
   updated_at: string;
+}
+
+// Helper to get a field value from lead data
+export function getLeadField(lead: Lead, field: string): string {
+  const value = lead.data?.[field];
+  return value != null ? String(value) : "";
+}
+
+// Helper to get display name for a lead
+export function getLeadDisplayName(lead: Lead): string {
+  const firstName = getLeadField(lead, "first_name") || getLeadField(lead, "firstname") || getLeadField(lead, "name");
+  const lastName = getLeadField(lead, "last_name") || getLeadField(lead, "lastname");
+  return [firstName, lastName].filter(Boolean).join(" ") || "Unknown";
+}
+
+// Helper to get common fields
+export function getLeadPhone(lead: Lead): string {
+  return getLeadField(lead, "phone") || getLeadField(lead, "telephone") || getLeadField(lead, "mobile");
+}
+
+export function getLeadEmail(lead: Lead): string {
+  return getLeadField(lead, "email") || getLeadField(lead, "e-mail");
+}
+
+export function getLeadCompany(lead: Lead): string {
+  return getLeadField(lead, "company") || getLeadField(lead, "organization") || getLeadField(lead, "business");
+}
+
+export function getLeadNotes(lead: Lead): string {
+  return getLeadField(lead, "notes") || getLeadField(lead, "note") || getLeadField(lead, "comments");
 }
 
 export interface Campaign {

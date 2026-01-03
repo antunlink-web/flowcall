@@ -15,8 +15,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { Lead, Campaign, CallOutcome, LeadStatus, EmailTemplate } from "@/types/crm";
-import { Phone, Users, RefreshCw, Inbox, FileText } from "lucide-react";
-import { Loader2 } from "lucide-react";
+import { Phone, Users, RefreshCw, Inbox, FileText, Loader2 } from "lucide-react";
+import { Json } from "@/integrations/supabase/types";
 
 export default function Work() {
   const [leads, setLeads] = useState<Lead[]>([]);
@@ -55,7 +55,11 @@ export default function Work() {
     }
 
     const { data: leadData } = await query;
-    setLeads((leadData as Lead[]) || []);
+    const mappedLeads = (leadData || []).map((l) => ({
+      ...l,
+      data: (l.data as Record<string, unknown>) || {},
+    })) as Lead[];
+    setLeads(mappedLeads);
 
     // Fetch email templates
     const { data: templateData } = await supabase
