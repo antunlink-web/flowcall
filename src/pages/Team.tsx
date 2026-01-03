@@ -39,7 +39,7 @@ export default function Team() {
 
   useEffect(() => { fetchTeam(); }, []);
 
-  const updateRole = async (userId: string, newRole: string) => {
+  const updateRole = async (userId: string, newRole: "admin" | "manager" | "agent") => {
     await supabase.from("user_roles").update({ role: newRole }).eq("user_id", userId);
     toast({ title: "Role updated" });
     fetchTeam();
@@ -67,7 +67,7 @@ export default function Team() {
                     <p className="text-sm text-muted-foreground">{member.email}</p>
                   </div>
                 </div>
-                <Select value={member.role} onValueChange={(v: "admin" | "manager" | "agent") => updateRole(member.id, v)}>
+                <Select value={member.role} onValueChange={(v) => updateRole(member.id, v as "admin" | "manager" | "agent")}>
                   <SelectTrigger className="w-32"><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="admin">Admin</SelectItem>
