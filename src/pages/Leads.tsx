@@ -388,14 +388,14 @@ export default function Leads() {
                     <div className="space-y-2">
                       <Label>Campaign</Label>
                       <Select
-                        value={formCampaignId}
-                        onValueChange={setFormCampaignId}
+                        value={formCampaignId || "none"}
+                        onValueChange={(v) => setFormCampaignId(v === "none" ? "" : v)}
                       >
                         <SelectTrigger>
                           <SelectValue placeholder="None" />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="">None</SelectItem>
+                          <SelectItem value="none">None</SelectItem>
                           {campaigns.map((c) => (
                             <SelectItem key={c.id} value={c.id}>
                               {c.name}
