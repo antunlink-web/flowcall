@@ -1,9 +1,10 @@
-import { NavLink, useLocation } from "react-router-dom";
+import { NavLink, useLocation, Link } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
 import { useUserRole } from "@/hooks/useUserRole";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -11,6 +12,11 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import {
   Home,
   Search,
@@ -25,16 +31,27 @@ import {
   Menu,
   X,
 } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { formatDistanceToNow, format } from "date-fns";
 
 const mainNavItems = [
   { to: "/work", label: "Work" },
-  { to: "/leads", label: "Manage" },
+  { to: "/manage", label: "Manage" },
   { to: "/reports", label: "Review" },
 ];
 
+interface RecentLead {
+  id: string;
+  campaign_name: string;
+  company_name: string;
+  phone: string;
+  status: string;
+  updated_at: string;
+  callback_scheduled_at: string | null;
+}
+
 const iconNavItems = [
-  { icon: History, label: "History", to: "/reports" },
   { icon: Calendar, label: "Calendar", to: "/" },
   { icon: Users, label: "Team", to: "/team" },
   { icon: Bell, label: "Alerts", to: "/" },
@@ -45,6 +62,58 @@ export function TopNavbar() {
   const { role } = useUserRole();
   const location = useLocation();
   const [mobileOpen, setMobileOpen] = useState(false);
+
+  const [recentLeads, setRecentLeads] = useState<RecentLead[]>([]);
+  const [historyOpen, setHistoryOpen] = useState(false);
+
+  useEffect(() => {
+    if (historyOpen && user) {
+      fetchRecentLeads();
+    }
+  }, [historyOpen, user]);
+
+  const fetchRecentLeads = async () => {
+    const { data, error } = await supabase
+      .from("leads")
+      .select(`
+        id,
+        status,
+        updated_at,
+        callback_scheduled_at,
+        data,
+        campaigns(name)
+      `)
+      .order("updated_at", { ascending: false })
+      .limit(5);
+
+    if (!error && data) {
+      setRecentLeads(
+        data.map((lead: any) => ({
+          id: lead.id,
+          campaign_name: lead.campaigns?.name || "Unknown Campaign",
+          company_name: (lead.data as any)?.company || (lead.data as any)?.name || "Unknown",
+          phone: (lead.data as any)?.phone || "",
+          status: lead.status,
+          updated_at: lead.updated_at,
+          callback_scheduled_at: lead.callback_scheduled_at,
+        }))
+      );
+    }
+  };
+
+  const getStatusBadge = (status: string, callbackAt: string | null) => {
+    if (callbackAt && new Date(callbackAt) > new Date()) {
+      const diff = formatDistanceToNow(new Date(callbackAt));
+      return <Badge className="bg-amber-500 text-white text-xs">Call back in {diff}</Badge>;
+    }
+    if (status === "won") {
+      return <Badge className="bg-green-600 text-white text-xs">Won</Badge>;
+    }
+    if (status === "lost") {
+      return <Badge className="bg-red-600 text-white text-xs">Lost</Badge>;
+    }
+    return <Badge variant="secondary" className="text-xs capitalize">{status}</Badge>;
+  };
 
   const userInitials = user?.user_metadata?.full_name
     ?.split(" ")
@@ -102,8 +171,67 @@ export function TopNavbar() {
 
         {/* Right Section - Icons & User */}
         <div className="flex items-center ml-auto gap-1">
-          {/* Icon Navigation */}
+          {/* History Popover */}
           <div className="hidden md:flex items-center gap-1">
+            <Popover open={historyOpen} onOpenChange={setHistoryOpen}>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="text-white/70 hover:text-white hover:bg-white/10 h-8 w-8"
+                  title="History"
+                >
+                  <History className="w-4 h-4" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent align="end" className="w-80 p-0">
+                <div className="p-3 border-b">
+                  <h4 className="font-medium text-sm">Recently worked</h4>
+                </div>
+                <div className="max-h-80 overflow-y-auto">
+                  {recentLeads.length === 0 ? (
+                    <div className="p-4 text-center text-muted-foreground text-sm">
+                      No recent activity
+                    </div>
+                  ) : (
+                    recentLeads.map((lead) => (
+                      <Link
+                        key={lead.id}
+                        to={`/leads?id=${lead.id}`}
+                        className="block p-3 hover:bg-muted border-b last:border-b-0"
+                        onClick={() => setHistoryOpen(false)}
+                      >
+                        <p className="text-xs text-muted-foreground uppercase tracking-wide">
+                          {lead.campaign_name}
+                        </p>
+                        <p className="font-medium text-sm">
+                          {lead.company_name}{" "}
+                          {lead.phone && <span className="text-muted-foreground">{lead.phone}</span>}
+                        </p>
+                        <div className="mt-1">
+                          {getStatusBadge(lead.status, lead.callback_scheduled_at)}
+                        </div>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          Last updated {format(new Date(lead.updated_at), "dd-MM-yyyy HH:mm")} (
+                          {formatDistanceToNow(new Date(lead.updated_at), { addSuffix: true })})
+                        </p>
+                      </Link>
+                    ))
+                  )}
+                </div>
+                <div className="p-2 border-t">
+                  <Link
+                    to="/work?tab=worklog"
+                    className="text-primary text-sm hover:underline block text-center"
+                    onClick={() => setHistoryOpen(false)}
+                  >
+                    View full work log
+                  </Link>
+                </div>
+              </PopoverContent>
+            </Popover>
+
+            {/* Icon Navigation */}
             {iconNavItems.map((item) => (
               <NavLink key={item.label} to={item.to}>
                 <Button
