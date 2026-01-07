@@ -46,6 +46,8 @@ interface SearchResult {
   email: string;
   list_name: string;
   status: string;
+  created_at: string;
+  allData: string; // All data fields concatenated for display
 }
 
 const mainNavItems = [
@@ -102,16 +104,16 @@ export function TopNavbar() {
             id,
             data,
             status,
+            created_at,
             lists(name)
           `)
           .ilike('data::text', searchPattern)
-          .limit(15);
+          .limit(20);
 
         if (error) throw error;
 
         const results = (data || []).map((lead: any) => {
           const leadData = lead.data || {};
-          // Find the first field that looks like a name/company
           const nameFields = ['company', 'Company', 'name', 'Name', 'Firma', 'firma', 'Įmonė', 'imone', 'Pavadinimas'];
           const phoneFields = ['phone', 'Phone', 'Telefon', 'telefon', 'Telefonas', 'tel', 'Tel'];
           const emailFields = ['email', 'Email', 'E-mail', 'e-mail', 'EMAIL', 'El. paštas'];
@@ -123,7 +125,6 @@ export function TopNavbar() {
               break;
             }
           }
-          // If no name field found, use the first non-empty string value
           if (displayName === "Unknown") {
             for (const value of Object.values(leadData)) {
               if (typeof value === 'string' && value.trim()) {
@@ -149,6 +150,11 @@ export function TopNavbar() {
             }
           }
 
+          // Concatenate all data values for display
+          const allData = Object.values(leadData)
+            .filter(v => typeof v === 'string' && v.trim())
+            .join(' ');
+
           return {
             id: lead.id,
             name: displayName,
@@ -156,6 +162,8 @@ export function TopNavbar() {
             email,
             list_name: lead.lists?.name || "Unknown List",
             status: lead.status,
+            created_at: lead.created_at,
+            allData,
           };
         });
 
@@ -232,26 +240,30 @@ export function TopNavbar() {
       <header className="fixed top-0 left-0 right-0 h-12 bg-[hsl(200,20%,35%)] z-50 flex items-center px-4 text-white">
         {/* Left Section - Search & Home */}
         <div className="flex items-center gap-1">
-          {/* Search Dropdown */}
+          {/* Search Field with Dropdown */}
           <Popover open={searchOpen} onOpenChange={setSearchOpen}>
             <PopoverTrigger asChild>
-              <Button variant="ghost" size="sm" className="text-white/90 hover:text-white hover:bg-white/10 gap-1 h-8">
-                Search
-                <ChevronDown className="w-3 h-3" />
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent align="start" className="w-80 p-0">
-              <div className="p-2 border-b">
+              <div className="relative">
                 <input
                   type="text"
                   value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Search contacts..."
-                  className="w-full px-3 py-2 border border-input rounded text-sm focus:outline-none focus:ring-1 focus:ring-primary bg-background"
-                  autoFocus
+                  onChange={(e) => {
+                    setSearchQuery(e.target.value);
+                    if (e.target.value.length >= 2) {
+                      setSearchOpen(true);
+                    }
+                  }}
+                  onFocus={() => {
+                    if (searchQuery.length >= 2) {
+                      setSearchOpen(true);
+                    }
+                  }}
+                  placeholder="Search..."
+                  className="w-40 md:w-48 h-7 px-2 text-sm bg-white/10 border border-white/20 rounded text-white placeholder:text-white/50 focus:outline-none focus:bg-white/20 focus:border-white/40"
                 />
               </div>
-              
+            </PopoverTrigger>
+            <PopoverContent align="start" className="w-[500px] p-0" onOpenAutoFocus={(e) => e.preventDefault()}>
               {searchQuery.length < 2 ? (
                 <p className="px-3 py-3 text-sm text-muted-foreground">
                   Please enter 2 or more characters
@@ -265,32 +277,45 @@ export function TopNavbar() {
                   No contacts found
                 </p>
               ) : (
-                <div className="max-h-80 overflow-y-auto">
-                  {searchResults.map((result) => (
-                    <Link
-                      key={result.id}
-                      to={`/leads?id=${result.id}`}
-                      className="block p-3 hover:bg-muted border-b last:border-b-0"
-                      onClick={() => {
-                        setSearchOpen(false);
-                        setSearchQuery("");
-                      }}
-                    >
-                      <p className="text-xs text-muted-foreground uppercase tracking-wide">
-                        {result.list_name}
-                      </p>
-                      <p className="font-medium text-sm">{result.name}</p>
-                      {result.phone && (
-                        <p className="text-sm text-muted-foreground">{result.phone}</p>
-                      )}
-                      {result.email && (
-                        <p className="text-sm text-muted-foreground">{result.email}</p>
-                      )}
-                      <Badge variant="secondary" className="text-xs capitalize mt-1">
-                        {result.status}
-                      </Badge>
-                    </Link>
-                  ))}
+                <div className="max-h-96 overflow-y-auto">
+                  {searchResults.map((result) => {
+                    const dateStr = result.created_at 
+                      ? format(new Date(result.created_at), "dd.MM.yyyy")
+                      : "";
+                    // Highlight matching text
+                    const highlightText = (text: string) => {
+                      if (!searchQuery || searchQuery.length < 2) return text;
+                      const regex = new RegExp(`(${searchQuery})`, 'gi');
+                      const parts = text.split(regex);
+                      return parts.map((part, i) => 
+                        regex.test(part) ? <em key={i} className="not-italic font-medium text-foreground">{part}</em> : part
+                      );
+                    };
+                    
+                    return (
+                      <Link
+                        key={result.id}
+                        to={`/leads?id=${result.id}`}
+                        className="block px-3 py-2 hover:bg-muted border-b last:border-b-0"
+                        onClick={() => {
+                          setSearchOpen(false);
+                          setSearchQuery("");
+                        }}
+                      >
+                        <p className="text-xs text-muted-foreground uppercase tracking-wide">
+                          {result.list_name}
+                        </p>
+                        <p className="font-semibold text-sm">
+                          {highlightText(result.name)}
+                          {result.phone && <span className="ml-2 font-normal text-muted-foreground">{result.phone}</span>}
+                        </p>
+                        <p className="text-xs text-muted-foreground truncate">
+                          {dateStr && <span>{dateStr} </span>}
+                          {highlightText(result.allData)}
+                        </p>
+                      </Link>
+                    );
+                  })}
                 </div>
               )}
             </PopoverContent>
