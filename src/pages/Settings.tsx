@@ -1,4 +1,4 @@
-import { AppLayout } from "@/components/AppLayout";
+import { DashboardLayout } from "@/components/DashboardLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
@@ -231,17 +231,17 @@ export default function Settings() {
 
   if (loading) {
     return (
-      <AppLayout>
+      <DashboardLayout>
         <div className="flex items-center justify-center h-[60vh]">
           <Loader2 className="w-8 h-8 animate-spin text-primary" />
         </div>
-      </AppLayout>
+      </DashboardLayout>
     );
   }
 
   return (
-    <AppLayout>
-      <div className="space-y-6 max-w-4xl">
+    <DashboardLayout>
+      <div className="max-w-4xl mx-auto px-4 py-6 space-y-6">
         <h1 className="text-2xl font-display font-bold">Settings</h1>
 
         <Tabs defaultValue="smtp">
@@ -594,6 +594,6 @@ export default function Settings() {
           )}
         </Tabs>
       </div>
-    </AppLayout>
+    </DashboardLayout>
   );
 }
