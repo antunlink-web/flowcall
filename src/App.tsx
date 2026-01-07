@@ -14,6 +14,8 @@ import Reports from "./pages/Reports";
 import Team from "./pages/Team";
 import Settings from "./pages/Settings";
 import Manage from "./pages/Manage";
+import ManageSettings from "./pages/ManageSettings";
+import ManageAccount from "./pages/ManageAccount";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -34,6 +36,8 @@ const App = () => (
             <Route path="/reports" element={<ProtectedRoute><Reports /></ProtectedRoute>} />
             <Route path="/team" element={<ProtectedRoute><Team /></ProtectedRoute>} />
             <Route path="/manage/users" element={<ProtectedRoute><Team /></ProtectedRoute>} />
+            <Route path="/manage/settings" element={<ProtectedRoute><ManageSettings /></ProtectedRoute>} />
+            <Route path="/manage/account" element={<ProtectedRoute><ManageAccount /></ProtectedRoute>} />
             <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
             <Route path="/manage" element={<ProtectedRoute><Manage /></ProtectedRoute>} />
             <Route path="*" element={<NotFound />} />
