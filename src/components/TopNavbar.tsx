@@ -65,6 +65,8 @@ export function TopNavbar() {
   const { role } = useUserRole();
   const location = useLocation();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
 
   const [recentLeads, setRecentLeads] = useState<RecentLead[]>([]);
   const [historyOpen, setHistoryOpen] = useState(false);
@@ -131,21 +133,29 @@ export function TopNavbar() {
         {/* Left Section - Search & Home */}
         <div className="flex items-center gap-1">
           {/* Search Dropdown */}
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
+          <Popover open={searchOpen} onOpenChange={setSearchOpen}>
+            <PopoverTrigger asChild>
               <Button variant="ghost" size="sm" className="text-white/90 hover:text-white hover:bg-white/10 gap-1 h-8">
-                <Search className="w-4 h-4" />
-                Search Contacts
+                Search
                 <ChevronDown className="w-3 h-3" />
               </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="start" className="w-48">
-              <DropdownMenuItem>Search Contacts</DropdownMenuItem>
-              <DropdownMenuItem>Search Leads</DropdownMenuItem>
-              <DropdownMenuItem>Search Campaigns</DropdownMenuItem>
-              <DropdownMenuItem>Search All</DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+            </PopoverTrigger>
+            <PopoverContent align="start" className="w-64 p-0">
+              <div className="p-2">
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder=""
+                  className="w-full px-3 py-2 border border-foreground rounded text-sm focus:outline-none focus:ring-1 focus:ring-primary"
+                  autoFocus
+                />
+              </div>
+              <p className="px-3 pb-3 text-sm text-muted-foreground">
+                Please enter 3 or more characters
+              </p>
+            </PopoverContent>
+          </Popover>
 
           {/* Home Icon */}
           <NavLink to="/">
