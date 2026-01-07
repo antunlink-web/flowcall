@@ -29,6 +29,9 @@ import {
   Settings,
   ChevronDown,
   Menu,
+  User,
+  CreditCard,
+  DollarSign,
   X,
 } from "lucide-react";
 import { useState, useEffect } from "react";
@@ -264,18 +267,29 @@ export function TopNavbar() {
                 <ChevronDown className="w-3 h-3" />
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-56">
-              <div className="px-3 py-2">
-                <p className="text-sm font-medium truncate">
-                  {user?.user_metadata?.full_name || user?.email}
-                </p>
-                <p className="text-xs text-muted-foreground capitalize">{role}</p>
-              </div>
-              <DropdownMenuSeparator />
+            <DropdownMenuContent align="end" className="w-48 bg-background">
               <DropdownMenuItem asChild>
                 <NavLink to="/settings" className="flex items-center gap-2">
+                  <User className="w-4 h-4" />
+                  My Preferences
+                </NavLink>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <NavLink to="/manage/account" className="flex items-center gap-2">
                   <Settings className="w-4 h-4" />
-                  Settings
+                  Account Settings
+                </NavLink>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <NavLink to="/manage/account?section=billing" className="flex items-center gap-2">
+                  <CreditCard className="w-4 h-4" />
+                  Billing
+                </NavLink>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <NavLink to="/manage/account?section=referral" className="flex items-center gap-2">
+                  <DollarSign className="w-4 h-4" />
+                  Make Money
                 </NavLink>
               </DropdownMenuItem>
               <DropdownMenuSeparator />
