@@ -9,6 +9,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Upload, FileText, AlertCircle } from "lucide-react";
 import { ListField } from "@/hooks/useLists";
+import * as XLSX from "xlsx";
 
 interface ImportLeadsDialogProps {
   open: boolean;
@@ -26,35 +27,109 @@ export function ImportLeadsDialog({
   onImport,
 }: ImportLeadsDialogProps) {
   const [csvContent, setCsvContent] = useState("");
-  const [csvFileName, setCsvFileName] = useState("");
-  const [csvHeaders, setCsvHeaders] = useState<string[]>([]);
+  const [fileName, setFileName] = useState("");
+  const [headers, setHeaders] = useState<string[]>([]);
   const [error, setError] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
     setError("");
-    setCsvFileName(file.name);
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      const content = event.target?.result as string;
-      setCsvContent(content);
+    setFileName(file.name);
+    setIsLoading(true);
 
-      // Extract headers
-      const lines = content.trim().split("\n");
-      if (lines.length > 0) {
-        const headers = lines[0].split(",").map((h) => h.trim().replace(/^"|"$/g, ""));
-        setCsvHeaders(headers);
+    const isExcel = file.name.endsWith(".xlsx") || file.name.endsWith(".xls");
+
+    try {
+      if (isExcel) {
+        // Handle Excel files
+        const arrayBuffer = await file.arrayBuffer();
+        const workbook = XLSX.read(arrayBuffer, { type: "array" });
+        const firstSheetName = workbook.SheetNames[0];
+        const worksheet = workbook.Sheets[firstSheetName];
+        
+        // Convert to CSV with tab delimiter to avoid comma issues
+        const csvOutput = XLSX.utils.sheet_to_csv(worksheet, { FS: "\t" });
+        setCsvContent(csvOutput);
+        
+        // Extract headers
+        const lines = csvOutput.trim().split("\n");
+        if (lines.length > 0) {
+          const extractedHeaders = lines[0].split("\t").map((h) => h.trim());
+          setHeaders(extractedHeaders);
+        }
+      } else {
+        // Handle CSV files
+        const reader = new FileReader();
+        reader.onload = (event) => {
+          const content = event.target?.result as string;
+          setCsvContent(content);
+
+          // Extract headers - detect delimiter
+          const lines = content.trim().split("\n");
+          if (lines.length > 0) {
+            const firstLine = lines[0];
+            const delimiter = detectDelimiter(firstLine);
+            const extractedHeaders = parseCSVLine(firstLine, delimiter).map((h) => h.trim());
+            setHeaders(extractedHeaders);
+          }
+        };
+        reader.readAsText(file);
       }
-    };
-    reader.readAsText(file);
+    } catch (err) {
+      setError("Failed to read file. Please try again.");
+      console.error("File read error:", err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Detect CSV delimiter
+  const detectDelimiter = (line: string): string => {
+    const tabCount = (line.match(/\t/g) || []).length;
+    const commaCount = (line.match(/,/g) || []).length;
+    const semicolonCount = (line.match(/;/g) || []).length;
+    
+    if (tabCount >= commaCount && tabCount >= semicolonCount && tabCount > 0) {
+      return "\t";
+    }
+    return semicolonCount > commaCount ? ";" : ",";
+  };
+
+  // Parse a CSV line handling quoted fields
+  const parseCSVLine = (line: string, delimiter: string): string[] => {
+    const result: string[] = [];
+    let current = "";
+    let inQuotes = false;
+    
+    for (let i = 0; i < line.length; i++) {
+      const char = line[i];
+      
+      if (char === '"') {
+        if (inQuotes && line[i + 1] === '"') {
+          current += '"';
+          i++;
+        } else {
+          inQuotes = !inQuotes;
+        }
+      } else if (char === delimiter && !inQuotes) {
+        result.push(current.replace(/^"|"$/g, ""));
+        current = "";
+      } else {
+        current += char;
+      }
+    }
+    
+    result.push(current.replace(/^"|"$/g, ""));
+    return result;
   };
 
   const handleSubmit = () => {
     if (!csvContent) {
-      setError("Please select a CSV file");
+      setError("Please select a file");
       return;
     }
     onImport(csvContent);
@@ -64,16 +139,17 @@ export function ImportLeadsDialog({
 
   const resetForm = () => {
     setCsvContent("");
-    setCsvFileName("");
-    setCsvHeaders([]);
+    setFileName("");
+    setHeaders([]);
     setError("");
+    setIsLoading(false);
   };
 
-  const matchedFields = csvHeaders.filter((h) =>
+  const matchedFields = headers.filter((h) =>
     listFields.some((f) => f.name.toLowerCase() === h.toLowerCase())
   );
 
-  const unmatchedFields = csvHeaders.filter(
+  const unmatchedFields = headers.filter(
     (h) => !listFields.some((f) => f.name.toLowerCase() === h.toLowerCase())
   );
 
@@ -89,7 +165,7 @@ export function ImportLeadsDialog({
             <input
               type="file"
               ref={fileInputRef}
-              accept=".csv"
+              accept=".csv,.xlsx,.xls"
               onChange={handleFileChange}
               className="hidden"
             />
@@ -97,10 +173,14 @@ export function ImportLeadsDialog({
               variant="outline"
               onClick={() => fileInputRef.current?.click()}
               className="w-full justify-start gap-2"
+              disabled={isLoading}
             >
               <Upload className="h-4 w-4" />
-              {csvFileName || "Choose CSV file"}
+              {isLoading ? "Reading file..." : fileName || "Choose CSV or Excel file"}
             </Button>
+            <p className="text-xs text-muted-foreground">
+              Supports .csv, .xlsx, and .xls files
+            </p>
           </div>
 
           {error && (
@@ -110,7 +190,7 @@ export function ImportLeadsDialog({
             </div>
           )}
 
-          {csvHeaders.length > 0 && (
+          {headers.length > 0 && (
             <div className="space-y-4">
               <div className="space-y-2">
                 <p className="text-sm font-medium text-green-600">
@@ -158,7 +238,7 @@ export function ImportLeadsDialog({
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             Cancel
           </Button>
-          <Button onClick={handleSubmit} disabled={!csvContent}>
+          <Button onClick={handleSubmit} disabled={!csvContent || isLoading}>
             Import Leads
           </Button>
         </DialogFooter>
