@@ -34,9 +34,19 @@ import {
   DollarSign,
   X,
 } from "lucide-react";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { formatDistanceToNow, format } from "date-fns";
+import { Loader2 } from "lucide-react";
+
+interface SearchResult {
+  id: string;
+  name: string;
+  phone: string;
+  email: string;
+  list_name: string;
+  status: string;
+}
 
 const mainNavItems = [
   { to: "/work", label: "Work" },
@@ -67,9 +77,63 @@ export function TopNavbar() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
+  const [searchLoading, setSearchLoading] = useState(false);
 
   const [recentLeads, setRecentLeads] = useState<RecentLead[]>([]);
   const [historyOpen, setHistoryOpen] = useState(false);
+
+  // Search contacts when query changes
+  useEffect(() => {
+    if (searchQuery.length < 3) {
+      setSearchResults([]);
+      return;
+    }
+
+    const searchContacts = async () => {
+      setSearchLoading(true);
+      try {
+        const { data, error } = await supabase
+          .from("leads")
+          .select(`
+            id,
+            data,
+            status,
+            lists(name)
+          `)
+          .limit(20);
+
+        if (error) throw error;
+
+        // Filter results client-side based on search query
+        const query = searchQuery.toLowerCase();
+        const filtered = (data || [])
+          .filter((lead: any) => {
+            const leadData = lead.data || {};
+            const searchableText = Object.values(leadData).join(" ").toLowerCase();
+            return searchableText.includes(query);
+          })
+          .slice(0, 10)
+          .map((lead: any) => ({
+            id: lead.id,
+            name: (lead.data as any)?.company || (lead.data as any)?.name || (lead.data as any)?.Firma || "Unknown",
+            phone: (lead.data as any)?.phone || (lead.data as any)?.Telefon || "",
+            email: (lead.data as any)?.email || (lead.data as any)?.["E-mail"] || "",
+            list_name: lead.lists?.name || "Unknown List",
+            status: lead.status,
+          }));
+
+        setSearchResults(filtered);
+      } catch (error) {
+        console.error("Search error:", error);
+      } finally {
+        setSearchLoading(false);
+      }
+    };
+
+    const debounce = setTimeout(searchContacts, 300);
+    return () => clearTimeout(debounce);
+  }, [searchQuery]);
 
   useEffect(() => {
     if (historyOpen && user) {
@@ -140,20 +204,59 @@ export function TopNavbar() {
                 <ChevronDown className="w-3 h-3" />
               </Button>
             </PopoverTrigger>
-            <PopoverContent align="start" className="w-64 p-0">
-              <div className="p-2">
+            <PopoverContent align="start" className="w-80 p-0">
+              <div className="p-2 border-b">
                 <input
                   type="text"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder=""
-                  className="w-full px-3 py-2 border border-foreground rounded text-sm focus:outline-none focus:ring-1 focus:ring-primary"
+                  placeholder="Search contacts..."
+                  className="w-full px-3 py-2 border border-input rounded text-sm focus:outline-none focus:ring-1 focus:ring-primary bg-background"
                   autoFocus
                 />
               </div>
-              <p className="px-3 pb-3 text-sm text-muted-foreground">
-                Please enter 3 or more characters
-              </p>
+              
+              {searchQuery.length < 3 ? (
+                <p className="px-3 py-3 text-sm text-muted-foreground">
+                  Please enter 3 or more characters
+                </p>
+              ) : searchLoading ? (
+                <div className="flex items-center justify-center py-6">
+                  <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+                </div>
+              ) : searchResults.length === 0 ? (
+                <p className="px-3 py-3 text-sm text-muted-foreground">
+                  No contacts found
+                </p>
+              ) : (
+                <div className="max-h-80 overflow-y-auto">
+                  {searchResults.map((result) => (
+                    <Link
+                      key={result.id}
+                      to={`/leads?id=${result.id}`}
+                      className="block p-3 hover:bg-muted border-b last:border-b-0"
+                      onClick={() => {
+                        setSearchOpen(false);
+                        setSearchQuery("");
+                      }}
+                    >
+                      <p className="text-xs text-muted-foreground uppercase tracking-wide">
+                        {result.list_name}
+                      </p>
+                      <p className="font-medium text-sm">{result.name}</p>
+                      {result.phone && (
+                        <p className="text-sm text-muted-foreground">{result.phone}</p>
+                      )}
+                      {result.email && (
+                        <p className="text-sm text-muted-foreground">{result.email}</p>
+                      )}
+                      <Badge variant="secondary" className="text-xs capitalize mt-1">
+                        {result.status}
+                      </Badge>
+                    </Link>
+                  ))}
+                </div>
+              )}
             </PopoverContent>
           </Popover>
 
