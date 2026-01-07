@@ -1,6 +1,8 @@
 import { useState, useEffect } from "react";
+import { useSearchParams, useNavigate } from "react-router-dom";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { LeadStatusBadge } from "@/components/leads/LeadStatusBadge";
+import { LeadDetailView } from "@/components/leads/LeadDetailView";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -61,6 +63,10 @@ const leadStatuses: LeadStatus[] = [
 ];
 
 export default function Leads() {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const navigate = useNavigate();
+  const selectedLeadId = searchParams.get("id");
+
   const [leads, setLeads] = useState<Lead[]>([]);
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [loading, setLoading] = useState(true);
@@ -74,6 +80,20 @@ export default function Leads() {
   const { user } = useAuth();
   const { isAdminOrManager } = useUserRole();
   const { toast } = useToast();
+
+  // If a lead is selected via query param, show the detail view
+  if (selectedLeadId) {
+    return (
+      <DashboardLayout>
+        <LeadDetailView
+          leadId={selectedLeadId}
+          onClose={() => {
+            setSearchParams({});
+          }}
+        />
+      </DashboardLayout>
+    );
+  }
 
   // Form state - dynamic fields
   const [formData, setFormData] = useState<Record<string, string>>({});
