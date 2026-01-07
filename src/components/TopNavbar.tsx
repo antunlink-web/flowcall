@@ -135,11 +135,12 @@ export function TopNavbar() {
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" size="sm" className="text-white/90 hover:text-white hover:bg-white/10 gap-1 h-8">
                 <Search className="w-4 h-4" />
-                Search
+                Search Contacts
                 <ChevronDown className="w-3 h-3" />
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="start" className="w-48">
+              <DropdownMenuItem>Search Contacts</DropdownMenuItem>
               <DropdownMenuItem>Search Leads</DropdownMenuItem>
               <DropdownMenuItem>Search Campaigns</DropdownMenuItem>
               <DropdownMenuItem>Search All</DropdownMenuItem>
