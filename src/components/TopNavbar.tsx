@@ -85,7 +85,7 @@ export function TopNavbar() {
 
   // Search contacts when query changes
   useEffect(() => {
-    if (searchQuery.length < 3) {
+    if (searchQuery.length < 2) {
       setSearchResults([]);
       return;
     }
@@ -93,6 +93,9 @@ export function TopNavbar() {
     const searchContacts = async () => {
       setSearchLoading(true);
       try {
+        // Use ilike on the data::text cast to search all JSONB fields
+        const searchPattern = `%${searchQuery}%`;
+        
         const { data, error } = await supabase
           .from("leads")
           .select(`
@@ -101,29 +104,62 @@ export function TopNavbar() {
             status,
             lists(name)
           `)
-          .limit(20);
+          .ilike('data::text', searchPattern)
+          .limit(15);
 
         if (error) throw error;
 
-        // Filter results client-side based on search query
-        const query = searchQuery.toLowerCase();
-        const filtered = (data || [])
-          .filter((lead: any) => {
-            const leadData = lead.data || {};
-            const searchableText = Object.values(leadData).join(" ").toLowerCase();
-            return searchableText.includes(query);
-          })
-          .slice(0, 10)
-          .map((lead: any) => ({
+        const results = (data || []).map((lead: any) => {
+          const leadData = lead.data || {};
+          // Find the first field that looks like a name/company
+          const nameFields = ['company', 'Company', 'name', 'Name', 'Firma', 'firma', 'Įmonė', 'imone', 'Pavadinimas'];
+          const phoneFields = ['phone', 'Phone', 'Telefon', 'telefon', 'Telefonas', 'tel', 'Tel'];
+          const emailFields = ['email', 'Email', 'E-mail', 'e-mail', 'EMAIL', 'El. paštas'];
+          
+          let displayName = "Unknown";
+          for (const field of nameFields) {
+            if (leadData[field]) {
+              displayName = leadData[field];
+              break;
+            }
+          }
+          // If no name field found, use the first non-empty string value
+          if (displayName === "Unknown") {
+            for (const value of Object.values(leadData)) {
+              if (typeof value === 'string' && value.trim()) {
+                displayName = value;
+                break;
+              }
+            }
+          }
+
+          let phone = "";
+          for (const field of phoneFields) {
+            if (leadData[field]) {
+              phone = leadData[field];
+              break;
+            }
+          }
+
+          let email = "";
+          for (const field of emailFields) {
+            if (leadData[field]) {
+              email = leadData[field];
+              break;
+            }
+          }
+
+          return {
             id: lead.id,
-            name: (lead.data as any)?.company || (lead.data as any)?.name || (lead.data as any)?.Firma || "Unknown",
-            phone: (lead.data as any)?.phone || (lead.data as any)?.Telefon || "",
-            email: (lead.data as any)?.email || (lead.data as any)?.["E-mail"] || "",
+            name: displayName,
+            phone,
+            email,
             list_name: lead.lists?.name || "Unknown List",
             status: lead.status,
-          }));
+          };
+        });
 
-        setSearchResults(filtered);
+        setSearchResults(results);
       } catch (error) {
         console.error("Search error:", error);
       } finally {
@@ -216,9 +252,9 @@ export function TopNavbar() {
                 />
               </div>
               
-              {searchQuery.length < 3 ? (
+              {searchQuery.length < 2 ? (
                 <p className="px-3 py-3 text-sm text-muted-foreground">
-                  Please enter 3 or more characters
+                  Please enter 2 or more characters
                 </p>
               ) : searchLoading ? (
                 <div className="flex items-center justify-center py-6">
