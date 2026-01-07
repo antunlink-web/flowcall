@@ -95,9 +95,7 @@ export function TopNavbar() {
     const searchContacts = async () => {
       setSearchLoading(true);
       try {
-        // Use ilike on the data::text cast to search all JSONB fields
-        const searchPattern = `%${searchQuery}%`;
-        
+        // Fetch leads and filter client-side since JSONB ilike doesn't work in PostgREST
         const { data, error } = await supabase
           .from("leads")
           .select(`
@@ -107,12 +105,21 @@ export function TopNavbar() {
             created_at,
             lists(name)
           `)
-          .ilike('data::text', searchPattern)
-          .limit(20);
+          .limit(500);
 
         if (error) throw error;
 
-        const results = (data || []).map((lead: any) => {
+        const query = searchQuery.toLowerCase();
+        const filtered = (data || []).filter((lead: any) => {
+          const leadData = lead.data || {};
+          const searchableText = Object.values(leadData)
+            .filter(v => typeof v === 'string')
+            .join(' ')
+            .toLowerCase();
+          return searchableText.includes(query);
+        });
+
+        const results = filtered.slice(0, 20).map((lead: any) => {
           const leadData = lead.data || {};
           const nameFields = ['company', 'Company', 'name', 'Name', 'Firma', 'firma', 'Įmonė', 'imone', 'Pavadinimas'];
           const phoneFields = ['phone', 'Phone', 'Telefon', 'telefon', 'Telefonas', 'tel', 'Tel'];
