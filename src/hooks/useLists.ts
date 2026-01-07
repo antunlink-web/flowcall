@@ -224,9 +224,10 @@ export function useLists() {
         status: "new",
       }));
 
-      // Insert in batches with progress tracking
-      const batchSize = 500; // Increased batch size for faster import
+      // Use smaller batch size for reliability with large datasets
+      const batchSize = 100;
       let inserted = 0;
+      let failed = 0;
       const totalLeads = leads.length;
 
       for (let i = 0; i < leads.length; i += batchSize) {
@@ -239,23 +240,30 @@ export function useLists() {
           message: `Importing leads... (${Math.min(i + batch.length, totalLeads).toLocaleString()} of ${totalLeads.toLocaleString()})` 
         });
         
-        const { error } = await supabase.from("leads").insert(batch);
+        const { error, data } = await supabase.from("leads").insert(batch).select("id");
         if (error) {
-          console.error("Batch insert error:", error);
-          throw error;
+          console.error("Batch insert error at batch starting", i, ":", error);
+          failed += batch.length;
+          // Continue with next batch instead of failing completely
+          continue;
         }
-        inserted += batch.length;
+        inserted += data?.length || batch.length;
       }
 
       setUploadProgress({ isUploading: true, progress: 100, message: "Finalizing import..." });
       
-      toast.success(`Imported ${inserted.toLocaleString()} leads successfully`);
+      if (failed > 0) {
+        toast.warning(`Imported ${inserted.toLocaleString()} leads. ${failed.toLocaleString()} failed.`);
+      } else {
+        toast.success(`Imported ${inserted.toLocaleString()} leads successfully`);
+      }
+      
       fetchLists(); // Refresh stats
       
       // Small delay to show completion
       setTimeout(() => {
         setUploadProgress({ isUploading: false, progress: 0, message: "" });
-      }, 1000);
+      }, 1500);
       
       return inserted;
     } catch (error: unknown) {
