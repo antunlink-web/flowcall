@@ -21,6 +21,7 @@ import {
   PiggyBank,
   Receipt,
   ChevronRight,
+  Check,
 } from "lucide-react";
 
 const subNavItems = [
@@ -60,12 +61,23 @@ const mockBalanceHistory = [
 
 export default function ManageAccount() {
   const location = useLocation();
-  const [activeSection, setActiveSection] = useState("seats");
+  const [activeSection, setActiveSection] = useState("billing");
   const [seats, setSeats] = useState("4");
   const [topUpTo, setTopUpTo] = useState("0");
   const [balanceFallsBelow, setBalanceFallsBelow] = useState("0");
   const [showEntries, setShowEntries] = useState("25");
   const [searchInvoices, setSearchInvoices] = useState("");
+  
+  // Billing form state
+  const [vatNumber, setVatNumber] = useState("LT100017923517");
+  const [companyName, setCompanyName] = useState('Labdaros ir paramos fondas "Gera valia"');
+  const [contactPhone, setContactPhone] = useState("+37067679991");
+  const [address1, setAddress1] = useState("Pamenkalnio g. 25-1");
+  const [address2, setAddress2] = useState("");
+  const [city, setCity] = useState("Vilnius");
+  const [stateProvince, setStateProvince] = useState("Vilniaus");
+  const [zip, setZip] = useState("06326");
+  const [country, setCountry] = useState("Lithuania");
 
   const accountInfo = {
     plan: "Basic (Legacy 2025-12) - Billed €25 monthly per user",
@@ -104,6 +116,208 @@ export default function ManageAccount() {
 
   const renderContent = () => {
     switch (activeSection) {
+      case "billing":
+        return (
+          <div className="space-y-8">
+            <div>
+              <h1 className="text-3xl font-light text-primary italic mb-2">Billing Information</h1>
+              <div className="w-16 h-0.5 bg-primary mb-8" />
+            </div>
+
+            {renderAccountInfoCard()}
+
+            {/* VAT Number */}
+            <div className="space-y-2">
+              <div className="flex items-center gap-4">
+                <Label className="w-40 text-right font-medium">VAT Number</Label>
+                <div className="flex-1 flex gap-2">
+                  <Input
+                    value={vatNumber}
+                    onChange={(e) => setVatNumber(e.target.value)}
+                    className="flex-1"
+                  />
+                  <Button variant="outline">Change to validate</Button>
+                </div>
+              </div>
+              <div className="ml-44">
+                <p className="text-sm text-primary">provide your VAT-number with country code prefixed, eg. 'DK12345678'</p>
+                <div className="mt-2 text-sm text-muted-foreground">
+                  <p className="font-medium">About VAT</p>
+                  <p>Liisberg Consulting (the provider of Myphoner) is registered in Denmark, this means</p>
+                  <ul className="list-disc ml-6 mt-1 space-y-1">
+                    <li>Customers in Denmark will be charged VAT.</li>
+                    <li>Private persons within the EU will be charged VAT.</li>
+                    <li>Companies within the EU will not be charged VAT if they supply a valid VAT number.</li>
+                    <li>Customers outside the EU will not be charged VAT.</li>
+                  </ul>
+                  <p className="mt-2">If supplied, the VAT number will be printed on your invoices for reference.</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Company Name */}
+            <div className="flex items-center gap-4">
+              <Label className="w-40 text-right font-medium">Company Name</Label>
+              <Input
+                value={companyName}
+                onChange={(e) => setCompanyName(e.target.value)}
+                className="flex-1"
+              />
+            </div>
+
+            {/* Contact Phone */}
+            <div className="space-y-1">
+              <div className="flex items-center gap-4">
+                <Label className="w-40 text-right font-medium">
+                  Contact phone number<br />
+                  <span className="font-normal text-muted-foreground">(optional)</span>
+                </Label>
+                <Input
+                  value={contactPhone}
+                  onChange={(e) => setContactPhone(e.target.value)}
+                  className="flex-1"
+                />
+              </div>
+              <p className="ml-44 text-sm text-muted-foreground">We'll contact you only for support and account management purposes.</p>
+            </div>
+
+            {/* Address 1 */}
+            <div className="flex items-center gap-4">
+              <Label className="w-40 text-right font-medium">
+                <span className="text-destructive">*</span> Address1
+              </Label>
+              <Input
+                value={address1}
+                onChange={(e) => setAddress1(e.target.value)}
+                className="flex-1"
+              />
+            </div>
+
+            {/* Address 2 */}
+            <div className="flex items-center gap-4">
+              <Label className="w-40 text-right font-medium">Address2</Label>
+              <Input
+                value={address2}
+                onChange={(e) => setAddress2(e.target.value)}
+                placeholder="Address line 2"
+                className="flex-1"
+              />
+            </div>
+
+            {/* City */}
+            <div className="flex items-center gap-4">
+              <Label className="w-40 text-right font-medium">
+                <span className="text-destructive">*</span> City
+              </Label>
+              <Input
+                value={city}
+                onChange={(e) => setCity(e.target.value)}
+                className="flex-1"
+              />
+            </div>
+
+            {/* State */}
+            <div className="flex items-center gap-4">
+              <Label className="w-40 text-right font-medium">
+                <span className="text-destructive">*</span> State
+              </Label>
+              <Input
+                value={stateProvince}
+                onChange={(e) => setStateProvince(e.target.value)}
+                className="flex-1"
+              />
+            </div>
+
+            {/* Zip */}
+            <div className="flex items-center gap-4">
+              <Label className="w-40 text-right font-medium">
+                <span className="text-destructive">*</span> Zip
+              </Label>
+              <Input
+                value={zip}
+                onChange={(e) => setZip(e.target.value)}
+                className="flex-1"
+              />
+            </div>
+
+            {/* Country */}
+            <div className="flex items-center gap-4">
+              <Label className="w-40 text-right font-medium"></Label>
+              <Select value={country} onValueChange={setCountry}>
+                <SelectTrigger className="w-48">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Lithuania">Lithuania</SelectItem>
+                  <SelectItem value="Denmark">Denmark</SelectItem>
+                  <SelectItem value="Germany">Germany</SelectItem>
+                  <SelectItem value="United States">United States</SelectItem>
+                  <SelectItem value="United Kingdom">United Kingdom</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="flex items-center gap-4">
+              <Label className="w-40"></Label>
+              <Button className="bg-destructive hover:bg-destructive/90">Save account details</Button>
+            </div>
+          </div>
+        );
+
+      case "payment":
+        return (
+          <div className="space-y-8">
+            <div>
+              <h1 className="text-3xl font-light text-primary italic mb-2">Payment Method</h1>
+              <div className="w-16 h-0.5 bg-primary mb-8" />
+            </div>
+
+            {renderAccountInfoCard()}
+
+            <div className="flex items-center justify-between mb-2">
+              <h2 className="text-lg">Paying with Card</h2>
+              <span className="text-primary cursor-pointer hover:underline">Edit</span>
+            </div>
+
+            <div className="border-2 border-green-500 rounded p-4 flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-8 bg-gradient-to-r from-red-500 to-orange-400 rounded flex items-center justify-center">
+                  <div className="w-4 h-4 bg-red-600 rounded-full opacity-80 -mr-1" />
+                  <div className="w-4 h-4 bg-orange-500 rounded-full opacity-80" />
+                </div>
+                <div>
+                  <p className="font-medium">Ending in 6227</p>
+                  <p className="text-sm text-muted-foreground">Mastercard</p>
+                </div>
+              </div>
+              <div className="w-10 h-10 bg-green-500 rounded-full flex items-center justify-center">
+                <Check className="w-6 h-6 text-white" />
+              </div>
+            </div>
+
+            <div className="text-center pt-4">
+              <span className="text-primary cursor-pointer hover:underline">Choose another way to pay</span>
+            </div>
+          </div>
+        );
+
+      case "branding":
+        return (
+          <div className="space-y-8">
+            <div>
+              <h1 className="text-3xl font-light text-primary italic mb-2">Custom Branding</h1>
+              <div className="w-16 h-0.5 bg-primary mb-8" />
+            </div>
+
+            {renderAccountInfoCard()}
+
+            <div className="border border-border rounded p-6">
+              <p className="text-muted-foreground">Custom branding options are available on Premium plans.</p>
+              <Button className="mt-4 bg-primary hover:bg-primary/90">Upgrade to Premium</Button>
+            </div>
+          </div>
+        );
+
       case "seats":
         return (
           <div className="space-y-8">
