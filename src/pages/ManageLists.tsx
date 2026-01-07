@@ -97,7 +97,7 @@ const mockEmailTemplates = [
 
 export default function ManageLists() {
   const location = useLocation();
-  const { lists, loading, uploadProgress, createList, updateList, deleteList, importLeadsFromCsv } = useLists();
+  const { lists, loading, uploadProgress, createList, updateList, deleteList, importLeadsFromData } = useLists();
   
   const [activeTab, setActiveTab] = useState<"active" | "archived" | "blocklists">("active");
   const [configureList, setConfigureList] = useState<List | null>(null);
@@ -142,11 +142,11 @@ export default function ManageLists() {
     name: string,
     fields: ListField[],
     description: string,
-    csvContent: string
+    data: { headers: string[]; rows: Record<string, string>[] }
   ) => {
     const newList = await createList(name, fields, description);
-    if (newList && csvContent) {
-      await importLeadsFromCsv(newList.id, csvContent);
+    if (newList && data.rows.length > 0) {
+      await importLeadsFromData(newList.id, data.rows);
     }
     setShowCreateDialog(false);
   };
@@ -190,9 +190,9 @@ export default function ManageLists() {
     }
   };
 
-  const handleImportLeads = async (csvContent: string) => {
+  const handleImportLeads = async (data: { headers: string[]; rows: Record<string, string>[] }) => {
     if (!configureList) return;
-    await importLeadsFromCsv(configureList.id, csvContent);
+    await importLeadsFromData(configureList.id, data.rows);
   };
 
   const renderBadge = (value: number, color: string) => (
