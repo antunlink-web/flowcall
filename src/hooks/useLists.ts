@@ -53,16 +53,30 @@ export function useLists() {
 
       if (listsError) throw listsError;
 
-      // Fetch lead counts per list
-      const { data: leadCounts, error: countsError } = await supabase
-        .from("leads")
-        .select("list_id, status");
+      // Fetch lead counts per list - use pagination to get all leads (bypass 1000 limit)
+      let allLeadCounts: { list_id: string | null; status: string }[] = [];
+      let from = 0;
+      const pageSize = 1000;
+      
+      while (true) {
+        const { data: leadCounts, error: countsError } = await supabase
+          .from("leads")
+          .select("list_id, status")
+          .range(from, from + pageSize - 1);
 
-      if (countsError) throw countsError;
+        if (countsError) throw countsError;
+        
+        if (!leadCounts || leadCounts.length === 0) break;
+        
+        allLeadCounts = [...allLeadCounts, ...leadCounts];
+        
+        if (leadCounts.length < pageSize) break;
+        from += pageSize;
+      }
 
       // Calculate stats for each list
       const listsWithStats = (listsData || []).map((list) => {
-        const listLeads = leadCounts?.filter((l) => l.list_id === list.id) || [];
+        const listLeads = allLeadCounts?.filter((l) => l.list_id === list.id) || [];
         return {
           ...list,
           fields: (list.fields as unknown as ListField[]) || [],
