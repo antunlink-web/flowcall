@@ -180,30 +180,23 @@ export function useLists() {
     csvContent: string
   ): Promise<number> => {
     try {
-      const lines = csvContent.trim().split("\n");
-      if (lines.length < 2) {
-        toast.error("CSV file must have headers and at least one data row");
+      const { headers, rows } = parseCsvContent(csvContent);
+      
+      if (headers.length === 0) {
+        toast.error("CSV file must have headers");
+        return 0;
+      }
+      
+      if (rows.length === 0) {
+        toast.error("CSV file must have at least one data row");
         return 0;
       }
 
-      const headers = lines[0].split(",").map((h) => h.trim().replace(/^"|"$/g, ""));
-      const leads = [];
-
-      for (let i = 1; i < lines.length; i++) {
-        const values = parseCsvLine(lines[i]);
-        if (values.length !== headers.length) continue;
-
-        const data: Record<string, string> = {};
-        headers.forEach((header, index) => {
-          data[header] = values[index];
-        });
-
-        leads.push({
-          list_id: listId,
-          data,
-          status: "new",
-        });
-      }
+      const leads = rows.map((data) => ({
+        list_id: listId,
+        data,
+        status: "new",
+      }));
 
       if (leads.length === 0) {
         toast.error("No valid leads found in CSV");
@@ -246,8 +239,15 @@ export function useLists() {
   };
 }
 
+// Detect CSV delimiter (comma or semicolon)
+function detectDelimiter(line: string): string {
+  const commaCount = (line.match(/,/g) || []).length;
+  const semicolonCount = (line.match(/;/g) || []).length;
+  return semicolonCount > commaCount ? ";" : ",";
+}
+
 // Helper to parse CSV line handling quoted values
-function parseCsvLine(line: string): string[] {
+function parseCsvLine(line: string, delimiter: string = ","): string[] {
   const result: string[] = [];
   let current = "";
   let inQuotes = false;
@@ -256,35 +256,46 @@ function parseCsvLine(line: string): string[] {
     const char = line[i];
     if (char === '"') {
       inQuotes = !inQuotes;
-    } else if (char === "," && !inQuotes) {
-      result.push(current.trim());
+    } else if (char === delimiter && !inQuotes) {
+      result.push(current.trim().replace(/^"|"$/g, ""));
       current = "";
     } else {
       current += char;
     }
   }
-  result.push(current.trim());
-  return result;
+  result.push(current.trim().replace(/^"|"$/g, ""));
+  return result.filter(h => h.length > 0 || result.length === 1);
 }
 
 // Helper to extract field definitions from CSV headers
 export function extractFieldsFromCsv(csvContent: string): ListField[] {
-  const lines = csvContent.trim().split("\n");
-  if (lines.length === 0) return [];
+  if (!csvContent || csvContent.trim().length === 0) return [];
+  
+  // Normalize line endings
+  const normalizedContent = csvContent.replace(/\r\n/g, "\n").replace(/\r/g, "\n");
+  const lines = normalizedContent.trim().split("\n");
+  if (lines.length === 0 || !lines[0]) return [];
 
-  const headers = lines[0].split(",").map((h) => h.trim().replace(/^"|"$/g, ""));
+  const delimiter = detectDelimiter(lines[0]);
+  console.log("CSV delimiter detected:", delimiter);
+  console.log("First line:", lines[0]);
+  
+  const headers = parseCsvLine(lines[0], delimiter);
+  console.log("Parsed headers:", headers);
+  
+  if (headers.length === 0) return [];
   
   return headers.map((header, index) => {
     const lowerHeader = header.toLowerCase();
     let type: ListField["type"] = "String (standard)";
 
-    if (lowerHeader.includes("phone") || lowerHeader.includes("tel") || lowerHeader.includes("mobile")) {
+    if (lowerHeader.includes("phone") || lowerHeader.includes("tel") || lowerHeader.includes("mobile") || lowerHeader.includes("telefon")) {
       type = "Phone";
-    } else if (lowerHeader.includes("email") || lowerHeader.includes("e-mail")) {
+    } else if (lowerHeader.includes("email") || lowerHeader.includes("e-mail") || lowerHeader.includes("mail")) {
       type = "E-mail";
     } else if (lowerHeader.includes("url") || lowerHeader.includes("www") || lowerHeader.includes("website") || lowerHeader.includes("link")) {
       type = "www";
-    } else if (lowerHeader.includes("date")) {
+    } else if (lowerHeader.includes("date") || lowerHeader.includes("data")) {
       type = "Date";
     }
 
@@ -295,4 +306,33 @@ export function extractFieldsFromCsv(csvContent: string): ListField[] {
       show: true,
     };
   });
+}
+
+// Export delimiter detection for use in import
+export function parseCsvContent(csvContent: string): { headers: string[]; rows: Record<string, string>[]; delimiter: string } {
+  if (!csvContent || csvContent.trim().length === 0) {
+    return { headers: [], rows: [], delimiter: "," };
+  }
+  
+  const normalizedContent = csvContent.replace(/\r\n/g, "\n").replace(/\r/g, "\n");
+  const lines = normalizedContent.trim().split("\n");
+  if (lines.length === 0) {
+    return { headers: [], rows: [], delimiter: "," };
+  }
+
+  const delimiter = detectDelimiter(lines[0]);
+  const headers = parseCsvLine(lines[0], delimiter);
+  
+  const rows: Record<string, string>[] = [];
+  for (let i = 1; i < lines.length; i++) {
+    if (!lines[i].trim()) continue;
+    const values = parseCsvLine(lines[i], delimiter);
+    const row: Record<string, string> = {};
+    headers.forEach((header, index) => {
+      row[header] = values[index] || "";
+    });
+    rows.push(row);
+  }
+  
+  return { headers, rows, delimiter };
 }
