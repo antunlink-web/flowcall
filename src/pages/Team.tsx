@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { AppLayout } from "@/components/AppLayout";
+import { DashboardLayout } from "@/components/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -46,12 +46,12 @@ export default function Team() {
   };
 
   if (loading) {
-    return <AppLayout><div className="flex items-center justify-center h-[60vh]"><Loader2 className="w-8 h-8 animate-spin text-primary" /></div></AppLayout>;
+    return <DashboardLayout><div className="flex items-center justify-center h-[60vh]"><Loader2 className="w-8 h-8 animate-spin text-primary" /></div></DashboardLayout>;
   }
 
   return (
-    <AppLayout>
-      <div className="space-y-6">
+    <DashboardLayout>
+      <div className="max-w-4xl mx-auto px-4 py-6 space-y-6">
         <div>
           <h1 className="text-2xl font-display font-bold">Team Management</h1>
           <p className="text-muted-foreground">{members.length} team members</p>
@@ -80,6 +80,6 @@ export default function Team() {
           ))}
         </div>
       </div>
-    </AppLayout>
+    </DashboardLayout>
   );
 }

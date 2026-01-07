@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { AppLayout } from "@/components/AppLayout";
+import { DashboardLayout } from "@/components/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -164,17 +164,17 @@ export default function Campaigns() {
 
   if (loading) {
     return (
-      <AppLayout>
+      <DashboardLayout>
         <div className="flex items-center justify-center h-[60vh]">
           <Loader2 className="w-8 h-8 animate-spin text-primary" />
         </div>
-      </AppLayout>
+      </DashboardLayout>
     );
   }
 
   return (
-    <AppLayout>
-      <div className="space-y-6">
+    <DashboardLayout>
+      <div className="max-w-7xl mx-auto px-4 py-6 space-y-6">
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
@@ -318,6 +318,6 @@ export default function Campaigns() {
           )}
         </div>
       </div>
-    </AppLayout>
+    </DashboardLayout>
   );
 }
