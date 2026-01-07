@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { Link, useLocation } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -106,10 +107,36 @@ export default function ManageLists() {
   const [showImportDialog, setShowImportDialog] = useState(false);
   const [listName, setListName] = useState("");
   const [listSettings, setListSettings] = useState(configureList?.settings || {});
+  const [previewLead, setPreviewLead] = useState<Record<string, string> | null>(null);
 
   const activeLists = lists.filter((l) => l.status === "active");
   const archivedLists = lists.filter((l) => l.status === "archived");
   const blocklists = lists.filter((l) => l.status === "blocklist");
+
+  // Fetch a sample lead for preview when configureList changes
+  useEffect(() => {
+    const fetchPreviewLead = async () => {
+      if (!configureList) {
+        setPreviewLead(null);
+        return;
+      }
+      
+      const { data } = await supabase
+        .from("leads")
+        .select("data")
+        .eq("list_id", configureList.id)
+        .limit(1)
+        .single();
+      
+      if (data?.data) {
+        setPreviewLead(data.data as Record<string, string>);
+      } else {
+        setPreviewLead(null);
+      }
+    };
+    
+    fetchPreviewLead();
+  }, [configureList?.id, uploadProgress.isUploading]);
 
   const handleCreateList = async (
     name: string,
@@ -868,29 +895,45 @@ export default function ManageLists() {
                     <span className="text-muted-foreground ml-1">this is how leads will look to your agents:</span>
                   </div>
                   <div className="p-4 space-y-4">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <span className="bg-blue-500 text-white text-xs px-2 py-0.5 rounded">New</span>
-                        <span className="font-bold">Sample Lead</span>
-                      </div>
-                      <div className="w-10 h-10 bg-primary rounded-full flex items-center justify-center">
-                        <ArrowRight className="h-5 w-5 text-white" />
-                      </div>
-                    </div>
-
-                    <div className="flex items-center gap-2 text-primary">
-                      <Phone className="h-4 w-4" />
-                      <span>+1 555 123 4567</span>
-                    </div>
-
-                    <div className="space-y-2 text-sm">
-                      {editedFields.slice(0, 5).map((field) => (
-                        <div key={field.id} className="grid grid-cols-[auto_1fr] gap-x-4">
-                          <span className="text-right font-medium">{field.name}</span>
-                          <span className="text-muted-foreground">Sample value</span>
+                    {previewLead ? (
+                      <>
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <span className="bg-blue-500 text-white text-xs px-2 py-0.5 rounded">New</span>
+                            <span className="font-bold">
+                              {previewLead[editedFields[0]?.name] || "Lead"}
+                            </span>
+                          </div>
+                          <div className="w-10 h-10 bg-primary rounded-full flex items-center justify-center">
+                            <ArrowRight className="h-5 w-5 text-white" />
+                          </div>
                         </div>
-                      ))}
-                    </div>
+
+                        {/* Find and display phone field */}
+                        {editedFields.find(f => f.type === "Phone") && (
+                          <div className="flex items-center gap-2 text-primary">
+                            <Phone className="h-4 w-4" />
+                            <span>{previewLead[editedFields.find(f => f.type === "Phone")!.name] || "—"}</span>
+                          </div>
+                        )}
+
+                        <div className="space-y-2 text-sm">
+                          {editedFields.slice(0, 5).map((field) => (
+                            <div key={field.id} className="grid grid-cols-[auto_1fr] gap-x-4">
+                              <span className="text-right font-medium">{field.name}</span>
+                              <span className="text-muted-foreground truncate">
+                                {previewLead[field.name] || "—"}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      </>
+                    ) : (
+                      <div className="text-center text-muted-foreground py-4">
+                        <p className="text-sm">No leads in this list yet.</p>
+                        <p className="text-xs mt-1">Import leads to see a preview.</p>
+                      </div>
+                    )}
 
                     <div className="flex gap-2 pt-4">
                       <Button 
