@@ -294,10 +294,16 @@ export function useLists() {
   };
 }
 
-// Detect CSV delimiter (comma or semicolon)
+// Detect CSV delimiter (comma, semicolon, or tab)
 function detectDelimiter(line: string): string {
+  const tabCount = (line.match(/\t/g) || []).length;
   const commaCount = (line.match(/,/g) || []).length;
   const semicolonCount = (line.match(/;/g) || []).length;
+  
+  // Prioritize tab if present (Excel exports often use tabs)
+  if (tabCount >= commaCount && tabCount >= semicolonCount && tabCount > 0) {
+    return "\t";
+  }
   return semicolonCount > commaCount ? ";" : ",";
 }
 
