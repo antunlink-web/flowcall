@@ -41,7 +41,11 @@ export interface List {
 export function useLists() {
   const [lists, setLists] = useState<List[]>([]);
   const [loading, setLoading] = useState(true);
-
+  const [uploadProgress, setUploadProgress] = useState({
+    isUploading: false,
+    progress: 0,
+    message: "",
+  });
   const fetchLists = async () => {
     setLoading(true);
     try {
@@ -206,15 +210,19 @@ export function useLists() {
     csvContent: string
   ): Promise<number> => {
     try {
+      setUploadProgress({ isUploading: true, progress: 0, message: "Parsing CSV file..." });
+      
       const { headers, rows } = parseCsvContent(csvContent);
       
       if (headers.length === 0) {
         toast.error("CSV file must have headers");
+        setUploadProgress({ isUploading: false, progress: 0, message: "" });
         return 0;
       }
       
       if (rows.length === 0) {
         toast.error("CSV file must have at least one data row");
+        setUploadProgress({ isUploading: false, progress: 0, message: "" });
         return 0;
       }
 
@@ -226,26 +234,46 @@ export function useLists() {
 
       if (leads.length === 0) {
         toast.error("No valid leads found in CSV");
+        setUploadProgress({ isUploading: false, progress: 0, message: "" });
         return 0;
       }
 
-      // Insert in batches
+      // Insert in batches with progress tracking
       const batchSize = 100;
       let inserted = 0;
+      const totalBatches = Math.ceil(leads.length / batchSize);
 
       for (let i = 0; i < leads.length; i += batchSize) {
         const batch = leads.slice(i, i + batchSize);
+        const currentBatch = Math.floor(i / batchSize) + 1;
+        const progress = (currentBatch / totalBatches) * 100;
+        
+        setUploadProgress({ 
+          isUploading: true, 
+          progress, 
+          message: `Importing leads... (${inserted + batch.length} of ${leads.length})` 
+        });
+        
         const { error } = await supabase.from("leads").insert(batch);
         if (error) throw error;
         inserted += batch.length;
       }
 
+      setUploadProgress({ isUploading: true, progress: 100, message: "Finalizing import..." });
+      
       toast.success(`Imported ${inserted} leads successfully`);
       fetchLists(); // Refresh stats
+      
+      // Small delay to show completion
+      setTimeout(() => {
+        setUploadProgress({ isUploading: false, progress: 0, message: "" });
+      }, 1000);
+      
       return inserted;
     } catch (error: unknown) {
       console.error("Error importing leads:", error);
       toast.error("Failed to import leads");
+      setUploadProgress({ isUploading: false, progress: 0, message: "" });
       return 0;
     }
   };
@@ -257,6 +285,7 @@ export function useLists() {
   return {
     lists,
     loading,
+    uploadProgress,
     fetchLists,
     createList,
     updateList,

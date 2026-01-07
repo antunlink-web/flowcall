@@ -58,6 +58,7 @@ import { useLists, List, ListField, extractFieldsFromCsv } from "@/hooks/useList
 import { CreateListDialog } from "@/components/lists/CreateListDialog";
 import { FieldsEditor } from "@/components/lists/FieldsEditor";
 import { ImportLeadsDialog } from "@/components/lists/ImportLeadsDialog";
+import { UploadProgressBar } from "@/components/UploadProgressBar";
 import { format } from "date-fns";
 
 const subNavItems = [
@@ -95,7 +96,7 @@ const mockEmailTemplates = [
 
 export default function ManageLists() {
   const location = useLocation();
-  const { lists, loading, createList, updateList, deleteList, importLeadsFromCsv } = useLists();
+  const { lists, loading, uploadProgress, createList, updateList, deleteList, importLeadsFromCsv } = useLists();
   
   const [activeTab, setActiveTab] = useState<"active" | "archived" | "blocklists">("active");
   const [configureList, setConfigureList] = useState<List | null>(null);
@@ -788,8 +789,14 @@ export default function ManageLists() {
 
   if (configureList) {
     return (
-      <DashboardLayout>
-        <div className="border-b border-border bg-background">
+      <>
+        <UploadProgressBar
+          isVisible={uploadProgress.isUploading}
+          progress={uploadProgress.progress}
+          message={uploadProgress.message}
+        />
+        <DashboardLayout>
+          <div className="border-b border-border bg-background">
           <div className="flex gap-6 px-6">
             {subNavItems.map((item) => (
               <Link
@@ -909,87 +916,95 @@ export default function ManageLists() {
           onImport={handleImportLeads}
         />
       </DashboardLayout>
+      </>
     );
   }
 
   return (
-    <DashboardLayout>
-      <div className="border-b border-border bg-background">
-        <div className="flex gap-6 px-6">
-          {subNavItems.map((item) => (
-            <Link
-              key={item.label}
-              to={item.href}
-              className={`py-3 text-sm font-medium border-b-2 transition-colors ${
-                location.pathname === item.href
-                  ? "border-primary text-foreground"
-                  : "border-transparent text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              {item.label}
-            </Link>
-          ))}
-        </div>
-      </div>
-
-      <div className="p-8">
-        <div className="max-w-6xl">
-          <div className="mb-8">
-            <h1 className="text-3xl font-light text-primary italic mb-2">Manage Lists</h1>
-            <div className="w-16 h-0.5 bg-primary" />
+    <>
+      <UploadProgressBar
+        isVisible={uploadProgress.isUploading}
+        progress={uploadProgress.progress}
+        message={uploadProgress.message}
+      />
+      <DashboardLayout>
+        <div className="border-b border-border bg-background">
+          <div className="flex gap-6 px-6">
+            {subNavItems.map((item) => (
+              <Link
+                key={item.label}
+                to={item.href}
+                className={`py-3 text-sm font-medium border-b-2 transition-colors ${
+                  location.pathname === item.href
+                    ? "border-primary text-foreground"
+                    : "border-transparent text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                {item.label}
+              </Link>
+            ))}
           </div>
+        </div>
 
-          <div className="flex items-center justify-between mb-6">
-            <div className="flex border-b border-border">
-              <button
-                onClick={() => setActiveTab("active")}
-                className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
-                  activeTab === "active"
-                    ? "border-primary text-primary"
-                    : "border-transparent text-muted-foreground hover:text-foreground"
-                }`}
-              >
-                Active ({activeLists.length})
-              </button>
-              <button
-                onClick={() => setActiveTab("archived")}
-                className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
-                  activeTab === "archived"
-                    ? "border-primary text-primary"
-                    : "border-transparent text-muted-foreground hover:text-foreground"
-                }`}
-              >
-                Archived ({archivedLists.length})
-              </button>
-              <button
-                onClick={() => setActiveTab("blocklists")}
-                className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
-                  activeTab === "blocklists"
-                    ? "border-primary text-primary"
-                    : "border-transparent text-muted-foreground hover:text-foreground"
-                }`}
-              >
-                Blocklists ({blocklists.length})
-              </button>
+        <div className="p-8">
+          <div className="max-w-6xl">
+            <div className="mb-8">
+              <h1 className="text-3xl font-light text-primary italic mb-2">Manage Lists</h1>
+              <div className="w-16 h-0.5 bg-primary" />
             </div>
 
-            <Button onClick={() => setShowCreateDialog(true)} className="bg-destructive hover:bg-destructive/90">
-              <Plus className="h-4 w-4 mr-2" />
-              Add a new list
-            </Button>
+            <div className="flex items-center justify-between mb-6">
+              <div className="flex border-b border-border">
+                <button
+                  onClick={() => setActiveTab("active")}
+                  className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+                    activeTab === "active"
+                      ? "border-primary text-primary"
+                      : "border-transparent text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  Active ({activeLists.length})
+                </button>
+                <button
+                  onClick={() => setActiveTab("archived")}
+                  className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+                    activeTab === "archived"
+                      ? "border-primary text-primary"
+                      : "border-transparent text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  Archived ({archivedLists.length})
+                </button>
+                <button
+                  onClick={() => setActiveTab("blocklists")}
+                  className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+                    activeTab === "blocklists"
+                      ? "border-primary text-primary"
+                      : "border-transparent text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  Blocklists ({blocklists.length})
+                </button>
+              </div>
+
+              <Button onClick={() => setShowCreateDialog(true)} className="bg-destructive hover:bg-destructive/90">
+                <Plus className="h-4 w-4 mr-2" />
+                New List
+              </Button>
+            </div>
+
+            {activeTab === "active" && renderListsTable(activeLists)}
+            {activeTab === "archived" && renderListsTable(archivedLists)}
+            {activeTab === "blocklists" && renderListsTable(blocklists)}
           </div>
-
-          {activeTab === "active" && renderListsTable(activeLists)}
-          {activeTab === "archived" && renderListsTable(archivedLists)}
-          {activeTab === "blocklists" && renderListsTable(blocklists)}
         </div>
-      </div>
 
-      <CreateListDialog
-        open={showCreateDialog}
-        onOpenChange={setShowCreateDialog}
-        onCreateList={handleCreateList}
-      />
-    </DashboardLayout>
+        <CreateListDialog
+          open={showCreateDialog}
+          onOpenChange={setShowCreateDialog}
+          onCreateList={handleCreateList}
+        />
+      </DashboardLayout>
+    </>
   );
 }
