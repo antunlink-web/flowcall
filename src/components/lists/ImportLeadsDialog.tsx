@@ -7,7 +7,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Upload, FileText, AlertCircle } from "lucide-react";
+import { Upload, FileText, AlertCircle, FileSpreadsheet } from "lucide-react";
 import { ListField } from "@/hooks/useLists";
 import * as XLSX from "xlsx";
 
@@ -16,7 +16,7 @@ interface ImportLeadsDialogProps {
   onOpenChange: (open: boolean) => void;
   listName: string;
   listFields: ListField[];
-  onImport: (csvContent: string) => void;
+  onImport: (data: { headers: string[]; rows: Record<string, string>[] }) => void;
 }
 
 export function ImportLeadsDialog({
@@ -26,9 +26,8 @@ export function ImportLeadsDialog({
   listFields,
   onImport,
 }: ImportLeadsDialogProps) {
-  const [csvContent, setCsvContent] = useState("");
+  const [parsedData, setParsedData] = useState<{ headers: string[]; rows: Record<string, string>[] } | null>(null);
   const [fileName, setFileName] = useState("");
-  const [headers, setHeaders] = useState<string[]>([]);
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -40,51 +39,79 @@ export function ImportLeadsDialog({
     setError("");
     setFileName(file.name);
     setIsLoading(true);
+    setParsedData(null);
 
     const isExcel = file.name.endsWith(".xlsx") || file.name.endsWith(".xls");
 
     try {
       if (isExcel) {
-        // Handle Excel files
+        // Handle Excel files directly
         const arrayBuffer = await file.arrayBuffer();
         const workbook = XLSX.read(arrayBuffer, { type: "array" });
         const firstSheetName = workbook.SheetNames[0];
         const worksheet = workbook.Sheets[firstSheetName];
         
-        // Convert to CSV with tab delimiter to avoid comma issues
-        const csvOutput = XLSX.utils.sheet_to_csv(worksheet, { FS: "\t" });
-        setCsvContent(csvOutput);
+        // Convert to array of arrays (more reliable than CSV)
+        const jsonData: unknown[][] = XLSX.utils.sheet_to_json(worksheet, { 
+          header: 1,
+          defval: ""
+        });
         
-        // Extract headers
-        const lines = csvOutput.trim().split("\n");
-        if (lines.length > 0) {
-          const extractedHeaders = lines[0].split("\t").map((h) => h.trim());
-          setHeaders(extractedHeaders);
+        if (jsonData.length === 0) {
+          setError("Excel file is empty");
+          setIsLoading(false);
+          return;
         }
+        
+        // First row is headers
+        const headers = (jsonData[0] as unknown[]).map(h => String(h || "").trim()).filter(h => h.length > 0);
+        
+        if (headers.length === 0) {
+          setError("No valid headers found in Excel file");
+          setIsLoading(false);
+          return;
+        }
+        
+        // Convert remaining rows to objects
+        const rows: Record<string, string>[] = [];
+        for (let i = 1; i < jsonData.length; i++) {
+          const rowData = jsonData[i] as unknown[];
+          if (!rowData || rowData.every(cell => cell === "" || cell === null || cell === undefined)) continue;
+          
+          const row: Record<string, string> = {};
+          headers.forEach((header, index) => {
+            row[header] = String(rowData[index] ?? "");
+          });
+          rows.push(row);
+        }
+        
+        console.log(`Excel parsed: ${headers.length} headers, ${rows.length} rows`);
+        setParsedData({ headers, rows });
       } else {
         // Handle CSV files
         const reader = new FileReader();
         reader.onload = (event) => {
           const content = event.target?.result as string;
-          setCsvContent(content);
-
-          // Extract headers - detect delimiter
-          const lines = content.trim().split("\n");
-          if (lines.length > 0) {
-            const firstLine = lines[0];
-            const delimiter = detectDelimiter(firstLine);
-            const extractedHeaders = parseCSVLine(firstLine, delimiter).map((h) => h.trim());
-            setHeaders(extractedHeaders);
+          const { headers, rows } = parseCSVContent(content);
+          
+          if (headers.length === 0) {
+            setError("No valid headers found in CSV file");
+            setIsLoading(false);
+            return;
           }
+          
+          console.log(`CSV parsed: ${headers.length} headers, ${rows.length} rows`);
+          setParsedData({ headers, rows });
+          setIsLoading(false);
         };
         reader.readAsText(file);
+        return; // Don't setIsLoading(false) here, reader.onload will handle it
       }
     } catch (err) {
       setError("Failed to read file. Please try again.");
       console.error("File read error:", err);
-    } finally {
-      setIsLoading(false);
     }
+    setIsLoading(false);
   };
 
   // Detect CSV delimiter
@@ -93,6 +120,7 @@ export function ImportLeadsDialog({
     const commaCount = (line.match(/,/g) || []).length;
     const semicolonCount = (line.match(/;/g) || []).length;
     
+    // Prioritize tab if present
     if (tabCount >= commaCount && tabCount >= semicolonCount && tabCount > 0) {
       return "\t";
     }
@@ -116,34 +144,66 @@ export function ImportLeadsDialog({
           inQuotes = !inQuotes;
         }
       } else if (char === delimiter && !inQuotes) {
-        result.push(current.replace(/^"|"$/g, ""));
+        result.push(current.replace(/^"|"$/g, "").trim());
         current = "";
       } else {
         current += char;
       }
     }
     
-    result.push(current.replace(/^"|"$/g, ""));
+    result.push(current.replace(/^"|"$/g, "").trim());
     return result;
   };
 
+  // Parse entire CSV content
+  const parseCSVContent = (content: string): { headers: string[]; rows: Record<string, string>[] } => {
+    const normalizedContent = content.replace(/\r\n/g, "\n").replace(/\r/g, "\n");
+    const lines = normalizedContent.trim().split("\n");
+    
+    if (lines.length === 0 || !lines[0]) {
+      return { headers: [], rows: [] };
+    }
+    
+    const delimiter = detectDelimiter(lines[0]);
+    const headers = parseCSVLine(lines[0], delimiter).filter(h => h.length > 0);
+    
+    if (headers.length === 0) {
+      return { headers: [], rows: [] };
+    }
+    
+    const rows: Record<string, string>[] = [];
+    for (let i = 1; i < lines.length; i++) {
+      if (!lines[i].trim()) continue;
+      const values = parseCSVLine(lines[i], delimiter);
+      const row: Record<string, string> = {};
+      headers.forEach((header, index) => {
+        row[header] = values[index] || "";
+      });
+      rows.push(row);
+    }
+    
+    return { headers, rows };
+  };
+
   const handleSubmit = () => {
-    if (!csvContent) {
-      setError("Please select a file");
+    if (!parsedData || parsedData.rows.length === 0) {
+      setError("Please select a valid file with data");
       return;
     }
-    onImport(csvContent);
+    onImport(parsedData);
     resetForm();
     onOpenChange(false);
   };
 
   const resetForm = () => {
-    setCsvContent("");
+    setParsedData(null);
     setFileName("");
-    setHeaders([]);
     setError("");
     setIsLoading(false);
   };
+
+  const headers = parsedData?.headers || [];
+  const rowCount = parsedData?.rows.length || 0;
 
   const matchedFields = headers.filter((h) =>
     listFields.some((f) => f.name.toLowerCase() === h.toLowerCase())
@@ -152,6 +212,8 @@ export function ImportLeadsDialog({
   const unmatchedFields = headers.filter(
     (h) => !listFields.some((f) => f.name.toLowerCase() === h.toLowerCase())
   );
+
+  const isExcelFile = fileName.endsWith(".xlsx") || fileName.endsWith(".xls");
 
   return (
     <Dialog open={open} onOpenChange={(v) => { onOpenChange(v); if (!v) resetForm(); }}>
@@ -175,7 +237,11 @@ export function ImportLeadsDialog({
               className="w-full justify-start gap-2"
               disabled={isLoading}
             >
-              <Upload className="h-4 w-4" />
+              {isExcelFile ? (
+                <FileSpreadsheet className="h-4 w-4" />
+              ) : (
+                <Upload className="h-4 w-4" />
+              )}
               {isLoading ? "Reading file..." : fileName || "Choose CSV or Excel file"}
             </Button>
             <p className="text-xs text-muted-foreground">
@@ -190,8 +256,14 @@ export function ImportLeadsDialog({
             </div>
           )}
 
-          {headers.length > 0 && (
+          {parsedData && headers.length > 0 && (
             <div className="space-y-4">
+              <div className="p-3 bg-muted rounded-md">
+                <p className="text-sm font-medium">
+                  Found {rowCount.toLocaleString()} leads with {headers.length} fields
+                </p>
+              </div>
+
               <div className="space-y-2">
                 <p className="text-sm font-medium text-green-600">
                   Matched Fields ({matchedFields.length})
@@ -238,8 +310,8 @@ export function ImportLeadsDialog({
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             Cancel
           </Button>
-          <Button onClick={handleSubmit} disabled={!csvContent || isLoading}>
-            Import Leads
+          <Button onClick={handleSubmit} disabled={!parsedData || parsedData.rows.length === 0 || isLoading}>
+            Import {rowCount > 0 ? `${rowCount.toLocaleString()} ` : ""}Leads
           </Button>
         </DialogFooter>
       </DialogContent>

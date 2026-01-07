@@ -205,23 +205,15 @@ export function useLists() {
     }
   };
 
-  const importLeadsFromCsv = async (
+  const importLeadsFromData = async (
     listId: string,
-    csvContent: string
+    rows: Record<string, string>[]
   ): Promise<number> => {
     try {
-      setUploadProgress({ isUploading: true, progress: 0, message: "Parsing CSV file..." });
-      
-      const { headers, rows } = parseCsvContent(csvContent);
-      
-      if (headers.length === 0) {
-        toast.error("CSV file must have headers");
-        setUploadProgress({ isUploading: false, progress: 0, message: "" });
-        return 0;
-      }
+      setUploadProgress({ isUploading: true, progress: 0, message: "Preparing import..." });
       
       if (rows.length === 0) {
-        toast.error("CSV file must have at least one data row");
+        toast.error("No data rows to import");
         setUploadProgress({ isUploading: false, progress: 0, message: "" });
         return 0;
       }
@@ -232,36 +224,32 @@ export function useLists() {
         status: "new",
       }));
 
-      if (leads.length === 0) {
-        toast.error("No valid leads found in CSV");
-        setUploadProgress({ isUploading: false, progress: 0, message: "" });
-        return 0;
-      }
-
       // Insert in batches with progress tracking
-      const batchSize = 100;
+      const batchSize = 500; // Increased batch size for faster import
       let inserted = 0;
-      const totalBatches = Math.ceil(leads.length / batchSize);
+      const totalLeads = leads.length;
 
       for (let i = 0; i < leads.length; i += batchSize) {
         const batch = leads.slice(i, i + batchSize);
-        const currentBatch = Math.floor(i / batchSize) + 1;
-        const progress = (currentBatch / totalBatches) * 100;
+        const progress = Math.min(((i + batch.length) / totalLeads) * 100, 99);
         
         setUploadProgress({ 
           isUploading: true, 
           progress, 
-          message: `Importing leads... (${inserted + batch.length} of ${leads.length})` 
+          message: `Importing leads... (${Math.min(i + batch.length, totalLeads).toLocaleString()} of ${totalLeads.toLocaleString()})` 
         });
         
         const { error } = await supabase.from("leads").insert(batch);
-        if (error) throw error;
+        if (error) {
+          console.error("Batch insert error:", error);
+          throw error;
+        }
         inserted += batch.length;
       }
 
       setUploadProgress({ isUploading: true, progress: 100, message: "Finalizing import..." });
       
-      toast.success(`Imported ${inserted} leads successfully`);
+      toast.success(`Imported ${inserted.toLocaleString()} leads successfully`);
       fetchLists(); // Refresh stats
       
       // Small delay to show completion
@@ -290,7 +278,7 @@ export function useLists() {
     createList,
     updateList,
     deleteList,
-    importLeadsFromCsv,
+    importLeadsFromData,
   };
 }
 
