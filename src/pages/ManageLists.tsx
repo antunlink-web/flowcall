@@ -15,6 +15,13 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
   LayoutGrid,
   Users,
   Settings,
@@ -54,6 +61,12 @@ import {
   Redo,
   Paperclip,
   Loader2,
+  PhoneCall,
+  Eye,
+  Upload,
+  Download,
+  UserPlus,
+  Workflow,
 } from "lucide-react";
 import { useLists, List, ListField, extractFieldsFromCsv } from "@/hooks/useLists";
 import { CreateListDialog } from "@/components/lists/CreateListDialog";
@@ -250,15 +263,64 @@ export default function ManageLists() {
                         handleConfigureList(list);
                         setShowImportDialog(true);
                       }}
+                      title="Import leads"
                     >
                       <Plus className="h-4 w-4" />
                     </Button>
-                    <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => handleConfigureList(list)}>
+                    <Button 
+                      variant="outline" 
+                      size="icon" 
+                      className="h-8 w-8" 
+                      onClick={() => handleConfigureList(list)}
+                      title="Configure list"
+                    >
                       <Settings2 className="h-4 w-4" />
                     </Button>
-                    <Button variant="outline" size="icon" className="h-8 w-8">
-                      <MoreHorizontal className="h-4 w-4" />
-                    </Button>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="outline" size="icon" className="h-8 w-8">
+                          <MoreHorizontal className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end" className="w-56 bg-background border shadow-md z-50">
+                        <DropdownMenuItem className="cursor-pointer">
+                          <PhoneCall className="h-4 w-4 mr-2" />
+                          Call the next lead in queue
+                        </DropdownMenuItem>
+                        <DropdownMenuItem className="cursor-pointer">
+                          <ListOrdered className="h-4 w-4 mr-2" />
+                          View queue
+                        </DropdownMenuItem>
+                        <DropdownMenuItem className="cursor-pointer">
+                          <Eye className="h-4 w-4 mr-2" />
+                          View all leads
+                        </DropdownMenuItem>
+                        <DropdownMenuItem className="cursor-pointer">
+                          <UserPlus className="h-4 w-4 mr-2" />
+                          Add new, empty lead to list
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem className="cursor-pointer" onClick={() => handleConfigureList(list)}>
+                          <Settings2 className="h-4 w-4 mr-2" />
+                          Configure list
+                        </DropdownMenuItem>
+                        <DropdownMenuItem className="cursor-pointer" onClick={() => {
+                          handleConfigureList(list);
+                          setShowImportDialog(true);
+                        }}>
+                          <Upload className="h-4 w-4 mr-2" />
+                          Import into list
+                        </DropdownMenuItem>
+                        <DropdownMenuItem className="cursor-pointer">
+                          <Workflow className="h-4 w-4 mr-2" />
+                          New pipeline automation
+                        </DropdownMenuItem>
+                        <DropdownMenuItem className="cursor-pointer">
+                          <Download className="h-4 w-4 mr-2" />
+                          Download
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </div>
                 </td>
               </tr>
