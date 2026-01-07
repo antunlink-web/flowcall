@@ -16,6 +16,7 @@ import Settings from "./pages/Settings";
 import Manage from "./pages/Manage";
 import ManageSettings from "./pages/ManageSettings";
 import ManageAccount from "./pages/ManageAccount";
+import ManageLists from "./pages/ManageLists";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -36,6 +37,7 @@ const App = () => (
             <Route path="/reports" element={<ProtectedRoute><Reports /></ProtectedRoute>} />
             <Route path="/team" element={<ProtectedRoute><Team /></ProtectedRoute>} />
             <Route path="/manage/users" element={<ProtectedRoute><Team /></ProtectedRoute>} />
+            <Route path="/manage/lists" element={<ProtectedRoute><ManageLists /></ProtectedRoute>} />
             <Route path="/manage/settings" element={<ProtectedRoute><ManageSettings /></ProtectedRoute>} />
             <Route path="/manage/account" element={<ProtectedRoute><ManageAccount /></ProtectedRoute>} />
             <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
