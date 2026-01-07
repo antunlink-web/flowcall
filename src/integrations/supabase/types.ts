@@ -200,6 +200,7 @@ export type Database = {
           data: Json | null
           id: string
           last_contacted_at: string | null
+          list_id: string | null
           status: string
           updated_at: string
         }
@@ -214,6 +215,7 @@ export type Database = {
           data?: Json | null
           id?: string
           last_contacted_at?: string | null
+          list_id?: string | null
           status?: string
           updated_at?: string
         }
@@ -228,6 +230,7 @@ export type Database = {
           data?: Json | null
           id?: string
           last_contacted_at?: string | null
+          list_id?: string | null
           status?: string
           updated_at?: string
         }
@@ -239,7 +242,50 @@ export type Database = {
             referencedRelation: "campaigns"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "leads_list_id_fkey"
+            columns: ["list_id"]
+            isOneToOne: false
+            referencedRelation: "lists"
+            referencedColumns: ["id"]
+          },
         ]
+      }
+      lists: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          description: string | null
+          fields: Json
+          id: string
+          name: string
+          settings: Json
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          fields?: Json
+          id?: string
+          name: string
+          settings?: Json
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          fields?: Json
+          id?: string
+          name?: string
+          settings?: Json
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
       }
       profiles: {
         Row: {
