@@ -161,12 +161,24 @@ export function useLists() {
 
   const deleteList = async (id: string): Promise<boolean> => {
     try {
+      // First delete all leads associated with this list
+      const { error: leadsError } = await supabase
+        .from("leads")
+        .delete()
+        .eq("list_id", id);
+
+      if (leadsError) {
+        console.error("Error deleting leads:", leadsError);
+        // Continue anyway to try deleting the list
+      }
+
+      // Now delete the list
       const { error } = await supabase.from("lists").delete().eq("id", id);
 
       if (error) throw error;
 
       setLists((prev) => prev.filter((list) => list.id !== id));
-      toast.success("List deleted successfully");
+      toast.success("List and all its leads deleted successfully");
       return true;
     } catch (error: unknown) {
       console.error("Error deleting list:", error);
