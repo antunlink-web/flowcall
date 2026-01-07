@@ -121,46 +121,42 @@ export function TopNavbar() {
 
         const results = filtered.slice(0, 20).map((lead: any) => {
           const leadData = lead.data || {};
-          const nameFields = ['company', 'Company', 'name', 'Name', 'Firma', 'firma', 'Įmonė', 'imone', 'Pavadinimas'];
-          const phoneFields = ['phone', 'Phone', 'Telefon', 'telefon', 'Telefonas', 'tel', 'Tel'];
-          const emailFields = ['email', 'Email', 'E-mail', 'e-mail', 'EMAIL', 'El. paštas'];
+          const entries = Object.entries(leadData);
           
+          // First non-empty field is typically the company/name (like in myphoner)
           let displayName = "Unknown";
-          for (const field of nameFields) {
-            if (leadData[field]) {
-              displayName = leadData[field];
+          for (const [key, value] of entries) {
+            if (typeof value === 'string' && value.trim()) {
+              displayName = value;
               break;
             }
           }
-          if (displayName === "Unknown") {
-            for (const value of Object.values(leadData)) {
-              if (typeof value === 'string' && value.trim()) {
-                displayName = value;
-                break;
-              }
-            }
-          }
 
+          // Find phone - look for fields containing "phone", "tel", "telefonas"
           let phone = "";
-          for (const field of phoneFields) {
-            if (leadData[field]) {
-              phone = leadData[field];
+          for (const [key, value] of entries) {
+            const keyLower = key.toLowerCase();
+            if ((keyLower.includes('phone') || keyLower.includes('tel')) && typeof value === 'string' && value.trim()) {
+              phone = value;
               break;
             }
           }
 
+          // Find email - look for fields containing "email", "e-mail", "mail"
           let email = "";
-          for (const field of emailFields) {
-            if (leadData[field]) {
-              email = leadData[field];
+          for (const [key, value] of entries) {
+            const keyLower = key.toLowerCase();
+            if ((keyLower.includes('email') || keyLower.includes('e-mail') || keyLower === 'mail') && typeof value === 'string' && value.trim()) {
+              email = value;
               break;
             }
           }
 
-          // Concatenate all data values for display
-          const allData = Object.values(leadData)
-            .filter(v => typeof v === 'string' && v.trim())
-            .join(' ');
+          // Create formatted data display showing field labels and values
+          const formattedData = entries
+            .filter(([key, value]) => typeof value === 'string' && value.trim())
+            .map(([key, value]) => `${key}: ${value}`)
+            .join(' • ');
 
           return {
             id: lead.id,
@@ -170,7 +166,7 @@ export function TopNavbar() {
             list_name: lead.lists?.name || "Unknown List",
             status: lead.status,
             created_at: lead.created_at,
-            allData,
+            allData: formattedData,
           };
         });
 
