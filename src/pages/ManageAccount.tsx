@@ -108,14 +108,15 @@ export default function ManageAccount() {
   const [stateProvince, setStateProvince] = useState("");
   const [zip, setZip] = useState("");
   const [country, setCountry] = useState("");
+  const [savingBilling, setSavingBilling] = useState(false);
 
   useEffect(() => {
     const fetchAccountData = async () => {
-      // Fetch seats setting
+      // Fetch account settings including billing info
       const { data: settingsData } = await supabase
         .from("account_settings")
         .select("setting_key, setting_value")
-        .in("setting_key", ["seats", "subscription_plan"]);
+        .in("setting_key", ["seats", "subscription_plan", "billing_info"]);
       
       if (settingsData) {
         settingsData.forEach((setting) => {
@@ -127,6 +128,28 @@ export default function ManageAccount() {
             const value = setting.setting_value as { plan?: string; billing_cycle?: string };
             setCurrentPlan(value.plan || "basic");
             setBillingCycle((value.billing_cycle as "monthly" | "annual") || "monthly");
+          }
+          if (setting.setting_key === "billing_info") {
+            const value = setting.setting_value as {
+              vat_number?: string;
+              company_name?: string;
+              contact_phone?: string;
+              address1?: string;
+              address2?: string;
+              city?: string;
+              state?: string;
+              zip?: string;
+              country?: string;
+            };
+            setVatNumber(value.vat_number || "");
+            setCompanyName(value.company_name || "");
+            setContactPhone(value.contact_phone || "");
+            setAddress1(value.address1 || "");
+            setAddress2(value.address2 || "");
+            setCity(value.city || "");
+            setStateProvince(value.state || "");
+            setZip(value.zip || "");
+            setCountry(value.country || "");
           }
         });
       }
@@ -154,6 +177,56 @@ export default function ManageAccount() {
       setBrandingFaviconUrl(branding.favicon_url);
     }
   }, [branding]);
+
+  const handleSaveBillingInfo = async () => {
+    if (!address1.trim() || !city.trim() || !stateProvince.trim() || !zip.trim()) {
+      toast.error("Please fill in all required fields");
+      return;
+    }
+
+    setSavingBilling(true);
+    
+    const billingData = {
+      vat_number: vatNumber || null,
+      company_name: companyName || null,
+      contact_phone: contactPhone || null,
+      address1,
+      address2: address2 || null,
+      city,
+      state: stateProvince,
+      zip,
+      country: country || null,
+    };
+
+    // Check if billing_info setting exists
+    const { data: existing } = await supabase
+      .from("account_settings")
+      .select("id")
+      .eq("setting_key", "billing_info")
+      .maybeSingle();
+
+    let error;
+    if (existing) {
+      const result = await supabase
+        .from("account_settings")
+        .update({ setting_value: billingData })
+        .eq("setting_key", "billing_info");
+      error = result.error;
+    } else {
+      const result = await supabase
+        .from("account_settings")
+        .insert({ setting_key: "billing_info", setting_value: billingData });
+      error = result.error;
+    }
+
+    setSavingBilling(false);
+
+    if (error) {
+      toast.error("Failed to save billing information");
+    } else {
+      toast.success("Billing information saved successfully");
+    }
+  };
 
   const handleSaveSeats = async () => {
     const { error } = await supabase
@@ -671,7 +744,13 @@ export default function ManageAccount() {
 
             <div className="flex items-center gap-4">
               <Label className="w-40"></Label>
-              <Button className="bg-destructive hover:bg-destructive/90">Save account details</Button>
+              <Button 
+                className="bg-destructive hover:bg-destructive/90"
+                onClick={handleSaveBillingInfo}
+                disabled={savingBilling}
+              >
+                {savingBilling ? "Saving..." : "Save account details"}
+              </Button>
             </div>
           </div>
         );
