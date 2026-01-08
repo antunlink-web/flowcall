@@ -1245,139 +1245,141 @@ export default function ManageLists() {
                 {renderConfigContent()}
               </div>
 
-              <div className="w-96">
-                <div className="border border-border rounded-lg overflow-hidden">
-                  <div className="bg-muted/50 px-4 py-3 text-sm">
-                    <span className="font-medium">Lead Preview</span>
-                    <span className="text-muted-foreground ml-1">— how leads appear to agents:</span>
+              {configSection === "fields" && (
+                <div className="w-96">
+                  <div className="border border-border rounded-lg overflow-hidden">
+                    <div className="bg-muted/50 px-4 py-3 text-sm">
+                      <span className="font-medium">Lead Preview</span>
+                      <span className="text-muted-foreground ml-1">— how leads appear to agents:</span>
+                    </div>
+                    
+                    {previewLead ? (
+                      <div className="divide-y divide-border">
+                        {/* Header with status and company name */}
+                        <div className="p-4">
+                          <div className="flex items-center gap-2 mb-3">
+                            <span className="bg-blue-500 text-white text-xs px-2.5 py-1 rounded font-medium">New</span>
+                            <h3 className="text-lg font-semibold text-foreground">
+                              {previewLead[editedFields[0]?.name] || "Lead"}
+                            </h3>
+                            <Linkedin className="h-4 w-4 text-[#0077b5]" />
+                          </div>
+                          
+                          {/* Phone numbers */}
+                          <div className="space-y-1">
+                            {editedFields
+                              .filter(f => f.type === "Phone")
+                              .map((field) => {
+                                const phoneValue = previewLead[field.name];
+                                if (!phoneValue) return null;
+                                return (
+                                  <div key={field.id} className="flex items-center gap-2">
+                                    <a href={`tel:${phoneValue}`} className="text-primary hover:underline font-medium">
+                                      {phoneValue}
+                                    </a>
+                                    <button className="text-muted-foreground hover:text-foreground">
+                                      <X className="h-3 w-3" />
+                                    </button>
+                                  </div>
+                                );
+                              })}
+                          </div>
+                        </div>
+                        
+                        {/* Lead data fields */}
+                        <div className="p-4">
+                          <div className="space-y-2.5 text-sm">
+                            {editedFields
+                              .filter(f => f.type !== "Phone")
+                              .slice(0, 8)
+                              .map((field) => {
+                                const value = previewLead[field.name];
+                                const isEmail = field.type === "E-mail";
+                                const isUrl = field.type === "www";
+                                
+                                return (
+                                  <div key={field.id} className="grid grid-cols-[120px_1fr] gap-x-3">
+                                    <span className="text-right font-medium text-muted-foreground">{field.name}</span>
+                                    {isEmail && value ? (
+                                      <a href={`mailto:${value}`} className="text-primary hover:underline truncate">
+                                        {value}
+                                      </a>
+                                    ) : isUrl && value ? (
+                                      <a href={value.startsWith('http') ? value : `https://${value}`} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline truncate">
+                                        {value}
+                                      </a>
+                                    ) : (
+                                      <span className="text-foreground truncate">{value || "—"}</span>
+                                    )}
+                                  </div>
+                                );
+                              })}
+                          </div>
+                        </div>
+                        
+                        {/* Metadata */}
+                        <div className="p-4 bg-muted/30">
+                          <div className="space-y-1.5 text-xs">
+                            <div className="grid grid-cols-[120px_1fr] gap-x-3">
+                              <span className="text-right font-medium text-muted-foreground">Current List</span>
+                              <span className="text-primary">{configureList.name} →</span>
+                            </div>
+                            <div className="grid grid-cols-[120px_1fr] gap-x-3">
+                              <span className="text-right font-medium text-muted-foreground">Claimed by</span>
+                              <span className="text-foreground">Not claimed - <span className="text-primary cursor-pointer hover:underline">Claim now</span></span>
+                            </div>
+                          </div>
+                        </div>
+                        
+                        {/* Action buttons */}
+                        <div className="p-4 space-y-4">
+                          <div className="flex items-center gap-2 border-b border-border pb-3">
+                            <button className="flex items-center gap-1.5 text-primary font-medium text-sm">
+                              <Phone className="h-4 w-4" />
+                              Call
+                            </button>
+                            <button className="flex items-center gap-1.5 text-muted-foreground hover:text-foreground text-sm ml-4">
+                              <Mail className="h-4 w-4" />
+                              E-mail
+                            </button>
+                            <button className="flex items-center gap-1.5 text-muted-foreground hover:text-foreground text-sm ml-4">
+                              <MessageSquare className="h-4 w-4" />
+                              SMS
+                            </button>
+                          </div>
+                          
+                          <div className="flex gap-2">
+                            <Button size="sm" variant="outline" className="flex-1 text-xs">
+                              <RefreshCw className="h-3 w-3 mr-1" />
+                              Call back
+                            </Button>
+                            <Button size="sm" className="bg-green-600 hover:bg-green-700 text-white flex-1 text-xs">
+                              <ThumbsUp className="h-3 w-3 mr-1" />
+                              Winner
+                            </Button>
+                            <Button size="sm" className="bg-red-500 hover:bg-red-600 text-white flex-1 text-xs">
+                              <ThumbsDown className="h-3 w-3 mr-1" />
+                              Loser
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="p-8 text-center text-muted-foreground">
+                        <p className="text-sm">No leads in this list yet.</p>
+                        <p className="text-xs mt-1">Import leads to see a preview.</p>
+                        <Button 
+                          className="bg-destructive hover:bg-destructive/90 mt-4"
+                          onClick={() => setShowImportDialog(true)}
+                        >
+                          <Plus className="h-4 w-4 mr-2" />
+                          Add leads
+                        </Button>
+                      </div>
+                    )}
                   </div>
-                  
-                  {previewLead ? (
-                    <div className="divide-y divide-border">
-                      {/* Header with status and company name */}
-                      <div className="p-4">
-                        <div className="flex items-center gap-2 mb-3">
-                          <span className="bg-blue-500 text-white text-xs px-2.5 py-1 rounded font-medium">New</span>
-                          <h3 className="text-lg font-semibold text-foreground">
-                            {previewLead[editedFields[0]?.name] || "Lead"}
-                          </h3>
-                          <Linkedin className="h-4 w-4 text-[#0077b5]" />
-                        </div>
-                        
-                        {/* Phone numbers */}
-                        <div className="space-y-1">
-                          {editedFields
-                            .filter(f => f.type === "Phone")
-                            .map((field) => {
-                              const phoneValue = previewLead[field.name];
-                              if (!phoneValue) return null;
-                              return (
-                                <div key={field.id} className="flex items-center gap-2">
-                                  <a href={`tel:${phoneValue}`} className="text-primary hover:underline font-medium">
-                                    {phoneValue}
-                                  </a>
-                                  <button className="text-muted-foreground hover:text-foreground">
-                                    <X className="h-3 w-3" />
-                                  </button>
-                                </div>
-                              );
-                            })}
-                        </div>
-                      </div>
-                      
-                      {/* Lead data fields */}
-                      <div className="p-4">
-                        <div className="space-y-2.5 text-sm">
-                          {editedFields
-                            .filter(f => f.type !== "Phone")
-                            .slice(0, 8)
-                            .map((field) => {
-                              const value = previewLead[field.name];
-                              const isEmail = field.type === "E-mail";
-                              const isUrl = field.type === "www";
-                              
-                              return (
-                                <div key={field.id} className="grid grid-cols-[120px_1fr] gap-x-3">
-                                  <span className="text-right font-medium text-muted-foreground">{field.name}</span>
-                                  {isEmail && value ? (
-                                    <a href={`mailto:${value}`} className="text-primary hover:underline truncate">
-                                      {value}
-                                    </a>
-                                  ) : isUrl && value ? (
-                                    <a href={value.startsWith('http') ? value : `https://${value}`} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline truncate">
-                                      {value}
-                                    </a>
-                                  ) : (
-                                    <span className="text-foreground truncate">{value || "—"}</span>
-                                  )}
-                                </div>
-                              );
-                            })}
-                        </div>
-                      </div>
-                      
-                      {/* Metadata */}
-                      <div className="p-4 bg-muted/30">
-                        <div className="space-y-1.5 text-xs">
-                          <div className="grid grid-cols-[120px_1fr] gap-x-3">
-                            <span className="text-right font-medium text-muted-foreground">Current List</span>
-                            <span className="text-primary">{configureList.name} →</span>
-                          </div>
-                          <div className="grid grid-cols-[120px_1fr] gap-x-3">
-                            <span className="text-right font-medium text-muted-foreground">Claimed by</span>
-                            <span className="text-foreground">Not claimed - <span className="text-primary cursor-pointer hover:underline">Claim now</span></span>
-                          </div>
-                        </div>
-                      </div>
-                      
-                      {/* Action buttons */}
-                      <div className="p-4 space-y-4">
-                        <div className="flex items-center gap-2 border-b border-border pb-3">
-                          <button className="flex items-center gap-1.5 text-primary font-medium text-sm">
-                            <Phone className="h-4 w-4" />
-                            Call
-                          </button>
-                          <button className="flex items-center gap-1.5 text-muted-foreground hover:text-foreground text-sm ml-4">
-                            <Mail className="h-4 w-4" />
-                            E-mail
-                          </button>
-                          <button className="flex items-center gap-1.5 text-muted-foreground hover:text-foreground text-sm ml-4">
-                            <MessageSquare className="h-4 w-4" />
-                            SMS
-                          </button>
-                        </div>
-                        
-                        <div className="flex gap-2">
-                          <Button size="sm" variant="outline" className="flex-1 text-xs">
-                            <RefreshCw className="h-3 w-3 mr-1" />
-                            Call back
-                          </Button>
-                          <Button size="sm" className="bg-green-600 hover:bg-green-700 text-white flex-1 text-xs">
-                            <ThumbsUp className="h-3 w-3 mr-1" />
-                            Winner
-                          </Button>
-                          <Button size="sm" className="bg-red-500 hover:bg-red-600 text-white flex-1 text-xs">
-                            <ThumbsDown className="h-3 w-3 mr-1" />
-                            Loser
-                          </Button>
-                        </div>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="p-8 text-center text-muted-foreground">
-                      <p className="text-sm">No leads in this list yet.</p>
-                      <p className="text-xs mt-1">Import leads to see a preview.</p>
-                      <Button 
-                        className="bg-destructive hover:bg-destructive/90 mt-4"
-                        onClick={() => setShowImportDialog(true)}
-                      >
-                        <Plus className="h-4 w-4 mr-2" />
-                        Add leads
-                      </Button>
-                    </div>
-                  )}
                 </div>
-              </div>
+              )}
             </div>
           </div>
         </div>
