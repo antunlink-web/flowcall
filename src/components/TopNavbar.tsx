@@ -77,7 +77,6 @@ export function TopNavbar() {
   const { role } = useUserRole();
   const location = useLocation();
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
   const [searchLoading, setSearchLoading] = useState(false);
@@ -240,108 +239,65 @@ export function TopNavbar() {
         {/* Left Section - Search & Home */}
         <div className="flex items-center gap-1">
           {/* Search Field with Dropdown */}
-          <Popover open={searchOpen} onOpenChange={(open) => {
-            // Only close if clicking outside, not when interacting with results
-            if (!open) {
-              // Small delay to allow click events to fire on results
-              setTimeout(() => setSearchOpen(false), 150);
-            } else {
-              setSearchOpen(open);
-            }
-          }}>
-            <PopoverTrigger asChild>
-              <div className="relative">
-                <input
-                  type="text"
-                  value={searchQuery}
-                  onChange={(e) => {
-                    setSearchQuery(e.target.value);
-                    if (e.target.value.length >= 2) {
-                      setSearchOpen(true);
-                    }
-                  }}
-                  onFocus={() => {
-                    if (searchQuery.length >= 2) {
-                      setSearchOpen(true);
-                    }
-                  }}
-                  placeholder="Search..."
-                  className="w-40 md:w-48 h-7 px-2 text-sm bg-white border border-white/20 rounded text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-white/40"
-                />
-              </div>
-            </PopoverTrigger>
-            <PopoverContent 
-              align="start" 
-              className="w-[500px] p-0" 
-              onOpenAutoFocus={(e) => e.preventDefault()}
-              onPointerDownOutside={(e) => {
-                // Prevent closing when clicking inside the popover
-                e.preventDefault();
-              }}
-              onInteractOutside={(e) => {
-                // Only close if clicking outside both the trigger and content
-                const target = e.target as HTMLElement;
-                if (!target.closest('[data-search-popover]')) {
-                  setSearchOpen(false);
-                }
-              }}
-            >
-              {searchQuery.length < 2 ? (
-                <p className="px-3 py-3 text-sm text-muted-foreground">
-                  Please enter 2 or more characters
-                </p>
-              ) : searchLoading ? (
-                <div className="flex items-center justify-center py-6">
-                  <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
-                </div>
-              ) : searchResults.length === 0 ? (
-                <p className="px-3 py-3 text-sm text-muted-foreground">
-                  No contacts found
-                </p>
-              ) : (
-                <div className="max-h-96 overflow-y-auto">
-                  {searchResults.map((result) => {
-                    const dateStr = result.created_at 
-                      ? format(new Date(result.created_at), "dd.MM.yyyy")
-                      : "";
-                    // Highlight matching text
-                    const highlightText = (text: string) => {
-                      if (!searchQuery || searchQuery.length < 2) return text;
-                      const regex = new RegExp(`(${searchQuery})`, 'gi');
-                      const parts = text.split(regex);
-                      return parts.map((part, i) => 
-                        regex.test(part) ? <em key={i} className="not-italic font-medium text-foreground">{part}</em> : part
+          <div className="relative">
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search..."
+              className="w-40 md:w-48 h-7 px-2 text-sm bg-white border border-white/20 rounded text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-white/40"
+            />
+            {searchQuery.length >= 2 && (
+              <div className="absolute top-full left-0 mt-1 w-[500px] bg-background border rounded-md shadow-lg z-[60]">
+                {searchLoading ? (
+                  <div className="flex items-center justify-center py-6">
+                    <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+                  </div>
+                ) : searchResults.length === 0 ? (
+                  <p className="px-3 py-3 text-sm text-muted-foreground">
+                    No contacts found
+                  </p>
+                ) : (
+                  <div className="max-h-96 overflow-y-auto">
+                    {searchResults.map((result) => {
+                      const dateStr = result.created_at 
+                        ? format(new Date(result.created_at), "dd.MM.yyyy")
+                        : "";
+                      const highlightText = (text: string) => {
+                        if (!searchQuery || searchQuery.length < 2) return text;
+                        const regex = new RegExp(`(${searchQuery})`, 'gi');
+                        const parts = text.split(regex);
+                        return parts.map((part, i) => 
+                          regex.test(part) ? <em key={i} className="not-italic font-medium text-foreground">{part}</em> : part
+                        );
+                      };
+                      
+                      return (
+                        <Link
+                          key={result.id}
+                          to={`/leads?id=${result.id}`}
+                          className="block px-3 py-2 hover:bg-muted border-b last:border-b-0"
+                          onClick={() => setSearchQuery("")}
+                        >
+                          <p className="text-xs text-muted-foreground uppercase tracking-wide">
+                            {result.list_name}
+                          </p>
+                          <p className="font-semibold text-sm">
+                            {highlightText(result.name)}
+                            {result.phone && <span className="ml-2 font-normal text-muted-foreground">{result.phone}</span>}
+                          </p>
+                          <p className="text-xs text-muted-foreground truncate">
+                            {dateStr && <span>{dateStr} </span>}
+                            {highlightText(result.allData)}
+                          </p>
+                        </Link>
                       );
-                    };
-                    
-                    return (
-                      <Link
-                        key={result.id}
-                        to={`/leads?id=${result.id}`}
-                        className="block px-3 py-2 hover:bg-muted border-b last:border-b-0"
-                        onClick={() => {
-                          setSearchOpen(false);
-                          setSearchQuery("");
-                        }}
-                      >
-                        <p className="text-xs text-muted-foreground uppercase tracking-wide">
-                          {result.list_name}
-                        </p>
-                        <p className="font-semibold text-sm">
-                          {highlightText(result.name)}
-                          {result.phone && <span className="ml-2 font-normal text-muted-foreground">{result.phone}</span>}
-                        </p>
-                        <p className="text-xs text-muted-foreground truncate">
-                          {dateStr && <span>{dateStr} </span>}
-                          {highlightText(result.allData)}
-                        </p>
-                      </Link>
-                    );
-                  })}
-                </div>
-              )}
-            </PopoverContent>
-          </Popover>
+                    })}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
 
           {/* Home Icon */}
           <NavLink to="/">
