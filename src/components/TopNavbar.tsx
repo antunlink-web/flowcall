@@ -262,7 +262,7 @@ export function TopNavbar() {
                     }
                   }}
                   placeholder="Search..."
-                  className="w-40 md:w-48 h-7 px-2 text-sm bg-white/10 border border-white/20 rounded text-white placeholder:text-white/50 focus:outline-none focus:bg-white/20 focus:border-white/40"
+                  className="w-40 md:w-48 h-7 px-2 text-sm bg-white border border-white/20 rounded text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-white/40"
                 />
               </div>
             </PopoverTrigger>
