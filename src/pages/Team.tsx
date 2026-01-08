@@ -223,6 +223,27 @@ export default function Team() {
     fetchInvitations();
   };
 
+  const handleArchiveUser = async (userId: string, email: string) => {
+    const { error } = await supabase
+      .from("profiles")
+      .update({ status: "archived" })
+      .eq("id", userId);
+
+    if (error) {
+      toast({ 
+        title: "Failed to archive user", 
+        description: error.message,
+        variant: "destructive" 
+      });
+      return;
+    }
+
+    toast({ title: "User archived", description: `${email} has been archived` });
+    fetchTeam();
+  };
+
+  const isAccountOwner = (member: TeamMember) => member.roles.includes("owner");
+
   const getRoleBadges = (roles: RoleType[]) => {
     const badges: { label: string; variant: "default" | "secondary" }[] = [];
     
@@ -524,27 +545,42 @@ export default function Team() {
                         </DialogContent>
                       </Dialog>
 
-                      <AlertDialog>
-                        <AlertDialogTrigger asChild>
-                          <Button variant="outline" size="icon" className="h-8 w-8 text-destructive hover:text-destructive">
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </AlertDialogTrigger>
-                        <AlertDialogContent>
-                          <AlertDialogHeader>
-                            <AlertDialogTitle>Archive user?</AlertDialogTitle>
-                            <AlertDialogDescription>
-                              This will archive {member.full_name || member.email}. They will no longer be able to access the system.
-                            </AlertDialogDescription>
-                          </AlertDialogHeader>
-                          <AlertDialogFooter>
-                            <AlertDialogCancel>Cancel</AlertDialogCancel>
-                            <AlertDialogAction className="bg-destructive hover:bg-destructive/90">
-                              Archive
-                            </AlertDialogAction>
-                          </AlertDialogFooter>
-                        </AlertDialogContent>
-                      </AlertDialog>
+                      {isAccountOwner(member) ? (
+                        <Button 
+                          variant="outline" 
+                          size="icon" 
+                          className="h-8 w-8 text-muted-foreground cursor-not-allowed opacity-50"
+                          disabled
+                          title="Cannot delete the account owner"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      ) : (
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button variant="outline" size="icon" className="h-8 w-8 text-destructive hover:text-destructive">
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>Archive user?</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                This will archive {member.full_name || member.email}. They will no longer be able to access the system.
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Cancel</AlertDialogCancel>
+                              <AlertDialogAction 
+                                className="bg-destructive hover:bg-destructive/90"
+                                onClick={() => handleArchiveUser(member.id, member.email)}
+                              >
+                                Archive
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
+                      )}
                     </div>
                   </TableCell>
                 </TableRow>
