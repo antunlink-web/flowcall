@@ -45,7 +45,7 @@ export function ImportLeadsDialog({
 
     try {
       if (isExcel) {
-        // Handle Excel files directly
+        // Handle Excel files directly using arrayBuffer (more reliable for large files)
         const arrayBuffer = await file.arrayBuffer();
         const workbook = XLSX.read(arrayBuffer, { type: "array" });
         const firstSheetName = workbook.SheetNames[0];
@@ -87,31 +87,32 @@ export function ImportLeadsDialog({
         
         console.log(`Excel parsed: ${headers.length} headers, ${rows.length} rows`);
         setParsedData({ headers, rows });
+        setIsLoading(false);
       } else {
-        // Handle CSV files
-        const reader = new FileReader();
-        reader.onload = (event) => {
-          const content = event.target?.result as string;
-          const { headers, rows } = parseCSVContent(content);
-          
-          if (headers.length === 0) {
-            setError("No valid headers found in CSV file");
-            setIsLoading(false);
-            return;
-          }
-          
-          console.log(`CSV parsed: ${headers.length} headers, ${rows.length} rows`);
-          setParsedData({ headers, rows });
+        // Handle CSV files - use arrayBuffer for large file support
+        const arrayBuffer = await file.arrayBuffer();
+        const decoder = new TextDecoder('utf-8');
+        const content = decoder.decode(arrayBuffer);
+        
+        console.log(`CSV file size: ${(file.size / 1024 / 1024).toFixed(2)} MB`);
+        
+        const { headers, rows } = parseCSVContent(content);
+        
+        if (headers.length === 0) {
+          setError("No valid headers found in CSV file");
           setIsLoading(false);
-        };
-        reader.readAsText(file);
-        return; // Don't setIsLoading(false) here, reader.onload will handle it
+          return;
+        }
+        
+        console.log(`CSV parsed: ${headers.length} headers, ${rows.length} rows`);
+        setParsedData({ headers, rows });
+        setIsLoading(false);
       }
     } catch (err) {
       setError("Failed to read file. Please try again.");
       console.error("File read error:", err);
+      setIsLoading(false);
     }
-    setIsLoading(false);
   };
 
   // Detect CSV delimiter
