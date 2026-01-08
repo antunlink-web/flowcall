@@ -20,8 +20,8 @@ import ManageSettings from "./pages/ManageSettings";
 import ManageAccount from "./pages/ManageAccount";
 import ManageLists from "./pages/ManageLists";
 import ManageClaims from "./pages/ManageClaims";
+import Preferences from "./pages/Preferences";
 import NotFound from "./pages/NotFound";
-
 const queryClient = new QueryClient();
 
 const App = () => (
@@ -47,6 +47,7 @@ const App = () => (
               <Route path="/manage/settings" element={<ProtectedRoute><ManageSettings /></ProtectedRoute>} />
               <Route path="/manage/account" element={<ProtectedRoute><ManageAccount /></ProtectedRoute>} />
               <Route path="/manage/claims" element={<ProtectedRoute><ManageClaims /></ProtectedRoute>} />
+              <Route path="/preferences" element={<ProtectedRoute><Preferences /></ProtectedRoute>} />
               <Route path="/settings" element={<Navigate to="/manage/settings" replace />} />
               <Route path="/manage" element={<ProtectedRoute><Manage /></ProtectedRoute>} />
               <Route path="*" element={<NotFound />} />
