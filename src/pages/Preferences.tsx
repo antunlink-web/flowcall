@@ -13,7 +13,8 @@ import {
   Bell, 
   Inbox,
   ChevronRight,
-  Upload
+  Upload,
+  X
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -124,6 +125,35 @@ export default function Preferences() {
     }
   };
 
+  const handleRemoveAvatar = async () => {
+    if (!user) return;
+    
+    try {
+      // Delete from storage
+      const { data: files } = await supabase.storage
+        .from("avatars")
+        .list(user.id);
+      
+      if (files && files.length > 0) {
+        const filesToRemove = files.map(f => `${user.id}/${f.name}`);
+        await supabase.storage.from("avatars").remove(filesToRemove);
+      }
+
+      // Update profile to remove avatar_url
+      const { error } = await supabase
+        .from("profiles")
+        .update({ avatar_url: null })
+        .eq("id", user.id);
+
+      if (error) throw error;
+
+      setAvatarUrl(null);
+      toast.success("Avatar removed");
+    } catch (error: any) {
+      toast.error("Error removing avatar: " + error.message);
+    }
+  };
+
   const handleSaveProfile = () => {
     toast.success("Profile updated successfully");
   };
@@ -187,14 +217,27 @@ export default function Preferences() {
                       onChange={handleAvatarUpload}
                       className="hidden"
                     />
-                    <Button 
-                      variant="outline" 
-                      size="sm"
-                      onClick={() => fileInputRef.current?.click()}
-                      disabled={uploadingAvatar}
-                    >
-                      {uploadingAvatar ? "Uploading..." : "Select image"}
-                    </Button>
+                    <div className="flex gap-2">
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => fileInputRef.current?.click()}
+                        disabled={uploadingAvatar}
+                      >
+                        {uploadingAvatar ? "Uploading..." : "Select image"}
+                      </Button>
+                      {avatarUrl && (
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={handleRemoveAvatar}
+                          className="text-destructive hover:text-destructive"
+                        >
+                          <X className="w-4 h-4 mr-1" />
+                          Remove
+                        </Button>
+                      )}
+                    </div>
                     <p className="text-sm text-muted-foreground mt-1">
                       File cannot be larger than 2 megabytes
                     </p>
