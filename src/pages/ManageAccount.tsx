@@ -553,7 +553,7 @@ export default function ManageAccount() {
               )}
               
               <div className="ml-44">
-                <p className="text-sm text-primary">Provide your VAT number with country code prefix, e.g., 'DK12345678'</p>
+                <p className="text-sm text-primary">Provide your VAT number with country code prefix, e.g., 'DE12345678'</p>
                 <div className="mt-2 text-sm text-muted-foreground">
                   <p className="font-medium">About VAT</p>
                   <ul className="list-disc ml-6 mt-1 space-y-1">
