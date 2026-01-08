@@ -145,10 +145,20 @@ export function LeadDetailView({ leadId, onClose }: LeadDetailViewProps) {
     );
   };
 
-  // Get primary display info
+  // Get primary display info - prioritize company name fields
   const getDisplayName = () => {
     if (!lead?.data) return "Unknown";
     const entries = Object.entries(lead.data);
+    
+    // Prioritize company name fields (Pavadinimas, Company, etc.)
+    const companyFields = ["pavadinimas", "company", "company name", "įmonė", "firma"];
+    for (const [key, value] of entries) {
+      if (companyFields.includes(key.toLowerCase()) && typeof value === "string" && value.trim()) {
+        return value;
+      }
+    }
+    
+    // Fallback to first non-empty string value
     for (const [key, value] of entries) {
       if (typeof value === "string" && value.trim()) {
         return value;
