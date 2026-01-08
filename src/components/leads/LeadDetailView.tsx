@@ -77,6 +77,7 @@ export function LeadDetailView({ leadId, onClose }: LeadDetailViewProps) {
   const [loading, setLoading] = useState(true);
   const [comment, setComment] = useState("");
   const [emailCount, setEmailCount] = useState(0);
+  const [claimedByName, setClaimedByName] = useState<string | null>(null);
   const { toast } = useToast();
   const navigate = useNavigate();
 
@@ -102,6 +103,16 @@ export function LeadDetailView({ leadId, onClose }: LeadDetailViewProps) {
     setLead(data as Lead);
     if (data.lists) {
       setList(data.lists as unknown as List);
+    }
+    
+    // Fetch claimed_by user name
+    if (data.claimed_by) {
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("full_name")
+        .eq("id", data.claimed_by)
+        .single();
+      setClaimedByName(profile?.full_name || null);
     }
     
     // Auto-claim the lead if not already claimed
@@ -603,7 +614,7 @@ export function LeadDetailView({ leadId, onClose }: LeadDetailViewProps) {
                 </div>
                 <div className="flex-1">
                   <p className="font-medium text-sm">
-                    {lead.status === "lost" ? "Loser" : "Winner"} <span className="text-muted-foreground font-normal">by Unknown</span>
+                    {lead.status === "lost" ? "Loser" : "Winner"} <span className="text-muted-foreground font-normal">by {claimedByName || "Unknown"}</span>
                   </p>
                   <p className="text-xs text-muted-foreground mt-1">
                     {format(new Date(lead.updated_at), "dd-MM-yyyy HH:mm")} ({formatDistanceToNow(new Date(lead.updated_at))} ago)
