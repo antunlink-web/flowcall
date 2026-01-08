@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { cn } from "@/lib/utils";
@@ -12,7 +12,8 @@ import {
   Filter, 
   Bell, 
   Inbox,
-  ChevronRight 
+  ChevronRight,
+  Upload
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -21,6 +22,8 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 const sidebarItems = [
   { id: "profile", label: "Profile information", icon: User },
@@ -37,6 +40,11 @@ const sidebarItems = [
 export default function Preferences() {
   const { user } = useAuth();
   const [activeSection, setActiveSection] = useState("profile");
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Avatar state
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
 
   // Profile state
   const [firstName, setFirstName] = useState(user?.user_metadata?.full_name?.split(" ")[0] || "");
@@ -59,6 +67,62 @@ export default function Preferences() {
   const [viewLeadsOnly, setViewLeadsOnly] = useState(false);
   const [includeUnclaimed, setIncludeUnclaimed] = useState(false);
   const [hotkeys, setHotkeys] = useState(false);
+
+  // Fetch avatar on mount
+  useEffect(() => {
+    const fetchAvatar = async () => {
+      if (!user) return;
+      const { data } = await supabase
+        .from("profiles")
+        .select("avatar_url")
+        .eq("id", user.id)
+        .single();
+      if (data?.avatar_url) {
+        setAvatarUrl(data.avatar_url);
+      }
+    };
+    fetchAvatar();
+  }, [user]);
+
+  const handleAvatarUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file || !user) return;
+
+    if (file.size > 2 * 1024 * 1024) {
+      toast.error("File cannot be larger than 2 megabytes");
+      return;
+    }
+
+    setUploadingAvatar(true);
+    try {
+      const fileExt = file.name.split(".").pop();
+      const filePath = `${user.id}/avatar.${fileExt}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from("avatars")
+        .upload(filePath, file, { upsert: true });
+
+      if (uploadError) throw uploadError;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from("avatars")
+        .getPublicUrl(filePath);
+
+      const { error: updateError } = await supabase
+        .from("profiles")
+        .update({ avatar_url: publicUrl })
+        .eq("id", user.id);
+
+      if (updateError) throw updateError;
+
+      setAvatarUrl(publicUrl + "?t=" + Date.now());
+      toast.success("Avatar updated successfully");
+    } catch (error: any) {
+      toast.error("Error uploading avatar: " + error.message);
+    } finally {
+      setUploadingAvatar(false);
+    }
+  };
 
   const handleSaveProfile = () => {
     toast.success("Profile updated successfully");
@@ -106,6 +170,35 @@ export default function Preferences() {
                     <span className="text-destructive">*</span> Email
                   </Label>
                   <Input id="email" value={email} disabled />
+                </div>
+                <div className="grid grid-cols-[120px_1fr] items-start gap-4">
+                  <Label className="text-right pt-2">Avatar</Label>
+                  <div>
+                    <Avatar className="w-16 h-16 rounded-none mb-2">
+                      <AvatarImage src={avatarUrl || undefined} className="object-cover" />
+                      <AvatarFallback className="rounded-none bg-muted">
+                        <User className="w-8 h-8 text-muted-foreground" />
+                      </AvatarFallback>
+                    </Avatar>
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept="image/*"
+                      onChange={handleAvatarUpload}
+                      className="hidden"
+                    />
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => fileInputRef.current?.click()}
+                      disabled={uploadingAvatar}
+                    >
+                      {uploadingAvatar ? "Uploading..." : "Select image"}
+                    </Button>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      File cannot be larger than 2 megabytes
+                    </p>
+                  </div>
                 </div>
               </div>
             </div>
