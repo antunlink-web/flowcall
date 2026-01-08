@@ -400,28 +400,6 @@ export default function ManageSettings() {
                 )}
               </div>
 
-              {/* Twilio */}
-              <div 
-                className={`border rounded p-6 cursor-pointer transition-colors ${selectedDialler === 'twilio' ? 'border-primary bg-accent/30' : 'border-border hover:bg-accent/50'}`}
-                onClick={() => setSelectedDialler(selectedDialler === 'twilio' ? null : 'twilio')}
-              >
-                <div className="flex items-center gap-6">
-                  <div className="w-16 h-16 bg-muted rounded flex items-center justify-center text-2xl font-bold text-muted-foreground">
-                    ⊕
-                  </div>
-                  <div>
-                    <h3 className="text-xl font-serif text-primary">Twilio</h3>
-                    <p className="text-muted-foreground">Use your existing Twilio subscription with Powerdialer.</p>
-                  </div>
-                </div>
-                {selectedDialler === 'twilio' && (
-                  <div className="mt-6 pt-6 border-t border-border">
-                    <h4 className="font-semibold text-center mb-4">Connect your Twilio account:</h4>
-                    <p className="text-muted-foreground text-center">Coming soon - Twilio integration is under development.</p>
-                  </div>
-                )}
-              </div>
-
               {/* Other / Softphone */}
               <div 
                 className={`border rounded p-6 cursor-pointer transition-colors ${selectedDialler === 'softphone' ? 'border-primary bg-accent/30' : 'border-border hover:bg-accent/50'}`}
