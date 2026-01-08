@@ -123,12 +123,22 @@ export function TopNavbar() {
           const leadData = lead.data || {};
           const entries = Object.entries(leadData);
           
-          // First non-empty field is typically the company/name (like in myphoner)
+          // Prioritize company name fields (Pavadinimas, Company, etc.)
           let displayName = "Unknown";
+          const companyFields = ["pavadinimas", "company", "company name", "įmonė", "firma"];
           for (const [key, value] of entries) {
-            if (typeof value === 'string' && value.trim()) {
+            if (companyFields.includes(key.toLowerCase()) && typeof value === 'string' && value.trim()) {
               displayName = value;
               break;
+            }
+          }
+          // Fallback to first non-empty string value
+          if (displayName === "Unknown") {
+            for (const [key, value] of entries) {
+              if (typeof value === 'string' && value.trim()) {
+                displayName = value;
+                break;
+              }
             }
           }
 
