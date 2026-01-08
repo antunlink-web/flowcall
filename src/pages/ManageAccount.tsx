@@ -221,6 +221,66 @@ export default function ManageAccount() {
     return prices[currentPlan]?.[billingCycle] || 27;
   };
 
+  const parseVatAddress = (address: string) => {
+    // Try to parse address like "TARSKA ULICA 26A, ZAGREB, 10040 Zagreb-Dubrava"
+    const parts = address.split(',').map(p => p.trim());
+    
+    if (parts.length >= 3) {
+      // Format: "Street, City, Zip CityArea"
+      const streetAddress = parts[0];
+      const cityPart = parts[1];
+      const zipAndArea = parts[2];
+      
+      // Extract zip code (numbers at the start)
+      const zipMatch = zipAndArea.match(/^(\d+)\s*(.*)/);
+      const zipCode = zipMatch ? zipMatch[1] : "";
+      
+      return {
+        address1: streetAddress,
+        city: cityPart,
+        zip: zipCode,
+      };
+    } else if (parts.length === 2) {
+      return {
+        address1: parts[0],
+        city: parts[1],
+        zip: "",
+      };
+    }
+    
+    return {
+      address1: address,
+      city: "",
+      zip: "",
+    };
+  };
+
+  const applyVatData = () => {
+    if (vatCompanyName) {
+      setCompanyName(vatCompanyName);
+    }
+    if (vatAddress) {
+      const parsed = parseVatAddress(vatAddress);
+      setAddress1(parsed.address1);
+      setCity(parsed.city);
+      setZip(parsed.zip);
+    }
+    // Set country based on VAT country code
+    const countryMap: Record<string, string> = {
+      "HR": "Croatia",
+      "DK": "Denmark",
+      "DE": "Germany",
+      "LT": "Lithuania",
+      "GB": "United Kingdom",
+      "US": "United States",
+    };
+    const countryCode = vatNumber.slice(0, 2).toUpperCase();
+    if (countryMap[countryCode]) {
+      setCountry(countryMap[countryCode]);
+    }
+    toast.success("Verified data applied to form");
+  };
+
   const handleVerifyVat = async () => {
     if (!vatNumber.trim()) {
       setVatError("Please enter a VAT number");
@@ -247,9 +307,28 @@ export default function ManageAccount() {
         setVatAddress(data.address || null);
         toast.success("VAT number verified successfully");
         
-        // Auto-fill company name if found and current is empty
-        if (data.name && !companyName) {
+        // Auto-fill form fields with verified data
+        if (data.name) {
           setCompanyName(data.name);
+        }
+        if (data.address) {
+          const parsed = parseVatAddress(data.address);
+          setAddress1(parsed.address1);
+          setCity(parsed.city);
+          setZip(parsed.zip);
+        }
+        // Auto-set country based on VAT country code
+        const countryMap: Record<string, string> = {
+          "HR": "Croatia",
+          "DK": "Denmark",
+          "DE": "Germany",
+          "LT": "Lithuania",
+          "GB": "United Kingdom",
+          "US": "United States",
+        };
+        const countryCode = vatNumber.slice(0, 2).toUpperCase();
+        if (countryMap[countryCode]) {
+          setCountry(countryMap[countryCode]);
         }
       } else {
         setVatVerified(false);
@@ -448,9 +527,22 @@ export default function ManageAccount() {
               {/* Verification Result */}
               {vatVerified === true && vatCompanyName && (
                 <div className="ml-44 p-3 bg-green-50 border border-green-200 rounded text-sm">
-                  <p className="font-medium text-green-700">✓ VAT number verified</p>
-                  <p className="text-green-600">{vatCompanyName}</p>
-                  {vatAddress && <p className="text-green-600 text-xs mt-1">{vatAddress}</p>}
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <p className="font-medium text-green-700">✓ VAT number verified</p>
+                      <p className="text-green-600">{vatCompanyName}</p>
+                      {vatAddress && <p className="text-green-600 text-xs mt-1">{vatAddress}</p>}
+                    </div>
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      onClick={applyVatData}
+                      className="ml-4 text-green-700 border-green-300 hover:bg-green-100"
+                    >
+                      Reapply Data
+                    </Button>
+                  </div>
+                  <p className="text-green-600 text-xs mt-2 italic">Data has been auto-filled. You can edit the fields below before saving.</p>
                 </div>
               )}
               
@@ -567,11 +659,12 @@ export default function ManageAccount() {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="Lithuania">Lithuania</SelectItem>
+                  <SelectItem value="Croatia">Croatia</SelectItem>
                   <SelectItem value="Denmark">Denmark</SelectItem>
                   <SelectItem value="Germany">Germany</SelectItem>
-                  <SelectItem value="United States">United States</SelectItem>
+                  <SelectItem value="Lithuania">Lithuania</SelectItem>
                   <SelectItem value="United Kingdom">United Kingdom</SelectItem>
+                  <SelectItem value="United States">United States</SelectItem>
                 </SelectContent>
               </Select>
             </div>
