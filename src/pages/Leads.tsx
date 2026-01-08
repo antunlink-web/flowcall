@@ -105,11 +105,24 @@ export default function Leads() {
     );
   }
 
-  const fetchData = async () => {
+  const fetchData = async (search?: string) => {
     setLoading(true);
 
+    let leadsPromise;
+    
+    if (search && search.trim()) {
+      // Use RPC function for searching JSONB data
+      leadsPromise = supabase.rpc("search_leads", { search_term: search.trim() });
+    } else {
+      leadsPromise = supabase
+        .from("leads")
+        .select("*")
+        .order("created_at", { ascending: false })
+        .limit(100);
+    }
+
     const [{ data: leadData }, { data: campaignData }] = await Promise.all([
-      supabase.from("leads").select("*").order("created_at", { ascending: false }),
+      leadsPromise,
       supabase.from("campaigns").select("*"),
     ]);
 
@@ -118,25 +131,24 @@ export default function Leads() {
     setLoading(false);
   };
 
+  // Debounced search
   useEffect(() => {
-    if (user) {
-      fetchData();
-    }
-  }, [user]);
+    if (!user) return;
+    
+    const timer = setTimeout(() => {
+      fetchData(searchQuery);
+    }, 300);
 
+    return () => clearTimeout(timer);
+  }, [user, searchQuery]);
+
+  // Apply local filters (status, campaign) on fetched leads
   const filteredLeads = leads.filter((lead) => {
-    const searchLower = searchQuery.toLowerCase();
-    const matchesSearch =
-      searchQuery === "" ||
-      Object.values(lead.data || {}).some((val) =>
-        String(val).toLowerCase().includes(searchLower)
-      );
-
     const matchesStatus = statusFilter === "all" || lead.status === statusFilter;
     const matchesCampaign =
       campaignFilter === "all" || lead.campaign_id === campaignFilter;
 
-    return matchesSearch && matchesStatus && matchesCampaign;
+    return matchesStatus && matchesCampaign;
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
