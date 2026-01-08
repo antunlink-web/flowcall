@@ -96,10 +96,13 @@ export function TopNavbar() {
       setSearchLoading(true);
       try {
         // Use RPC function for searching all leads in the database
+        console.log("Searching for:", searchQuery.trim());
         const { data, error } = await supabase.rpc("search_leads", { 
           search_term: searchQuery.trim() 
         });
 
+        console.log("Search results:", data?.length || 0, "leads found", error);
+        
         if (error) throw error;
 
         const results = (data || []).slice(0, 20).map((lead: any) => {
