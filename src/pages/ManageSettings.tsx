@@ -67,6 +67,12 @@ export default function ManageSettings() {
   const [disableAutoRelease, setDisableAutoRelease] = useState(false);
   const [defaultActiveTab, setDefaultActiveTab] = useState("edit");
 
+  // Dialler State
+  const [selectedDialler, setSelectedDialler] = useState<string | null>(null);
+  const [diallerProtocol, setDiallerProtocol] = useState("sip");
+  const [prependPhone, setPrependPhone] = useState("");
+  const [autoDial, setAutoDial] = useState(false);
+
   // Restrictions State
   const [restrictIps, setRestrictIps] = useState("");
 
@@ -332,44 +338,155 @@ export default function ManageSettings() {
             </div>
 
             <div className="space-y-4">
-              <div className="border border-border rounded p-6 flex items-center gap-6 hover:bg-accent/50 cursor-pointer">
-                <div className="w-16 h-16 bg-muted rounded flex items-center justify-center">
-                  <Phone className="w-8 h-8 text-muted-foreground" />
-                </div>
-                <div>
-                  <h3 className="text-xl font-serif text-primary">Powerdialer Voice</h3>
-                  <p className="text-muted-foreground">Coming soon</p>
-                </div>
-              </div>
-
-              <div className="border border-border rounded p-6 flex items-center gap-6 hover:bg-accent/50 cursor-pointer">
-                <div className="w-16 h-16 bg-muted rounded flex items-center justify-center">
-                  <Phone className="w-8 h-8 text-muted-foreground" />
-                </div>
-                <div>
-                  <h3 className="text-xl font-serif text-primary">Powerdialer Smart</h3>
-                  <p className="text-muted-foreground">Use your smartphone's plan to call Powerdialer contact. No need for complicated calling system.</p>
+              {/* Powerdialer Voice */}
+              <div 
+                className={`border rounded p-6 cursor-pointer transition-colors ${selectedDialler === 'voice' ? 'border-primary bg-accent/30' : 'border-border hover:bg-accent/50'}`}
+                onClick={() => setSelectedDialler(selectedDialler === 'voice' ? null : 'voice')}
+              >
+                <div className="flex items-center gap-6">
+                  <div className="w-16 h-16 bg-muted rounded flex items-center justify-center">
+                    <Phone className="w-8 h-8 text-muted-foreground" />
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-serif text-primary">Powerdialer Voice</h3>
+                    <p className="text-muted-foreground">Coming soon</p>
+                  </div>
                 </div>
               </div>
 
-              <div className="border border-border rounded p-6 flex items-center gap-6 hover:bg-accent/50 cursor-pointer">
-                <div className="w-16 h-16 bg-muted rounded flex items-center justify-center text-2xl font-bold text-muted-foreground">
-                  ⊕
+              {/* Powerdialer Smart */}
+              <div 
+                className={`border rounded p-6 cursor-pointer transition-colors ${selectedDialler === 'smart' ? 'border-primary bg-accent/30' : 'border-border hover:bg-accent/50'}`}
+                onClick={() => setSelectedDialler(selectedDialler === 'smart' ? null : 'smart')}
+              >
+                <div className="flex items-center gap-6">
+                  <div className="w-16 h-16 bg-muted rounded flex items-center justify-center">
+                    <Phone className="w-8 h-8 text-muted-foreground" />
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-serif text-primary">Powerdialer Smart</h3>
+                    <p className="text-muted-foreground">Use your smartphone's plan to call Powerdialer contact. No need for complicated calling system.</p>
+                  </div>
                 </div>
-                <div>
-                  <h3 className="text-xl font-serif text-primary">Twilio</h3>
-                  <p className="text-muted-foreground">Use your existing Twilio subscription with Myphoner.</p>
-                </div>
+                {selectedDialler === 'smart' && (
+                  <div className="mt-6 pt-6 border-t border-border">
+                    <h4 className="font-semibold text-center mb-6">Marvelous choice. Here's how to get started:</h4>
+                    <div className="space-y-4 max-w-2xl mx-auto">
+                      <div className="flex items-start gap-4 p-4 bg-muted/50 rounded">
+                        <span className="text-2xl font-light text-muted-foreground">1</span>
+                        <p>Log in to Powerdialer from your mobile phone's browser.</p>
+                      </div>
+                      <div className="flex items-start gap-4 p-4 bg-muted/50 rounded">
+                        <span className="text-2xl font-light text-muted-foreground">2</span>
+                        <p>Start working your Powerdialer <span className="text-primary cursor-pointer">queue</span> in your desktop or laptop browser.</p>
+                      </div>
+                      <div className="flex items-start gap-4 p-4 bg-muted/50 rounded">
+                        <span className="text-2xl font-light text-muted-foreground">3</span>
+                        <p className="text-primary">Your phone will automatically prompt you to call the lead.</p>
+                      </div>
+                      <div className="flex items-start gap-4 p-4 bg-muted/50 rounded">
+                        <span className="text-2xl font-light text-muted-foreground">4</span>
+                        <p className="text-primary">If the phone enters lock screen it may miss a lead. No worries, simply swipe down and release to refresh the lead and dial it.</p>
+                      </div>
+                    </div>
+                    <p className="text-sm text-muted-foreground mt-6 text-center">
+                      For an even smoother experience, we recommend saving Powerdialer to your Home screen:
+                    </p>
+                    <ul className="text-sm text-primary mt-2 list-disc list-inside text-center space-y-1">
+                      <li>On an iPhone, click the sharing icon at the bottom of the browser, then select "Add to Home Screen".</li>
+                      <li>On an Android phone, click the menu button in the upper right corner, then select "Add to Home Screen".</li>
+                    </ul>
+                  </div>
+                )}
               </div>
 
-              <div className="border border-border rounded p-6 flex items-center gap-6 hover:bg-accent/50 cursor-pointer">
-                <div className="w-16 h-16 bg-muted rounded flex items-center justify-center">
-                  <Phone className="w-8 h-8 text-muted-foreground" />
+              {/* Twilio */}
+              <div 
+                className={`border rounded p-6 cursor-pointer transition-colors ${selectedDialler === 'twilio' ? 'border-primary bg-accent/30' : 'border-border hover:bg-accent/50'}`}
+                onClick={() => setSelectedDialler(selectedDialler === 'twilio' ? null : 'twilio')}
+              >
+                <div className="flex items-center gap-6">
+                  <div className="w-16 h-16 bg-muted rounded flex items-center justify-center text-2xl font-bold text-muted-foreground">
+                    ⊕
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-serif text-primary">Twilio</h3>
+                    <p className="text-muted-foreground">Use your existing Twilio subscription with Powerdialer.</p>
+                  </div>
                 </div>
-                <div>
-                  <h3 className="text-xl font-serif text-primary">Other / Softphone</h3>
-                  <p className="text-muted-foreground">Use your existing softphone and/or a VOIP subscription with your favourite provider.</p>
+                {selectedDialler === 'twilio' && (
+                  <div className="mt-6 pt-6 border-t border-border">
+                    <h4 className="font-semibold text-center mb-4">Connect your Twilio account:</h4>
+                    <p className="text-muted-foreground text-center">Coming soon - Twilio integration is under development.</p>
+                  </div>
+                )}
+              </div>
+
+              {/* Other / Softphone */}
+              <div 
+                className={`border rounded p-6 cursor-pointer transition-colors ${selectedDialler === 'softphone' ? 'border-primary bg-accent/30' : 'border-border hover:bg-accent/50'}`}
+                onClick={() => setSelectedDialler(selectedDialler === 'softphone' ? null : 'softphone')}
+              >
+                <div className="flex items-center gap-6">
+                  <div className="w-16 h-16 bg-muted rounded flex items-center justify-center">
+                    <Phone className="w-8 h-8 text-muted-foreground" />
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-serif text-primary">Other / Softphone</h3>
+                    <p className="text-muted-foreground">Use your existing softphone and/or a VOIP subscription with your favourite provider.</p>
+                  </div>
                 </div>
+                {selectedDialler === 'softphone' && (
+                  <div className="mt-6 pt-6 border-t border-border">
+                    <h4 className="font-semibold text-center mb-4">Great choice. Here's how to get started:</h4>
+                    <p className="text-muted-foreground text-center mb-6">Powerdialer supports any VOIP softphone that is click-to-call compliant.</p>
+                    <p className="text-sm text-muted-foreground text-center mb-4">You can experiment with different call handlers from your preferences.</p>
+                    
+                    <div className="max-w-md mx-auto space-y-4 p-4 border rounded bg-muted/30">
+                      <h5 className="font-medium">Dialer settings</h5>
+                      <div className="grid grid-cols-[120px_1fr] gap-4 items-center">
+                        <Label>Dialer</Label>
+                        <Select value={diallerProtocol} onValueChange={setDiallerProtocol}>
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="sip">Other/sip protocol</SelectItem>
+                            <SelectItem value="tel">Tel protocol</SelectItem>
+                            <SelectItem value="callto">Callto protocol</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="grid grid-cols-[120px_1fr] gap-4 items-start">
+                        <Label className="pt-2">Prepend phone</Label>
+                        <div>
+                          <Input 
+                            value={prependPhone} 
+                            onChange={(e) => setPrependPhone(e.target.value)} 
+                            placeholder="+316"
+                          />
+                          <p className="text-xs text-muted-foreground mt-1">
+                            Prepend all phone numbers with this. Useful if you need to send a dial code to the phone before the number.
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex items-start gap-3">
+                        <Checkbox
+                          id="autoDial"
+                          checked={autoDial}
+                          onCheckedChange={(v) => setAutoDial(!!v)}
+                        />
+                        <div>
+                          <Label htmlFor="autoDial">AutoDial</Label>
+                          <p className="text-xs text-muted-foreground">
+                            Automatically click the phone number when loading a lead on screen.
+                          </p>
+                        </div>
+                      </div>
+                      <Button className="bg-destructive hover:bg-destructive/90">Update</Button>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           </div>
