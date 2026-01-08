@@ -69,11 +69,21 @@ import {
   Workflow,
 } from "lucide-react";
 import { useLists, List, ListField, extractFieldsFromCsv } from "@/hooks/useLists";
+import { useListTemplates, EmailTemplate, SmsTemplate, CallScript, ListEmailConfig } from "@/hooks/useListTemplates";
 import { CreateListDialog } from "@/components/lists/CreateListDialog";
 import { FieldsEditor } from "@/components/lists/FieldsEditor";
 import { ImportLeadsDialog } from "@/components/lists/ImportLeadsDialog";
 import { UploadProgressBar } from "@/components/UploadProgressBar";
 import { format } from "date-fns";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { useToast } from "@/hooks/use-toast";
 
 const subNavItems = [
   { label: "Lists", href: "/manage/lists" },
@@ -93,7 +103,7 @@ const configSidebarItems = [
   { icon: Copy, label: "Dedupe", id: "dedupe" },
   { icon: Clock, label: "Expiration", id: "expiration" },
   { icon: Tag, label: "Categories", id: "categories" },
-  { icon: FileText, label: "Script", id: "script" },
+  { icon: FileText, label: "Scripts", id: "scripts" },
   { icon: LayoutList, label: "Segments", id: "segments" },
   { icon: Mail, label: "E-mails", id: "emails" },
   { icon: MessageSquare, label: "Texts", id: "texts" },
@@ -104,12 +114,9 @@ const mockUsers = [
   { id: "1", name: "Agent User", checked: true },
 ];
 
-const mockEmailTemplates = [
-  { id: "1", name: "Follow Up", subject: "Following up on our conversation", body: "Hello, I wanted to follow up..." },
-];
-
 export default function ManageLists() {
   const location = useLocation();
+  const { toast } = useToast();
   const { lists, loading, uploadProgress, createList, updateList, deleteList, importLeadsFromData } = useLists();
   
   const [activeTab, setActiveTab] = useState<"active" | "archived" | "blocklists">("active");
@@ -121,6 +128,37 @@ export default function ManageLists() {
   const [listName, setListName] = useState("");
   const [listSettings, setListSettings] = useState(configureList?.settings || {});
   const [previewLead, setPreviewLead] = useState<Record<string, string> | null>(null);
+  const [emailConfig, setEmailConfig] = useState<ListEmailConfig>({});
+  
+  // Template management state
+  const [showEmailTemplateDialog, setShowEmailTemplateDialog] = useState(false);
+  const [showSmsTemplateDialog, setShowSmsTemplateDialog] = useState(false);
+  const [showScriptDialog, setShowScriptDialog] = useState(false);
+  const [editingEmailTemplate, setEditingEmailTemplate] = useState<EmailTemplate | null>(null);
+  const [editingSmsTemplate, setEditingSmsTemplate] = useState<SmsTemplate | null>(null);
+  const [editingScript, setEditingScript] = useState<CallScript | null>(null);
+  
+  // Template form state
+  const [templateName, setTemplateName] = useState("");
+  const [templateSubject, setTemplateSubject] = useState("");
+  const [templateBody, setTemplateBody] = useState("");
+  const [templateContent, setTemplateContent] = useState("");
+  
+  // Use the templates hook
+  const {
+    emailTemplates,
+    smsTemplates,
+    callScripts,
+    createEmailTemplate,
+    updateEmailTemplate,
+    deleteEmailTemplate,
+    createSmsTemplate,
+    updateSmsTemplate,
+    deleteSmsTemplate,
+    createCallScript,
+    updateCallScript,
+    deleteCallScript,
+  } = useListTemplates(configureList?.id || null);
 
   const activeLists = lists.filter((l) => l.status === "active");
   const archivedLists = lists.filter((l) => l.status === "archived");
@@ -169,7 +207,120 @@ export default function ManageLists() {
     setEditedFields([...list.fields]);
     setListName(list.name);
     setListSettings(list.settings || {});
+    setEmailConfig((list as any).email_config || {});
     setConfigSection("fields");
+  };
+
+  // Template dialog handlers
+  const resetTemplateForm = () => {
+    setTemplateName("");
+    setTemplateSubject("");
+    setTemplateBody("");
+    setTemplateContent("");
+    setEditingEmailTemplate(null);
+    setEditingSmsTemplate(null);
+    setEditingScript(null);
+  };
+
+  const handleEmailTemplateSubmit = async () => {
+    if (!configureList || !templateName) return;
+    
+    if (editingEmailTemplate) {
+      await updateEmailTemplate(editingEmailTemplate.id, {
+        name: templateName,
+        subject: templateSubject,
+        body: templateBody,
+      });
+    } else {
+      await createEmailTemplate({
+        list_id: configureList.id,
+        name: templateName,
+        subject: templateSubject,
+        body: templateBody,
+      });
+    }
+    
+    resetTemplateForm();
+    setShowEmailTemplateDialog(false);
+  };
+
+  const handleSmsTemplateSubmit = async () => {
+    if (!configureList || !templateName) return;
+    
+    if (editingSmsTemplate) {
+      await updateSmsTemplate(editingSmsTemplate.id, {
+        name: templateName,
+        content: templateContent,
+      });
+    } else {
+      await createSmsTemplate({
+        list_id: configureList.id,
+        name: templateName,
+        content: templateContent,
+      });
+    }
+    
+    resetTemplateForm();
+    setShowSmsTemplateDialog(false);
+  };
+
+  const handleScriptSubmit = async () => {
+    if (!configureList || !templateName) return;
+    
+    if (editingScript) {
+      await updateCallScript(editingScript.id, {
+        name: templateName,
+        content: templateContent,
+      });
+    } else {
+      await createCallScript({
+        list_id: configureList.id,
+        name: templateName,
+        content: templateContent,
+      });
+    }
+    
+    resetTemplateForm();
+    setShowScriptDialog(false);
+  };
+
+  const openEditEmailTemplate = (template: EmailTemplate) => {
+    setEditingEmailTemplate(template);
+    setTemplateName(template.name);
+    setTemplateSubject(template.subject);
+    setTemplateBody(template.body);
+    setShowEmailTemplateDialog(true);
+  };
+
+  const openEditSmsTemplate = (template: SmsTemplate) => {
+    setEditingSmsTemplate(template);
+    setTemplateName(template.name);
+    setTemplateContent(template.content);
+    setShowSmsTemplateDialog(true);
+  };
+
+  const openEditScript = (script: CallScript) => {
+    setEditingScript(script);
+    setTemplateName(script.name);
+    setTemplateContent(script.content);
+    setShowScriptDialog(true);
+  };
+
+  const handleSaveEmailConfig = async () => {
+    if (!configureList) return;
+    
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { error } = await supabase
+      .from("lists")
+      .update({ email_config: emailConfig as any })
+      .eq("id", configureList.id);
+    
+    if (error) {
+      toast({ title: "Error saving email config", description: error.message, variant: "destructive" });
+      return;
+    }
+    
+    toast({ title: "Email configuration saved" });
   };
 
   const handleSaveFields = async () => {
@@ -640,77 +791,82 @@ export default function ManageLists() {
           </div>
         );
 
-      case "script":
+      case "scripts":
         return (
-          <div className="flex gap-8">
-            <div className="flex-1 space-y-4">
-              <div className="border border-border rounded-t flex items-center gap-1 p-2 bg-muted/30">
-                <Button variant="ghost" size="icon" className="h-8 w-8"><Bold className="h-4 w-4" /></Button>
-                <Button variant="ghost" size="icon" className="h-8 w-8"><Italic className="h-4 w-4" /></Button>
-                <Button variant="ghost" size="icon" className="h-8 w-8"><Strikethrough className="h-4 w-4" /></Button>
-                <Button variant="ghost" size="icon" className="h-8 w-8"><LinkIcon className="h-4 w-4" /></Button>
-                <div className="w-px h-6 bg-border mx-1" />
-                <Button variant="ghost" size="icon" className="h-8 w-8"><Quote className="h-4 w-4" /></Button>
-                <Button variant="ghost" size="icon" className="h-8 w-8"><Code className="h-4 w-4" /></Button>
-                <div className="w-px h-6 bg-border mx-1" />
-                <Button variant="ghost" size="icon" className="h-8 w-8"><ListIcon className="h-4 w-4" /></Button>
-                <Button variant="ghost" size="icon" className="h-8 w-8"><ListOrderedIcon className="h-4 w-4" /></Button>
-                <div className="flex-1" />
-                <Button variant="ghost" size="icon" className="h-8 w-8"><Undo className="h-4 w-4" /></Button>
-                <Button variant="ghost" size="icon" className="h-8 w-8"><Redo className="h-4 w-4" /></Button>
-              </div>
-              
-              <Textarea 
-                className="min-h-[200px] rounded-t-none -mt-4" 
-                placeholder="Enter your call script here..."
-                value={listSettings.script || ""}
-                onChange={(e) => setListSettings({ ...listSettings, script: e.target.value })}
-              />
-
-              <div className="space-y-2">
-                <Label>Insert merge tag</Label>
-                <Select>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select field name to insert as merge tag" />
-                  </SelectTrigger>
-                  <SelectContent className="bg-background border shadow-lg z-50">
-                    {editedFields.map((field) => (
-                      <SelectItem key={field.id} value={field.name}>{field.name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <Button onClick={handleSaveSettings} className="bg-destructive hover:bg-destructive/90">Save</Button>
+          <div className="space-y-6">
+            <div className="bg-muted/50 border border-border rounded p-4 text-sm">
+              <p>Call scripts help agents follow a consistent conversation flow when calling leads.</p>
             </div>
 
-            <div className="w-80">
-              <div className="border border-border rounded-lg">
-                <div className="p-4">
-                  <h3 className="font-medium mb-2">Available merge tags</h3>
-                  <p className="text-sm text-muted-foreground mb-4">Copy merge tags to use in your script.</p>
-                  
-                  <table className="w-full text-sm">
-                    <thead>
-                      <tr className="border-b">
-                        <th className="text-left py-2 font-medium">Field Name</th>
-                        <th className="text-left py-2 font-medium">Merge Tag</th>
+            <Button 
+              className="bg-destructive hover:bg-destructive/90"
+              onClick={() => {
+                resetTemplateForm();
+                setShowScriptDialog(true);
+              }}
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              New Script
+            </Button>
+
+            <div className="border border-border rounded overflow-hidden">
+              <table className="w-full">
+                <thead className="bg-muted/50">
+                  <tr>
+                    <th className="text-left p-3 font-medium">Name</th>
+                    <th className="text-left p-3 font-medium">Content</th>
+                    <th className="text-right p-3"></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {callScripts.length === 0 ? (
+                    <tr>
+                      <td colSpan={3} className="p-6 text-center text-muted-foreground">
+                        No call scripts configured yet.
+                      </td>
+                    </tr>
+                  ) : (
+                    callScripts.map((script) => (
+                      <tr key={script.id} className="border-t border-border">
+                        <td className="p-3 text-primary">{script.name}</td>
+                        <td className="p-3 text-muted-foreground truncate max-w-xs">{script.content}</td>
+                        <td className="p-3 text-right">
+                          <div className="flex items-center justify-end gap-1">
+                            <Button 
+                              variant="outline" 
+                              size="icon" 
+                              className="h-8 w-8"
+                              onClick={() => openEditScript(script)}
+                            >
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                            <Button 
+                              variant="outline" 
+                              size="icon" 
+                              className="h-8 w-8"
+                              onClick={() => deleteCallScript(script.id)}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </td>
                       </tr>
-                    </thead>
-                    <tbody>
-                      {editedFields.map((field) => (
-                        <tr key={field.id} className="border-b">
-                          <td className="py-2">{field.name}</td>
-                          <td className="py-2">
-                            <code className="bg-muted px-1 py-0.5 rounded text-xs">
-                              {"{{ " + field.name.toLowerCase().replace(/\s+/g, "_") + " }}"}
-                            </code>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+
+            <div className="border border-border rounded-lg p-4">
+              <h3 className="font-medium mb-2">Available merge tags</h3>
+              <p className="text-sm text-muted-foreground mb-4">Copy merge tags to use in your scripts.</p>
+              
+              <div className="flex flex-wrap gap-2">
+                {editedFields.map((field) => (
+                  <code key={field.id} className="bg-muted px-2 py-1 rounded text-xs">
+                    {"{{ " + field.name.toLowerCase().replace(/\s+/g, "_") + " }}"}
+                  </code>
+                ))}
               </div>
             </div>
           </div>
@@ -734,52 +890,145 @@ export default function ManageLists() {
         return (
           <div className="space-y-6">
             <div className="bg-muted/50 border border-border rounded p-4 text-sm">
-              <p>Email templates are pre-written emails that let you merge in lead information automatically.</p>
+              <p>Configure email settings and templates for this list. Each list can have its own SMTP configuration.</p>
             </div>
 
-            <Button className="bg-destructive hover:bg-destructive/90">
-              <Plus className="h-4 w-4 mr-2" />
-              New Template
-            </Button>
+            {/* Email Configuration */}
+            <div className="border border-border rounded-lg p-4 space-y-4">
+              <h3 className="font-medium">Email Configuration</h3>
+              
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>From Name</Label>
+                  <Input
+                    value={emailConfig.from_name || ""}
+                    onChange={(e) => setEmailConfig({ ...emailConfig, from_name: e.target.value })}
+                    placeholder="Company Name"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>From Email</Label>
+                  <Input
+                    type="email"
+                    value={emailConfig.from_email || ""}
+                    onChange={(e) => setEmailConfig({ ...emailConfig, from_email: e.target.value })}
+                    placeholder="noreply@company.com"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>SMTP Host</Label>
+                  <Input
+                    value={emailConfig.smtp_host || ""}
+                    onChange={(e) => setEmailConfig({ ...emailConfig, smtp_host: e.target.value })}
+                    placeholder="smtp.example.com"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>SMTP Port</Label>
+                  <Input
+                    type="number"
+                    value={emailConfig.smtp_port || 587}
+                    onChange={(e) => setEmailConfig({ ...emailConfig, smtp_port: parseInt(e.target.value) })}
+                    placeholder="587"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>SMTP Username</Label>
+                  <Input
+                    value={emailConfig.smtp_username || ""}
+                    onChange={(e) => setEmailConfig({ ...emailConfig, smtp_username: e.target.value })}
+                    placeholder="username"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>SMTP Password</Label>
+                  <Input
+                    type="password"
+                    value={emailConfig.smtp_password || ""}
+                    onChange={(e) => setEmailConfig({ ...emailConfig, smtp_password: e.target.value })}
+                    placeholder="••••••••"
+                  />
+                </div>
+              </div>
+              
+              <div className="flex items-center gap-2">
+                <Checkbox
+                  id="use-tls"
+                  checked={emailConfig.use_tls ?? true}
+                  onCheckedChange={(checked) => setEmailConfig({ ...emailConfig, use_tls: !!checked })}
+                />
+                <Label htmlFor="use-tls">Use TLS</Label>
+              </div>
+              
+              <Button onClick={handleSaveEmailConfig} className="bg-destructive hover:bg-destructive/90">
+                Save Email Configuration
+              </Button>
+            </div>
 
-            <div className="border border-border rounded overflow-hidden">
-              <table className="w-full">
-                <thead className="bg-muted/50">
-                  <tr>
-                    <th className="text-left p-3 font-medium">Name</th>
-                    <th className="text-left p-3 font-medium">Subject</th>
-                    <th className="text-left p-3 font-medium">Body</th>
-                    <th className="text-right p-3"></th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {mockEmailTemplates.length === 0 ? (
+            {/* Email Templates */}
+            <div className="space-y-4">
+              <h3 className="font-medium">Email Templates</h3>
+              
+              <Button 
+                className="bg-destructive hover:bg-destructive/90"
+                onClick={() => {
+                  resetTemplateForm();
+                  setShowEmailTemplateDialog(true);
+                }}
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                New Template
+              </Button>
+
+              <div className="border border-border rounded overflow-hidden">
+                <table className="w-full">
+                  <thead className="bg-muted/50">
                     <tr>
-                      <td colSpan={4} className="p-6 text-center text-muted-foreground">
-                        No email templates configured yet.
-                      </td>
+                      <th className="text-left p-3 font-medium">Name</th>
+                      <th className="text-left p-3 font-medium">Subject</th>
+                      <th className="text-left p-3 font-medium">Body</th>
+                      <th className="text-right p-3"></th>
                     </tr>
-                  ) : (
-                    mockEmailTemplates.map((template) => (
-                      <tr key={template.id} className="border-t border-border">
-                        <td className="p-3 text-primary">{template.name}</td>
-                        <td className="p-3">{template.subject}</td>
-                        <td className="p-3 text-muted-foreground truncate max-w-xs">{template.body}</td>
-                        <td className="p-3 text-right">
-                          <div className="flex items-center justify-end gap-1">
-                            <Button variant="outline" size="icon" className="h-8 w-8">
-                              <Edit className="h-4 w-4" />
-                            </Button>
-                            <Button variant="outline" size="icon" className="h-8 w-8">
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </div>
+                  </thead>
+                  <tbody>
+                    {emailTemplates.length === 0 ? (
+                      <tr>
+                        <td colSpan={4} className="p-6 text-center text-muted-foreground">
+                          No email templates configured yet.
                         </td>
                       </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
+                    ) : (
+                      emailTemplates.map((template) => (
+                        <tr key={template.id} className="border-t border-border">
+                          <td className="p-3 text-primary">{template.name}</td>
+                          <td className="p-3">{template.subject}</td>
+                          <td className="p-3 text-muted-foreground truncate max-w-xs">{template.body}</td>
+                          <td className="p-3 text-right">
+                            <div className="flex items-center justify-end gap-1">
+                              <Button 
+                                variant="outline" 
+                                size="icon" 
+                                className="h-8 w-8"
+                                onClick={() => openEditEmailTemplate(template)}
+                              >
+                                <Edit className="h-4 w-4" />
+                              </Button>
+                              <Button 
+                                variant="outline" 
+                                size="icon" 
+                                className="h-8 w-8"
+                                onClick={() => deleteEmailTemplate(template.id)}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
             </div>
           </div>
         );
@@ -791,7 +1040,13 @@ export default function ManageLists() {
               <p>Text templates are pre-written messages that let you merge in lead information automatically.</p>
             </div>
 
-            <Button className="bg-destructive hover:bg-destructive/90">
+            <Button 
+              className="bg-destructive hover:bg-destructive/90"
+              onClick={() => {
+                resetTemplateForm();
+                setShowSmsTemplateDialog(true);
+              }}
+            >
               <Plus className="h-4 w-4 mr-2" />
               New Template
             </Button>
@@ -801,18 +1056,58 @@ export default function ManageLists() {
                 <thead className="bg-muted/50">
                   <tr>
                     <th className="text-left p-3 font-medium">Name</th>
-                    <th className="text-left p-3 font-medium">Body</th>
+                    <th className="text-left p-3 font-medium">Content</th>
                     <th className="text-right p-3"></th>
                   </tr>
                 </thead>
                 <tbody>
-                  <tr>
-                    <td colSpan={3} className="p-6 text-center text-muted-foreground">
-                      No text templates configured yet.
-                    </td>
-                  </tr>
+                  {smsTemplates.length === 0 ? (
+                    <tr>
+                      <td colSpan={3} className="p-6 text-center text-muted-foreground">
+                        No text templates configured yet.
+                      </td>
+                    </tr>
+                  ) : (
+                    smsTemplates.map((template) => (
+                      <tr key={template.id} className="border-t border-border">
+                        <td className="p-3 text-primary">{template.name}</td>
+                        <td className="p-3 text-muted-foreground truncate max-w-xs">{template.content}</td>
+                        <td className="p-3 text-right">
+                          <div className="flex items-center justify-end gap-1">
+                            <Button 
+                              variant="outline" 
+                              size="icon" 
+                              className="h-8 w-8"
+                              onClick={() => openEditSmsTemplate(template)}
+                            >
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                            <Button 
+                              variant="outline" 
+                              size="icon" 
+                              className="h-8 w-8"
+                              onClick={() => deleteSmsTemplate(template.id)}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))
+                  )}
                 </tbody>
               </table>
+            </div>
+
+            <div className="border border-border rounded-lg p-4">
+              <h3 className="font-medium mb-2">Available merge tags</h3>
+              <div className="flex flex-wrap gap-2">
+                {editedFields.map((field) => (
+                  <code key={field.id} className="bg-muted px-2 py-1 rounded text-xs">
+                    {"{{ " + field.name.toLowerCase().replace(/\s+/g, "_") + " }}"}
+                  </code>
+                ))}
+              </div>
             </div>
           </div>
         );
@@ -1094,6 +1389,161 @@ export default function ManageLists() {
           listFields={editedFields}
           onImport={handleImportLeads}
         />
+
+        {/* Email Template Dialog */}
+        <Dialog open={showEmailTemplateDialog} onOpenChange={setShowEmailTemplateDialog}>
+          <DialogContent className="max-w-2xl">
+            <DialogHeader>
+              <DialogTitle>{editingEmailTemplate ? "Edit Email Template" : "New Email Template"}</DialogTitle>
+              <DialogDescription>
+                Create an email template for this list. Use merge tags to personalize emails.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label>Template Name</Label>
+                <Input
+                  value={templateName}
+                  onChange={(e) => setTemplateName(e.target.value)}
+                  placeholder="e.g., Follow Up Email"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Subject</Label>
+                <Input
+                  value={templateSubject}
+                  onChange={(e) => setTemplateSubject(e.target.value)}
+                  placeholder="e.g., Following up on our conversation"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Body</Label>
+                <Textarea
+                  value={templateBody}
+                  onChange={(e) => setTemplateBody(e.target.value)}
+                  placeholder="Write your email body here..."
+                  className="min-h-[200px]"
+                />
+              </div>
+              <div className="border border-border rounded-lg p-3 bg-muted/30">
+                <p className="text-sm font-medium mb-2">Available merge tags:</p>
+                <div className="flex flex-wrap gap-2">
+                  {editedFields.map((field) => (
+                    <code key={field.id} className="bg-background px-2 py-1 rounded text-xs border">
+                      {"{{" + field.name.toLowerCase().replace(/\s+/g, "_") + "}}"}
+                    </code>
+                  ))}
+                </div>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setShowEmailTemplateDialog(false)}>
+                Cancel
+              </Button>
+              <Button onClick={handleEmailTemplateSubmit} disabled={!templateName}>
+                {editingEmailTemplate ? "Save Changes" : "Create Template"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* SMS Template Dialog */}
+        <Dialog open={showSmsTemplateDialog} onOpenChange={setShowSmsTemplateDialog}>
+          <DialogContent className="max-w-lg">
+            <DialogHeader>
+              <DialogTitle>{editingSmsTemplate ? "Edit SMS Template" : "New SMS Template"}</DialogTitle>
+              <DialogDescription>
+                Create an SMS template for this list.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label>Template Name</Label>
+                <Input
+                  value={templateName}
+                  onChange={(e) => setTemplateName(e.target.value)}
+                  placeholder="e.g., Appointment Reminder"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Message Content</Label>
+                <Textarea
+                  value={templateContent}
+                  onChange={(e) => setTemplateContent(e.target.value)}
+                  placeholder="Write your SMS message here..."
+                  className="min-h-[120px]"
+                />
+              </div>
+              <div className="border border-border rounded-lg p-3 bg-muted/30">
+                <p className="text-sm font-medium mb-2">Available merge tags:</p>
+                <div className="flex flex-wrap gap-2">
+                  {editedFields.map((field) => (
+                    <code key={field.id} className="bg-background px-2 py-1 rounded text-xs border">
+                      {"{{" + field.name.toLowerCase().replace(/\s+/g, "_") + "}}"}
+                    </code>
+                  ))}
+                </div>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setShowSmsTemplateDialog(false)}>
+                Cancel
+              </Button>
+              <Button onClick={handleSmsTemplateSubmit} disabled={!templateName}>
+                {editingSmsTemplate ? "Save Changes" : "Create Template"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Call Script Dialog */}
+        <Dialog open={showScriptDialog} onOpenChange={setShowScriptDialog}>
+          <DialogContent className="max-w-2xl">
+            <DialogHeader>
+              <DialogTitle>{editingScript ? "Edit Call Script" : "New Call Script"}</DialogTitle>
+              <DialogDescription>
+                Create a call script to guide agents during calls.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label>Script Name</Label>
+                <Input
+                  value={templateName}
+                  onChange={(e) => setTemplateName(e.target.value)}
+                  placeholder="e.g., Initial Call Script"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Script Content</Label>
+                <Textarea
+                  value={templateContent}
+                  onChange={(e) => setTemplateContent(e.target.value)}
+                  placeholder="Write your call script here..."
+                  className="min-h-[300px]"
+                />
+              </div>
+              <div className="border border-border rounded-lg p-3 bg-muted/30">
+                <p className="text-sm font-medium mb-2">Available merge tags:</p>
+                <div className="flex flex-wrap gap-2">
+                  {editedFields.map((field) => (
+                    <code key={field.id} className="bg-background px-2 py-1 rounded text-xs border">
+                      {"{{" + field.name.toLowerCase().replace(/\s+/g, "_") + "}}"}
+                    </code>
+                  ))}
+                </div>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setShowScriptDialog(false)}>
+                Cancel
+              </Button>
+              <Button onClick={handleScriptSubmit} disabled={!templateName}>
+                {editingScript ? "Save Changes" : "Create Script"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </DashboardLayout>
       </>
     );
