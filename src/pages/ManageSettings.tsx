@@ -347,7 +347,7 @@ export default function ManageSettings() {
                   <Phone className="w-8 h-8 text-muted-foreground" />
                 </div>
                 <div>
-                  <h3 className="text-xl font-serif text-primary">Myphoner Mobile</h3>
+                  <h3 className="text-xl font-serif text-primary">Powerdialer Smart</h3>
                   <p className="text-muted-foreground">Use your mobile subscription for Myphoner by routing calls to your smartphone.</p>
                 </div>
               </div>
