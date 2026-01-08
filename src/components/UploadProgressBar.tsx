@@ -18,7 +18,7 @@ export function UploadProgressBar({
   if (!isVisible) return null;
 
   return (
-    <div className="fixed top-0 left-0 right-0 z-50 bg-background border-b border-border shadow-sm">
+    <div className="fixed top-0 left-0 right-0 z-[100] bg-primary text-primary-foreground shadow-lg">
       <div className="max-w-4xl mx-auto px-4 py-3">
         <div className="flex items-center gap-4">
           <div className="flex-1">
