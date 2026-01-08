@@ -179,7 +179,7 @@ export default function ManageAccount() {
   }, [branding]);
 
   const handleSaveBillingInfo = async () => {
-    if (!address1.trim() || !city.trim() || !stateProvince.trim() || !zip.trim()) {
+    if (!address1.trim() || !city.trim() || !zip.trim()) {
       toast.error("Please fill in all required fields");
       return;
     }
@@ -702,9 +702,7 @@ export default function ManageAccount() {
 
             {/* State */}
             <div className="flex items-center gap-4">
-              <Label className="w-40 text-right font-medium">
-                <span className="text-destructive">*</span> State
-              </Label>
+              <Label className="w-40 text-right font-medium">State</Label>
               <Input
                 value={stateProvince}
                 onChange={(e) => setStateProvince(e.target.value)}
