@@ -422,32 +422,27 @@ export function TopNavbar() {
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-48 bg-background">
               <DropdownMenuItem asChild>
-                <NavLink to="/manage/settings" className="flex items-center gap-2">
-                  <Settings className="w-4 h-4" />
+                <NavLink to="/manage/settings">
                   Settings
                 </NavLink>
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
-                <NavLink to="/manage/account" className="flex items-center gap-2">
-                  <Settings className="w-4 h-4" />
+                <NavLink to="/manage/account">
                   Account Settings
                 </NavLink>
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
-                <NavLink to="/manage/account?section=billing" className="flex items-center gap-2">
-                  <CreditCard className="w-4 h-4" />
+                <NavLink to="/manage/account?section=billing">
                   Billing
                 </NavLink>
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
-                <NavLink to="/manage/account?section=referral" className="flex items-center gap-2">
-                  <DollarSign className="w-4 h-4" />
+                <NavLink to="/manage/account?section=referral">
                   Make Money
                 </NavLink>
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem onClick={signOut} className="text-destructive">
-                <LogOut className="w-4 h-4 mr-2" />
                 Sign out
               </DropdownMenuItem>
             </DropdownMenuContent>
