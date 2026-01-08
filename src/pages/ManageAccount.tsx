@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -24,7 +24,11 @@ import {
   Receipt,
   ChevronRight,
   Check,
+  Upload,
+  X,
 } from "lucide-react";
+import { useUserRole } from "@/hooks/useUserRole";
+import { useBranding } from "@/hooks/useBranding";
 
 const subNavItems = [
   { label: "Lists", href: "/manage/lists" },
@@ -63,6 +67,8 @@ const mockBalanceHistory = [
 
 export default function ManageAccount() {
   const location = useLocation();
+  const { isOwner } = useUserRole();
+  const { branding, refetch: refetchBranding } = useBranding();
   const [activeSection, setActiveSection] = useState("billing");
   const [seats, setSeats] = useState("4");
   const [usedSeats, setUsedSeats] = useState(0);
@@ -70,6 +76,18 @@ export default function ManageAccount() {
   const [balanceFallsBelow, setBalanceFallsBelow] = useState("0");
   const [showEntries, setShowEntries] = useState("25");
   const [searchInvoices, setSearchInvoices] = useState("");
+  
+  // Branding state
+  const [brandingCompanyName, setBrandingCompanyName] = useState("");
+  const [brandingAppName, setBrandingAppName] = useState("");
+  const [brandingPrimaryColor, setBrandingPrimaryColor] = useState("200 98% 39%");
+  const [brandingSecondaryColor, setBrandingSecondaryColor] = useState("215 24% 26%");
+  const [brandingAccentColor, setBrandingAccentColor] = useState("210 40% 98%");
+  const [brandingLogoUrl, setBrandingLogoUrl] = useState<string | null>(null);
+  const [brandingFaviconUrl, setBrandingFaviconUrl] = useState<string | null>(null);
+  const [savingBranding, setSavingBranding] = useState(false);
+  const logoInputRef = useRef<HTMLInputElement>(null);
+  const faviconInputRef = useRef<HTMLInputElement>(null);
   
   // Billing form state
   const [vatNumber, setVatNumber] = useState("LT100017923517");
@@ -107,6 +125,19 @@ export default function ManageAccount() {
     fetchSeatsAndUsers();
   }, []);
 
+  // Load branding settings when available
+  useEffect(() => {
+    if (branding) {
+      setBrandingCompanyName(branding.company_name || "");
+      setBrandingAppName(branding.app_name || "");
+      setBrandingPrimaryColor(branding.primary_color || "200 98% 39%");
+      setBrandingSecondaryColor(branding.secondary_color || "215 24% 26%");
+      setBrandingAccentColor(branding.accent_color || "210 40% 98%");
+      setBrandingLogoUrl(branding.logo_url);
+      setBrandingFaviconUrl(branding.favicon_url);
+    }
+  }, [branding]);
+
   const handleSaveSeats = async () => {
     const { error } = await supabase
       .from("account_settings")
@@ -118,6 +149,123 @@ export default function ManageAccount() {
     } else {
       toast.success("Seats updated successfully");
     }
+  };
+
+  const uploadFile = async (file: File, type: 'logo' | 'favicon'): Promise<string | null> => {
+    const fileExt = file.name.split('.').pop();
+    const fileName = `${type}-${Date.now()}.${fileExt}`;
+    
+    const { error: uploadError } = await supabase.storage
+      .from('branding')
+      .upload(fileName, file, { upsert: true });
+
+    if (uploadError) {
+      toast.error(`Failed to upload ${type}`);
+      return null;
+    }
+
+    const { data: { publicUrl } } = supabase.storage
+      .from('branding')
+      .getPublicUrl(fileName);
+
+    return publicUrl;
+  };
+
+  const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    
+    const url = await uploadFile(file, 'logo');
+    if (url) {
+      setBrandingLogoUrl(url);
+    }
+  };
+
+  const handleFaviconUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    
+    const url = await uploadFile(file, 'favicon');
+    if (url) {
+      setBrandingFaviconUrl(url);
+    }
+  };
+
+  const handleSaveBranding = async () => {
+    if (!isOwner) {
+      toast.error("Only account owners can modify branding");
+      return;
+    }
+
+    setSavingBranding(true);
+    
+    const { error } = await supabase
+      .from("branding_settings")
+      .update({
+        company_name: brandingCompanyName || null,
+        app_name: brandingAppName || null,
+        logo_url: brandingLogoUrl,
+        favicon_url: brandingFaviconUrl,
+        primary_color: brandingPrimaryColor,
+        secondary_color: brandingSecondaryColor,
+        accent_color: brandingAccentColor,
+      })
+      .eq("id", branding?.id);
+
+    setSavingBranding(false);
+
+    if (error) {
+      toast.error("Failed to save branding settings");
+    } else {
+      toast.success("Branding settings saved successfully");
+      refetchBranding();
+    }
+  };
+
+  // Convert HSL string to hex for color picker
+  const hslToHex = (hsl: string): string => {
+    const parts = hsl.split(' ').map(p => parseFloat(p));
+    if (parts.length < 3) return '#0077b6';
+    
+    const h = parts[0];
+    const s = parts[1] / 100;
+    const l = parts[2] / 100;
+    
+    const a = s * Math.min(l, 1 - l);
+    const f = (n: number) => {
+      const k = (n + h / 30) % 12;
+      const color = l - a * Math.max(Math.min(k - 3, 9 - k, 1), -1);
+      return Math.round(255 * color).toString(16).padStart(2, '0');
+    };
+    return `#${f(0)}${f(8)}${f(4)}`;
+  };
+
+  // Convert hex to HSL string
+  const hexToHsl = (hex: string): string => {
+    const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+    if (!result) return '200 98% 39%';
+    
+    let r = parseInt(result[1], 16) / 255;
+    let g = parseInt(result[2], 16) / 255;
+    let b = parseInt(result[3], 16) / 255;
+    
+    const max = Math.max(r, g, b);
+    const min = Math.min(r, g, b);
+    let h = 0;
+    let s = 0;
+    const l = (max + min) / 2;
+    
+    if (max !== min) {
+      const d = max - min;
+      s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+      switch (max) {
+        case r: h = ((g - b) / d + (g < b ? 6 : 0)) / 6; break;
+        case g: h = ((b - r) / d + 2) / 6; break;
+        case b: h = ((r - g) / d + 4) / 6; break;
+      }
+    }
+    
+    return `${Math.round(h * 360)} ${Math.round(s * 100)}% ${Math.round(l * 100)}%`;
   };
 
   const accountInfo = {
@@ -350,12 +498,171 @@ export default function ManageAccount() {
               <div className="w-16 h-0.5 bg-primary mb-8" />
             </div>
 
-            {renderAccountInfoCard()}
+            {!isOwner && (
+              <div className="border border-border rounded p-6 bg-muted/20">
+                <p className="text-muted-foreground">Only account owners can modify branding settings.</p>
+              </div>
+            )}
 
-            <div className="border border-border rounded p-6">
-              <p className="text-muted-foreground">Custom branding options are available on Premium plans.</p>
-              <Button className="mt-4 bg-primary hover:bg-primary/90">Upgrade to Premium</Button>
-            </div>
+            {isOwner && (
+              <div className="space-y-6">
+                {/* Company & App Names */}
+                <div className="border border-border rounded p-6 space-y-4">
+                  <h2 className="text-lg font-semibold">Company & Application Names</h2>
+                  
+                  <div className="flex items-center gap-4">
+                    <Label className="w-40 text-right font-medium">Company Name</Label>
+                    <Input
+                      value={brandingCompanyName}
+                      onChange={(e) => setBrandingCompanyName(e.target.value)}
+                      placeholder="Your Company Name"
+                      className="flex-1"
+                    />
+                  </div>
+                  
+                  <div className="flex items-center gap-4">
+                    <Label className="w-40 text-right font-medium">Application Name</Label>
+                    <Input
+                      value={brandingAppName}
+                      onChange={(e) => setBrandingAppName(e.target.value)}
+                      placeholder="CRM"
+                      className="flex-1"
+                    />
+                  </div>
+                </div>
+
+                {/* Logo & Favicon */}
+                <div className="border border-border rounded p-6 space-y-4">
+                  <h2 className="text-lg font-semibold">Logo & Favicon</h2>
+                  
+                  <div className="flex items-start gap-4">
+                    <Label className="w-40 text-right font-medium pt-2">Logo</Label>
+                    <div className="flex-1 space-y-2">
+                      {brandingLogoUrl ? (
+                        <div className="flex items-center gap-4">
+                          <img src={brandingLogoUrl} alt="Logo" className="h-16 object-contain rounded border" />
+                          <Button variant="outline" size="sm" onClick={() => setBrandingLogoUrl(null)}>
+                            <X className="h-4 w-4 mr-1" /> Remove
+                          </Button>
+                        </div>
+                      ) : (
+                        <Button variant="outline" onClick={() => logoInputRef.current?.click()}>
+                          <Upload className="h-4 w-4 mr-2" /> Upload Logo
+                        </Button>
+                      )}
+                      <input
+                        ref={logoInputRef}
+                        type="file"
+                        accept="image/*"
+                        onChange={handleLogoUpload}
+                        className="hidden"
+                      />
+                      <p className="text-xs text-muted-foreground">Recommended: PNG or SVG, at least 200x50 pixels</p>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-start gap-4">
+                    <Label className="w-40 text-right font-medium pt-2">Favicon</Label>
+                    <div className="flex-1 space-y-2">
+                      {brandingFaviconUrl ? (
+                        <div className="flex items-center gap-4">
+                          <img src={brandingFaviconUrl} alt="Favicon" className="h-8 w-8 object-contain rounded border" />
+                          <Button variant="outline" size="sm" onClick={() => setBrandingFaviconUrl(null)}>
+                            <X className="h-4 w-4 mr-1" /> Remove
+                          </Button>
+                        </div>
+                      ) : (
+                        <Button variant="outline" onClick={() => faviconInputRef.current?.click()}>
+                          <Upload className="h-4 w-4 mr-2" /> Upload Favicon
+                        </Button>
+                      )}
+                      <input
+                        ref={faviconInputRef}
+                        type="file"
+                        accept="image/*"
+                        onChange={handleFaviconUpload}
+                        className="hidden"
+                      />
+                      <p className="text-xs text-muted-foreground">Recommended: ICO, PNG, or SVG, 32x32 pixels</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Theme Colors */}
+                <div className="border border-border rounded p-6 space-y-4">
+                  <h2 className="text-lg font-semibold">Theme Colors</h2>
+                  
+                  <div className="flex items-center gap-4">
+                    <Label className="w-40 text-right font-medium">Primary Color</Label>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="color"
+                        value={hslToHex(brandingPrimaryColor)}
+                        onChange={(e) => setBrandingPrimaryColor(hexToHsl(e.target.value))}
+                        className="h-10 w-16 rounded border cursor-pointer"
+                      />
+                      <div 
+                        className="h-10 w-32 rounded border flex items-center justify-center text-sm"
+                        style={{ backgroundColor: hslToHex(brandingPrimaryColor), color: '#fff' }}
+                      >
+                        Primary
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-center gap-4">
+                    <Label className="w-40 text-right font-medium">Secondary Color</Label>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="color"
+                        value={hslToHex(brandingSecondaryColor)}
+                        onChange={(e) => setBrandingSecondaryColor(hexToHsl(e.target.value))}
+                        className="h-10 w-16 rounded border cursor-pointer"
+                      />
+                      <div 
+                        className="h-10 w-32 rounded border flex items-center justify-center text-sm"
+                        style={{ backgroundColor: hslToHex(brandingSecondaryColor), color: '#fff' }}
+                      >
+                        Secondary
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-center gap-4">
+                    <Label className="w-40 text-right font-medium">Accent Color</Label>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="color"
+                        value={hslToHex(brandingAccentColor)}
+                        onChange={(e) => setBrandingAccentColor(hexToHsl(e.target.value))}
+                        className="h-10 w-16 rounded border cursor-pointer"
+                      />
+                      <div 
+                        className="h-10 w-32 rounded border flex items-center justify-center text-sm"
+                        style={{ backgroundColor: hslToHex(brandingAccentColor) }}
+                      >
+                        Accent
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <p className="text-sm text-muted-foreground ml-44">
+                    Changes will apply across the entire application for all users.
+                  </p>
+                </div>
+
+                {/* Save Button */}
+                <div className="flex justify-end">
+                  <Button 
+                    onClick={handleSaveBranding} 
+                    disabled={savingBranding}
+                    className="bg-primary hover:bg-primary/90"
+                  >
+                    {savingBranding ? "Saving..." : "Save Branding Settings"}
+                  </Button>
+                </div>
+              </div>
+            )}
           </div>
         );
 
