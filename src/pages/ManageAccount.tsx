@@ -1,5 +1,7 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { DashboardLayout } from "@/components/DashboardLayout";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 import { Link, useLocation } from "react-router-dom";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -63,6 +65,7 @@ export default function ManageAccount() {
   const location = useLocation();
   const [activeSection, setActiveSection] = useState("billing");
   const [seats, setSeats] = useState("4");
+  const [usedSeats, setUsedSeats] = useState(0);
   const [topUpTo, setTopUpTo] = useState("0");
   const [balanceFallsBelow, setBalanceFallsBelow] = useState("0");
   const [showEntries, setShowEntries] = useState("25");
@@ -78,6 +81,44 @@ export default function ManageAccount() {
   const [stateProvince, setStateProvince] = useState("Vilniaus");
   const [zip, setZip] = useState("06326");
   const [country, setCountry] = useState("Lithuania");
+
+  useEffect(() => {
+    const fetchSeatsAndUsers = async () => {
+      // Fetch seats setting
+      const { data: settingsData } = await supabase
+        .from("account_settings")
+        .select("setting_value")
+        .eq("setting_key", "seats")
+        .maybeSingle();
+      
+      if (settingsData?.setting_value) {
+        const value = settingsData.setting_value as { total?: number };
+        setSeats(String(value.total || 4));
+      }
+
+      // Fetch user count
+      const { count } = await supabase
+        .from("profiles")
+        .select("*", { count: "exact", head: true });
+      
+      setUsedSeats(count || 0);
+    };
+
+    fetchSeatsAndUsers();
+  }, []);
+
+  const handleSaveSeats = async () => {
+    const { error } = await supabase
+      .from("account_settings")
+      .update({ setting_value: { total: parseInt(seats) || 4 } })
+      .eq("setting_key", "seats");
+
+    if (error) {
+      toast.error("Failed to update seats");
+    } else {
+      toast.success("Seats updated successfully");
+    }
+  };
 
   const accountInfo = {
     plan: "Basic (Legacy 2025-12) - Billed €25 monthly per user",
@@ -319,6 +360,11 @@ export default function ManageAccount() {
         );
 
       case "seats":
+        const totalSeatsNum = parseInt(seats) || 4;
+        const availableSeats = Math.max(0, totalSeatsNum - usedSeats);
+        const usedPercent = totalSeatsNum > 0 ? (usedSeats / totalSeatsNum) * 100 : 0;
+        const availablePercent = totalSeatsNum > 0 ? (availableSeats / totalSeatsNum) * 100 : 0;
+        
         return (
           <div className="space-y-8">
             <div>
@@ -330,13 +376,28 @@ export default function ManageAccount() {
 
             <div className="text-center mb-6">
               <p className="text-xl">
-                You currently have <span className="font-bold text-primary">4</span> users and <span className="font-bold text-primary">0</span> available seats.
+                You currently have <span className="font-bold text-primary">{usedSeats}</span> users and <span className="font-bold text-primary">{availableSeats}</span> available seats.
               </p>
             </div>
 
             <div className="mb-6">
-              <div className="bg-green-500 text-white text-center py-2 rounded">
-                4 Used
+              <div className="flex rounded-md overflow-hidden h-8">
+                {usedSeats > 0 && (
+                  <div
+                    className="bg-primary flex items-center justify-center text-primary-foreground text-sm font-medium"
+                    style={{ width: `${usedPercent}%` }}
+                  >
+                    {usedSeats} Used
+                  </div>
+                )}
+                {availableSeats > 0 && (
+                  <div
+                    className="bg-green-600 flex items-center justify-center text-white text-sm font-medium"
+                    style={{ width: `${availablePercent}%` }}
+                  >
+                    {availableSeats} Available
+                  </div>
+                )}
               </div>
             </div>
 
@@ -356,8 +417,9 @@ export default function ManageAccount() {
                   onChange={(e) => setSeats(e.target.value)}
                   className="w-20"
                   type="number"
+                  min="1"
                 />
-                <Button className="bg-destructive hover:bg-destructive/90">Submit</Button>
+                <Button onClick={handleSaveSeats} className="bg-destructive hover:bg-destructive/90">Submit</Button>
               </div>
             </div>
           </div>

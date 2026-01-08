@@ -14,6 +14,30 @@ export type Database = {
   }
   public: {
     Tables: {
+      account_settings: {
+        Row: {
+          created_at: string
+          id: string
+          setting_key: string
+          setting_value: Json
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          setting_key: string
+          setting_value?: Json
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          setting_key?: string
+          setting_value?: Json
+          updated_at?: string
+        }
+        Relationships: []
+      }
       call_logs: {
         Row: {
           created_at: string
@@ -294,6 +318,7 @@ export type Database = {
           email: string
           full_name: string | null
           id: string
+          status: string
           updated_at: string
         }
         Insert: {
@@ -302,6 +327,7 @@ export type Database = {
           email: string
           full_name?: string | null
           id: string
+          status?: string
           updated_at?: string
         }
         Update: {
@@ -310,6 +336,7 @@ export type Database = {
           email?: string
           full_name?: string | null
           id?: string
+          status?: string
           updated_at?: string
         }
         Relationships: []
