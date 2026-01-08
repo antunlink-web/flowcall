@@ -2,17 +2,17 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "./useAuth";
 
-export type AppRole = "admin" | "manager" | "agent";
+export type AppRole = "owner" | "account_manager" | "agent";
 
 export function useUserRole() {
   const { user } = useAuth();
-  const [role, setRole] = useState<AppRole | null>(null);
+  const [roles, setRoles] = useState<AppRole[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    async function fetchRole() {
+    async function fetchRoles() {
       if (!user) {
-        setRole(null);
+        setRoles([]);
         setLoading(false);
         return;
       }
@@ -20,24 +20,45 @@ export function useUserRole() {
       const { data, error } = await supabase
         .from("user_roles")
         .select("role")
-        .eq("user_id", user.id)
-        .maybeSingle();
+        .eq("user_id", user.id);
 
       if (error) {
-        console.error("Error fetching user role:", error);
-        setRole(null);
+        console.error("Error fetching user roles:", error);
+        setRoles([]);
       } else {
-        setRole(data?.role as AppRole ?? null);
+        setRoles((data?.map(r => r.role) as AppRole[]) ?? []);
       }
       setLoading(false);
     }
 
-    fetchRole();
+    fetchRoles();
   }, [user]);
 
-  const isAdmin = role === "admin";
-  const isManager = role === "manager";
-  const isAdminOrManager = isAdmin || isManager;
+  const isOwner = roles.includes("owner");
+  const isAccountManager = roles.includes("account_manager");
+  const isAgent = roles.includes("agent");
+  const isOwnerOrManager = isOwner || isAccountManager;
+  
+  // For backwards compatibility
+  const isAdmin = isOwner;
+  const isManager = isAccountManager;
+  const isAdminOrManager = isOwnerOrManager;
+  
+  // Primary role for display (owner > account_manager > agent)
+  const primaryRole: AppRole | null = isOwner ? "owner" : isAccountManager ? "account_manager" : isAgent ? "agent" : null;
 
-  return { role, loading, isAdmin, isManager, isAdminOrManager };
+  return { 
+    roles, 
+    loading, 
+    isOwner, 
+    isAccountManager, 
+    isAgent,
+    isOwnerOrManager,
+    primaryRole,
+    // Backwards compatibility
+    role: primaryRole,
+    isAdmin,
+    isManager,
+    isAdminOrManager,
+  };
 }
