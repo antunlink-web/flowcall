@@ -85,7 +85,7 @@ export function TopNavbar() {
   const [recentLeads, setRecentLeads] = useState<RecentLead[]>([]);
   const [historyOpen, setHistoryOpen] = useState(false);
 
-  // Search contacts when query changes
+  // Search contacts when query changes - uses RPC for full database search
   useEffect(() => {
     if (searchQuery.length < 2) {
       setSearchResults([]);
@@ -95,31 +95,14 @@ export function TopNavbar() {
     const searchContacts = async () => {
       setSearchLoading(true);
       try {
-        // Fetch leads and filter client-side since JSONB ilike doesn't work in PostgREST
-        const { data, error } = await supabase
-          .from("leads")
-          .select(`
-            id,
-            data,
-            status,
-            created_at,
-            lists(name)
-          `)
-          .limit(500);
+        // Use RPC function for searching all leads in the database
+        const { data, error } = await supabase.rpc("search_leads", { 
+          search_term: searchQuery.trim() 
+        });
 
         if (error) throw error;
 
-        const query = searchQuery.toLowerCase();
-        const filtered = (data || []).filter((lead: any) => {
-          const leadData = lead.data || {};
-          const searchableText = Object.values(leadData)
-            .filter(v => typeof v === 'string')
-            .join(' ')
-            .toLowerCase();
-          return searchableText.includes(query);
-        });
-
-        const results = filtered.slice(0, 20).map((lead: any) => {
+        const results = (data || []).slice(0, 20).map((lead: any) => {
           const leadData = lead.data || {};
           const entries = Object.entries(leadData);
           
@@ -173,7 +156,7 @@ export function TopNavbar() {
             name: displayName,
             phone,
             email,
-            list_name: lead.lists?.name || "Unknown List",
+            list_name: "Lead",
             status: lead.status,
             created_at: lead.created_at,
             allData: formattedData,
