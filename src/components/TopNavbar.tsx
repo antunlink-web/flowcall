@@ -248,7 +248,7 @@ export function TopNavbar() {
               className="w-40 md:w-48 h-7 px-2 text-sm bg-white border border-white/20 rounded text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-white/40"
             />
             {searchQuery.length >= 2 && (
-              <div className="absolute top-full left-0 mt-1 w-[500px] bg-background border rounded-md shadow-lg z-[60]">
+              <div className="absolute top-full left-0 mt-1 w-[500px] bg-popover text-popover-foreground border rounded-md shadow-md outline-none z-[60] animate-in fade-in-0 zoom-in-95">
                 {searchLoading ? (
                   <div className="flex items-center justify-center py-6">
                     <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
