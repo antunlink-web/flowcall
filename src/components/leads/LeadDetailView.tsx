@@ -6,6 +6,12 @@ import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
   Select,
   SelectContent,
   SelectItem,
@@ -51,10 +57,18 @@ interface Lead {
   last_contacted_at: string | null;
 }
 
+interface ListSettings {
+  callbackCategories?: string;
+  winnerCategories?: string;
+  loserCategories?: string;
+  archiveCategories?: string;
+}
+
 interface List {
   id: string;
   name: string;
   fields: Array<{ id: string; name: string; type: string; show: boolean }>;
+  settings?: ListSettings;
 }
 
 export function LeadDetailView({ leadId, onClose }: LeadDetailViewProps) {
@@ -75,7 +89,7 @@ export function LeadDetailView({ leadId, onClose }: LeadDetailViewProps) {
     setLoading(true);
     const { data, error } = await supabase
       .from("leads")
-      .select("*, lists(id, name, fields)")
+      .select("*, lists(id, name, fields, settings)")
       .eq("id", leadId)
       .single();
 
@@ -87,7 +101,7 @@ export function LeadDetailView({ leadId, onClose }: LeadDetailViewProps) {
 
     setLead(data as Lead);
     if (data.lists) {
-      setList(data.lists as List);
+      setList(data.lists as unknown as List);
     }
     
     // Auto-claim the lead if not already claimed
@@ -105,7 +119,7 @@ export function LeadDetailView({ leadId, onClose }: LeadDetailViewProps) {
         // Refetch to get updated data
         const { data: updatedLead } = await supabase
           .from("leads")
-          .select("*, lists(id, name, fields)")
+          .select("*, lists(id, name, fields, settings)")
           .eq("id", leadId)
           .single();
         
@@ -127,20 +141,43 @@ export function LeadDetailView({ leadId, onClose }: LeadDetailViewProps) {
     setEmailCount(count || 0);
   };
 
-  const handleStatusChange = async (newStatus: string) => {
+  const handleStatusChange = async (newStatus: string, subcategory?: string) => {
     if (!lead) return;
+
+    const updateData: Record<string, any> = { 
+      status: newStatus, 
+      updated_at: new Date().toISOString() 
+    };
+    
+    // Store subcategory in lead data if provided
+    if (subcategory) {
+      updateData.data = { ...lead.data, _subcategory: subcategory };
+    }
 
     const { error } = await supabase
       .from("leads")
-      .update({ status: newStatus, updated_at: new Date().toISOString() })
+      .update(updateData)
       .eq("id", lead.id);
 
     if (error) {
       toast({ title: "Failed to update status", variant: "destructive" });
     } else {
-      toast({ title: `Status changed to ${newStatus}` });
+      toast({ title: subcategory || `Status changed to ${newStatus}` });
       fetchLead();
     }
+  };
+
+  // Parse categories from list settings
+  const getCategories = (type: "callback" | "winner" | "loser" | "archive"): string[] => {
+    if (!list?.settings) return [];
+    const categoryMap = {
+      callback: list.settings.callbackCategories,
+      winner: list.settings.winnerCategories,
+      loser: list.settings.loserCategories,
+      archive: list.settings.archiveCategories,
+    };
+    const raw = categoryMap[type] || "";
+    return raw.split(",").map(c => c.trim()).filter(Boolean);
   };
 
   const getStatusBadge = (status: string) => {
@@ -384,40 +421,120 @@ export function LeadDetailView({ leadId, onClose }: LeadDetailViewProps) {
                   </Select>
                 </div>
                 
-                {/* Action Buttons */}
+                {/* Action Buttons with Subcategory Dropdowns */}
                 <div className="flex gap-2 pt-2">
-                  <Button
-                    className="gap-1 bg-[hsl(200,20%,40%)] hover:bg-[hsl(200,20%,35%)] rounded-md"
-                    onClick={() => handleStatusChange("callback")}
-                  >
-                    <RotateCcw className="w-4 h-4" />
-                    Call back
-                    <ChevronDown className="w-3 h-3 ml-1" />
-                  </Button>
-                  <Button
-                    className="gap-1 bg-green-600 hover:bg-green-700 rounded-md"
-                    onClick={() => handleStatusChange("won")}
-                  >
-                    <ThumbsUp className="w-4 h-4" />
-                    Winner
-                    <ChevronDown className="w-3 h-3 ml-1" />
-                  </Button>
-                  <Button
-                    className="gap-1 bg-red-600 hover:bg-red-700 rounded-md"
-                    onClick={() => handleStatusChange("lost")}
-                  >
-                    <ThumbsDown className="w-4 h-4" />
-                    Loser
-                    <ChevronDown className="w-3 h-3 ml-1" />
-                  </Button>
-                  <Button
-                    variant="secondary"
-                    className="gap-1 rounded-md"
-                    onClick={() => handleStatusChange("archived")}
-                  >
-                    <Archive className="w-4 h-4" />
-                    Archive
-                  </Button>
+                  {/* Callback Button */}
+                  {getCategories("callback").length > 0 ? (
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button className="gap-1 bg-[hsl(200,20%,40%)] hover:bg-[hsl(200,20%,35%)] rounded-md">
+                          <RotateCcw className="w-4 h-4" />
+                          Call back
+                          <ChevronDown className="w-3 h-3 ml-1" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent>
+                        {getCategories("callback").map((cat) => (
+                          <DropdownMenuItem key={cat} onClick={() => handleStatusChange("callback", cat)}>
+                            {cat}
+                          </DropdownMenuItem>
+                        ))}
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  ) : (
+                    <Button
+                      className="gap-1 bg-[hsl(200,20%,40%)] hover:bg-[hsl(200,20%,35%)] rounded-md"
+                      onClick={() => handleStatusChange("callback")}
+                    >
+                      <RotateCcw className="w-4 h-4" />
+                      Call back
+                    </Button>
+                  )}
+
+                  {/* Winner Button */}
+                  {getCategories("winner").length > 0 ? (
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button className="gap-1 bg-green-600 hover:bg-green-700 rounded-md">
+                          <ThumbsUp className="w-4 h-4" />
+                          Winner
+                          <ChevronDown className="w-3 h-3 ml-1" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent>
+                        {getCategories("winner").map((cat) => (
+                          <DropdownMenuItem key={cat} onClick={() => handleStatusChange("won", cat)}>
+                            {cat}
+                          </DropdownMenuItem>
+                        ))}
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  ) : (
+                    <Button
+                      className="gap-1 bg-green-600 hover:bg-green-700 rounded-md"
+                      onClick={() => handleStatusChange("won")}
+                    >
+                      <ThumbsUp className="w-4 h-4" />
+                      Winner
+                    </Button>
+                  )}
+
+                  {/* Loser Button */}
+                  {getCategories("loser").length > 0 ? (
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button className="gap-1 bg-red-600 hover:bg-red-700 rounded-md">
+                          <ThumbsDown className="w-4 h-4" />
+                          Loser
+                          <ChevronDown className="w-3 h-3 ml-1" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent>
+                        {getCategories("loser").map((cat) => (
+                          <DropdownMenuItem key={cat} onClick={() => handleStatusChange("lost", cat)}>
+                            {cat}
+                          </DropdownMenuItem>
+                        ))}
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  ) : (
+                    <Button
+                      className="gap-1 bg-red-600 hover:bg-red-700 rounded-md"
+                      onClick={() => handleStatusChange("lost")}
+                    >
+                      <ThumbsDown className="w-4 h-4" />
+                      Loser
+                    </Button>
+                  )}
+
+                  {/* Archive Button */}
+                  {getCategories("archive").length > 0 ? (
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="secondary" className="gap-1 rounded-md">
+                          <Archive className="w-4 h-4" />
+                          Archive
+                          <ChevronDown className="w-3 h-3 ml-1" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent>
+                        {getCategories("archive").map((cat) => (
+                          <DropdownMenuItem key={cat} onClick={() => handleStatusChange("archived", cat)}>
+                            {cat}
+                          </DropdownMenuItem>
+                        ))}
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  ) : (
+                    <Button
+                      variant="secondary"
+                      className="gap-1 rounded-md"
+                      onClick={() => handleStatusChange("archived")}
+                    >
+                      <Archive className="w-4 h-4" />
+                      Archive
+                    </Button>
+                  )}
                 </div>
               </div>
             </TabsContent>
