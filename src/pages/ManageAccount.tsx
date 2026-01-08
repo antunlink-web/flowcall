@@ -94,15 +94,20 @@ export default function ManageAccount() {
   const faviconInputRef = useRef<HTMLInputElement>(null);
   
   // Billing form state
-  const [vatNumber, setVatNumber] = useState("LT100017923517");
-  const [companyName, setCompanyName] = useState('Labdaros ir paramos fondas "Gera valia"');
-  const [contactPhone, setContactPhone] = useState("+37067679991");
-  const [address1, setAddress1] = useState("Pamenkalnio g. 25-1");
+  const [vatNumber, setVatNumber] = useState("");
+  const [vatVerifying, setVatVerifying] = useState(false);
+  const [vatVerified, setVatVerified] = useState<boolean | null>(null);
+  const [vatCompanyName, setVatCompanyName] = useState<string | null>(null);
+  const [vatAddress, setVatAddress] = useState<string | null>(null);
+  const [vatError, setVatError] = useState<string | null>(null);
+  const [companyName, setCompanyName] = useState("");
+  const [contactPhone, setContactPhone] = useState("");
+  const [address1, setAddress1] = useState("");
   const [address2, setAddress2] = useState("");
-  const [city, setCity] = useState("Vilnius");
-  const [stateProvince, setStateProvince] = useState("Vilniaus");
-  const [zip, setZip] = useState("06326");
-  const [country, setCountry] = useState("Lithuania");
+  const [city, setCity] = useState("");
+  const [stateProvince, setStateProvince] = useState("");
+  const [zip, setZip] = useState("");
+  const [country, setCountry] = useState("");
 
   useEffect(() => {
     const fetchAccountData = async () => {
@@ -214,6 +219,49 @@ export default function ManageAccount() {
       premium: { monthly: 59, annual: 48 },
     };
     return prices[currentPlan]?.[billingCycle] || 27;
+  };
+
+  const handleVerifyVat = async () => {
+    if (!vatNumber.trim()) {
+      setVatError("Please enter a VAT number");
+      return;
+    }
+
+    setVatVerifying(true);
+    setVatError(null);
+    setVatVerified(null);
+    setVatCompanyName(null);
+    setVatAddress(null);
+
+    try {
+      const { data, error } = await supabase.functions.invoke("verify-vat", {
+        body: { vatNumber: vatNumber.trim() },
+      });
+
+      if (error) {
+        setVatError("Failed to verify VAT number");
+        setVatVerified(false);
+      } else if (data.valid) {
+        setVatVerified(true);
+        setVatCompanyName(data.name || null);
+        setVatAddress(data.address || null);
+        toast.success("VAT number verified successfully");
+        
+        // Auto-fill company name if found and current is empty
+        if (data.name && !companyName) {
+          setCompanyName(data.name);
+        }
+      } else {
+        setVatVerified(false);
+        setVatError(data.error || "Invalid VAT number");
+      }
+    } catch (err) {
+      console.error("VAT verification error:", err);
+      setVatError("Failed to verify VAT number. Please try again.");
+      setVatVerified(false);
+    } finally {
+      setVatVerifying(false);
+    }
   };
 
   const uploadFile = async (file: File, type: 'logo' | 'favicon'): Promise<string | null> => {
@@ -368,24 +416,57 @@ export default function ManageAccount() {
             <div className="space-y-2">
               <div className="flex items-center gap-4">
                 <Label className="w-40 text-right font-medium">VAT Number</Label>
-                <div className="flex-1 flex gap-2">
-                  <Input
-                    value={vatNumber}
-                    onChange={(e) => setVatNumber(e.target.value)}
-                    className="flex-1"
-                  />
-                  <Button variant="outline">Change to validate</Button>
+                <div className="flex-1 flex gap-2 items-center">
+                  <div className="flex-1 relative">
+                    <Input
+                      value={vatNumber}
+                      onChange={(e) => {
+                        setVatNumber(e.target.value.toUpperCase());
+                        setVatVerified(null);
+                        setVatError(null);
+                      }}
+                      placeholder="e.g., DK12345678"
+                      className={`${vatVerified === true ? "border-green-500 pr-10" : vatVerified === false ? "border-destructive pr-10" : ""}`}
+                    />
+                    {vatVerified === true && (
+                      <Check className="absolute right-3 top-1/2 -translate-y-1/2 h-5 w-5 text-green-500" />
+                    )}
+                    {vatVerified === false && (
+                      <X className="absolute right-3 top-1/2 -translate-y-1/2 h-5 w-5 text-destructive" />
+                    )}
+                  </div>
+                  <Button 
+                    variant="outline" 
+                    onClick={handleVerifyVat}
+                    disabled={vatVerifying || !vatNumber.trim()}
+                  >
+                    {vatVerifying ? "Verifying..." : "Verify VAT"}
+                  </Button>
                 </div>
               </div>
+              
+              {/* Verification Result */}
+              {vatVerified === true && vatCompanyName && (
+                <div className="ml-44 p-3 bg-green-50 border border-green-200 rounded text-sm">
+                  <p className="font-medium text-green-700">✓ VAT number verified</p>
+                  <p className="text-green-600">{vatCompanyName}</p>
+                  {vatAddress && <p className="text-green-600 text-xs mt-1">{vatAddress}</p>}
+                </div>
+              )}
+              
+              {vatError && (
+                <div className="ml-44 p-3 bg-destructive/10 border border-destructive/30 rounded text-sm">
+                  <p className="text-destructive">{vatError}</p>
+                </div>
+              )}
+              
               <div className="ml-44">
-                <p className="text-sm text-primary">provide your VAT-number with country code prefixed, eg. 'DK12345678'</p>
+                <p className="text-sm text-primary">Provide your VAT number with country code prefix, e.g., 'DK12345678'</p>
                 <div className="mt-2 text-sm text-muted-foreground">
                   <p className="font-medium">About VAT</p>
-                  <p>Liisberg Consulting (the provider of Myphoner) is registered in Denmark, this means</p>
                   <ul className="list-disc ml-6 mt-1 space-y-1">
-                    <li>Customers in Denmark will be charged VAT.</li>
-                    <li>Private persons within the EU will be charged VAT.</li>
                     <li>Companies within the EU will not be charged VAT if they supply a valid VAT number.</li>
+                    <li>Private persons within the EU will be charged VAT.</li>
                     <li>Customers outside the EU will not be charged VAT.</li>
                   </ul>
                   <p className="mt-2">If supplied, the VAT number will be printed on your invoices for reference.</p>
