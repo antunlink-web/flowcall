@@ -89,6 +89,33 @@ export function LeadDetailView({ leadId, onClose }: LeadDetailViewProps) {
     if (data.lists) {
       setList(data.lists as List);
     }
+    
+    // Auto-claim the lead if not already claimed
+    if (!data.claimed_by) {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        await supabase
+          .from("leads")
+          .update({ 
+            claimed_by: user.id, 
+            claimed_at: new Date().toISOString() 
+          })
+          .eq("id", leadId);
+        
+        // Refetch to get updated data
+        const { data: updatedLead } = await supabase
+          .from("leads")
+          .select("*, lists(id, name, fields)")
+          .eq("id", leadId)
+          .single();
+        
+        if (updatedLead) {
+          setLead(updatedLead as Lead);
+          toast({ title: "Lead claimed automatically" });
+        }
+      }
+    }
+    
     setLoading(false);
   };
 
