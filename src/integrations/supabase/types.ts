@@ -83,6 +83,7 @@ export type Database = {
           created_at: string
           created_by: string | null
           id: string
+          list_id: string | null
           name: string
           updated_at: string
         }
@@ -92,6 +93,7 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           id?: string
+          list_id?: string | null
           name: string
           updated_at?: string
         }
@@ -101,6 +103,7 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           id?: string
+          list_id?: string | null
           name?: string
           updated_at?: string
         }
@@ -110,6 +113,13 @@ export type Database = {
             columns: ["campaign_id"]
             isOneToOne: false
             referencedRelation: "campaigns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "call_scripts_list_id_fkey"
+            columns: ["list_id"]
+            isOneToOne: false
+            referencedRelation: "lists"
             referencedColumns: ["id"]
           },
         ]
@@ -188,6 +198,7 @@ export type Database = {
           created_at: string
           created_by: string | null
           id: string
+          list_id: string | null
           name: string
           subject: string
           updated_at: string
@@ -197,6 +208,7 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           id?: string
+          list_id?: string | null
           name: string
           subject: string
           updated_at?: string
@@ -206,11 +218,20 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           id?: string
+          list_id?: string | null
           name?: string
           subject?: string
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "email_templates_list_id_fkey"
+            columns: ["list_id"]
+            isOneToOne: false
+            referencedRelation: "lists"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       leads: {
         Row: {
@@ -280,6 +301,7 @@ export type Database = {
           created_at: string
           created_by: string | null
           description: string | null
+          email_config: Json
           fields: Json
           id: string
           name: string
@@ -291,6 +313,7 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           description?: string | null
+          email_config?: Json
           fields?: Json
           id?: string
           name: string
@@ -302,6 +325,7 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           description?: string | null
+          email_config?: Json
           fields?: Json
           id?: string
           name?: string
@@ -379,6 +403,7 @@ export type Database = {
           created_at: string
           created_by: string | null
           id: string
+          list_id: string | null
           name: string
           updated_at: string
         }
@@ -387,6 +412,7 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           id?: string
+          list_id?: string | null
           name: string
           updated_at?: string
         }
@@ -395,10 +421,19 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           id?: string
+          list_id?: string | null
           name?: string
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "sms_templates_list_id_fkey"
+            columns: ["list_id"]
+            isOneToOne: false
+            referencedRelation: "lists"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       smtp_settings: {
         Row: {
