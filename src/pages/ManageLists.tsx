@@ -110,9 +110,12 @@ const configSidebarItems = [
   { icon: Trash2, label: "Delete", id: "delete" },
 ];
 
-const mockUsers = [
-  { id: "1", name: "Agent User", checked: true },
-];
+interface UserWithAccess {
+  id: string;
+  email: string;
+  full_name: string | null;
+  hasAccess: boolean;
+}
 
 export default function ManageLists() {
   const location = useLocation();
@@ -151,6 +154,10 @@ export default function ManageLists() {
   const [templateBody, setTemplateBody] = useState("");
   const [templateContent, setTemplateContent] = useState("");
   
+  // Users for list access
+  const [allUsers, setAllUsers] = useState<UserWithAccess[]>([]);
+  const [loadingUsers, setLoadingUsers] = useState(false);
+  const [savingUsers, setSavingUsers] = useState(false);
   // Use the templates hook
   const {
     emailTemplates,
@@ -195,6 +202,50 @@ export default function ManageLists() {
     
     fetchPreviewLead();
   }, [configureList?.id, uploadProgress.isUploading]);
+
+  // Fetch users and their list access when users section is selected
+  useEffect(() => {
+    const fetchUsersWithAccess = async () => {
+      if (!configureList || configSection !== "users") return;
+      
+      setLoadingUsers(true);
+      try {
+        // Fetch all profiles
+        const { data: profiles, error: profilesError } = await supabase
+          .from("profiles")
+          .select("id, email, full_name")
+          .eq("status", "active");
+        
+        if (profilesError) throw profilesError;
+        
+        // Fetch existing list user access
+        const { data: listUsers, error: listUsersError } = await supabase
+          .from("list_users")
+          .select("user_id")
+          .eq("list_id", configureList.id);
+        
+        if (listUsersError) throw listUsersError;
+        
+        const accessUserIds = new Set(listUsers?.map(lu => lu.user_id) || []);
+        
+        // Map profiles with access status
+        const usersWithAccess: UserWithAccess[] = (profiles || []).map(p => ({
+          id: p.id,
+          email: p.email,
+          full_name: p.full_name,
+          hasAccess: accessUserIds.has(p.id),
+        }));
+        
+        setAllUsers(usersWithAccess);
+      } catch (error: any) {
+        toast({ title: "Error loading users", description: error.message, variant: "destructive" });
+      } finally {
+        setLoadingUsers(false);
+      }
+    };
+    
+    fetchUsersWithAccess();
+  }, [configureList?.id, configSection]);
 
   const handleCreateList = async (
     name: string,
@@ -530,36 +581,114 @@ export default function ManageLists() {
         );
 
       case "users":
+        const allChecked = allUsers.length > 0 && allUsers.every(u => u.hasAccess);
+        const someChecked = allUsers.some(u => u.hasAccess);
+        
+        const handleCheckAll = (checked: boolean) => {
+          setAllUsers(allUsers.map(u => ({ ...u, hasAccess: checked })));
+        };
+        
+        const handleUserToggle = (userId: string, checked: boolean) => {
+          setAllUsers(allUsers.map(u => 
+            u.id === userId ? { ...u, hasAccess: checked } : u
+          ));
+        };
+        
+        const handleSaveUsers = async () => {
+          if (!configureList) return;
+          setSavingUsers(true);
+          
+          try {
+            // Delete existing access
+            await supabase
+              .from("list_users")
+              .delete()
+              .eq("list_id", configureList.id);
+            
+            // Insert new access
+            const usersWithAccess = allUsers.filter(u => u.hasAccess);
+            if (usersWithAccess.length > 0) {
+              const { error } = await supabase
+                .from("list_users")
+                .insert(usersWithAccess.map(u => ({
+                  list_id: configureList.id,
+                  user_id: u.id,
+                })));
+              
+              if (error) throw error;
+            }
+            
+            toast({ title: "User access saved successfully" });
+          } catch (error: any) {
+            toast({ title: "Error saving user access", description: error.message, variant: "destructive" });
+          } finally {
+            setSavingUsers(false);
+          }
+        };
+        
         return (
           <div className="space-y-6">
             <div className="bg-muted/50 border border-border rounded p-4 text-sm">
-              Select which users has access to this list
+              Select which users have access to this list
             </div>
 
-            <div className="space-y-4">
-              <div className="flex items-center gap-3 pl-20">
-                <Checkbox id="check-all" defaultChecked />
-                <Label htmlFor="check-all" className="font-medium">Check All</Label>
+            {loadingUsers ? (
+              <div className="flex items-center gap-2 text-muted-foreground">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Loading users...
               </div>
+            ) : (
+              <div className="space-y-4">
+                <div className="flex items-center gap-3 pl-20">
+                  <Checkbox 
+                    id="check-all" 
+                    checked={allChecked}
+                    onCheckedChange={(checked) => handleCheckAll(!!checked)}
+                  />
+                  <Label htmlFor="check-all" className="font-medium">
+                    {allChecked ? "Uncheck All" : "Check All"}
+                  </Label>
+                </div>
 
-              <div className="space-y-2">
-                <div className="flex items-center gap-4">
-                  <Label className="w-16 text-right font-medium">Users</Label>
-                  <div className="space-y-2">
-                    {mockUsers.map((user) => (
-                      <div key={user.id} className="flex items-center gap-3">
-                        <Checkbox id={user.id} defaultChecked={user.checked} />
-                        <Label htmlFor={user.id}>{user.name}</Label>
-                      </div>
-                    ))}
+                <div className="space-y-2">
+                  <div className="flex items-start gap-4">
+                    <Label className="w-16 text-right font-medium pt-1">Users</Label>
+                    <div className="space-y-2">
+                      {allUsers.length === 0 ? (
+                        <p className="text-muted-foreground text-sm">No users found</p>
+                      ) : (
+                        allUsers.map((user) => (
+                          <div key={user.id} className="flex items-center gap-3">
+                            <Checkbox 
+                              id={user.id} 
+                              checked={user.hasAccess}
+                              onCheckedChange={(checked) => handleUserToggle(user.id, !!checked)}
+                            />
+                            <Label htmlFor={user.id}>
+                              {user.full_name || user.email}
+                              {user.full_name && (
+                                <span className="text-muted-foreground ml-2 text-sm">({user.email})</span>
+                              )}
+                            </Label>
+                          </div>
+                        ))
+                      )}
+                    </div>
                   </div>
                 </div>
-              </div>
 
-              <div className="pl-20">
-                <Button className="bg-destructive hover:bg-destructive/90">Save</Button>
+                <div className="pl-20">
+                  <Button 
+                    onClick={handleSaveUsers} 
+                    disabled={savingUsers}
+                    className="bg-destructive hover:bg-destructive/90"
+                  >
+                    {savingUsers && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                    Save
+                  </Button>
+                </div>
               </div>
-            </div>
+            )}
           </div>
         );
 
