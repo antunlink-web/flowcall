@@ -91,10 +91,6 @@ export function LeadDetailView({ leadId, onClose }: LeadDetailViewProps) {
   const { user } = useAuth();
   const navigate = useNavigate();
 
-  const handleBack = () => {
-    navigate("/");
-  };
-
   useEffect(() => {
     fetchLead();
     fetchEmailCount();
@@ -318,7 +314,7 @@ export function LeadDetailView({ leadId, onClose }: LeadDetailViewProps) {
       {/* Header */}
       <div className="border-b bg-muted/30 px-6 py-4">
         <div className="flex items-center gap-4">
-          <Button variant="ghost" size="icon" onClick={handleBack}>
+          <Button variant="ghost" size="icon" onClick={onClose}>
             <ArrowLeft className="w-5 h-5" />
           </Button>
           <div className="flex items-center gap-3">
