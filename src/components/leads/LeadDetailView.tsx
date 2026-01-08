@@ -30,7 +30,6 @@ import {
   Archive,
   Save,
   RefreshCw,
-  Linkedin,
 } from "lucide-react";
 
 interface LeadDetailViewProps {
@@ -201,9 +200,6 @@ export function LeadDetailView({ leadId, onClose }: LeadDetailViewProps) {
               <div className="flex items-center gap-2">
                 {getStatusBadge(lead.status)}
                 <h1 className="text-xl font-semibold">{displayName}</h1>
-                <Button variant="ghost" size="icon" className="h-6 w-6">
-                  <Linkedin className="w-4 h-4 text-[#0077B5]" />
-                </Button>
               </div>
               {phones.map((phone, i) => (
                 <a
