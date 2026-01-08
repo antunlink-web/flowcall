@@ -70,7 +70,7 @@ const menuItems = [
     icon: Settings,
     title: "Settings",
     description: "Tweak your calling experience, set up restrictions etc.",
-    href: "/settings",
+    href: "/manage/settings",
   },
   {
     icon: ShoppingCart,
