@@ -338,7 +338,7 @@ export default function ManageSettings() {
                 </div>
                 <div>
                   <h3 className="text-xl font-serif text-primary">Powerdialer Voice</h3>
-                  <p className="text-muted-foreground">Fully integrated telephony.</p>
+                  <p className="text-muted-foreground">Coming soon</p>
                 </div>
               </div>
 
