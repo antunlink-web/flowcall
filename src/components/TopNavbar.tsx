@@ -422,7 +422,7 @@ export function TopNavbar() {
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-48 bg-background">
               <DropdownMenuItem asChild>
-                <NavLink to="/settings" className="flex items-center gap-2">
+                <NavLink to="/manage/settings" className="flex items-center gap-2">
                   <Settings className="w-4 h-4" />
                   Settings
                 </NavLink>

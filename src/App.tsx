@@ -2,7 +2,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "@/hooks/useAuth";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import Auth from "./pages/Auth";
@@ -14,7 +14,6 @@ import Leads from "./pages/Leads";
 import Campaigns from "./pages/Campaigns";
 import Reports from "./pages/Reports";
 import Team from "./pages/Team";
-import Settings from "./pages/Settings";
 import Manage from "./pages/Manage";
 import ManageSettings from "./pages/ManageSettings";
 import ManageAccount from "./pages/ManageAccount";
@@ -44,7 +43,7 @@ const App = () => (
             <Route path="/manage/lists" element={<ProtectedRoute><ManageLists /></ProtectedRoute>} />
             <Route path="/manage/settings" element={<ProtectedRoute><ManageSettings /></ProtectedRoute>} />
             <Route path="/manage/account" element={<ProtectedRoute><ManageAccount /></ProtectedRoute>} />
-            <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
+            <Route path="/settings" element={<Navigate to="/manage/settings" replace />} />
             <Route path="/manage" element={<ProtectedRoute><Manage /></ProtectedRoute>} />
             <Route path="*" element={<NotFound />} />
           </Routes>
