@@ -65,13 +65,26 @@ export default function Team() {
   const [activeTab, setActiveTab] = useState<"active" | "invited" | "archived">("active");
   const [editingMember, setEditingMember] = useState<TeamMember | null>(null);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [totalSeats, setTotalSeats] = useState(4);
   const { toast } = useToast();
   const { isAdmin } = useUserRole();
 
-  // Mock values for seats - in real app, this would come from subscription/billing
-  const totalSeats = 5;
+  const activeMembers = members.filter(m => activeTab === "active");
   const usedSeats = members.length;
-  const availableSeats = totalSeats - usedSeats;
+  const availableSeats = Math.max(0, totalSeats - usedSeats);
+
+  const fetchSeats = async () => {
+    const { data } = await supabase
+      .from("account_settings")
+      .select("setting_value")
+      .eq("setting_key", "seats")
+      .maybeSingle();
+    
+    if (data?.setting_value) {
+      const value = data.setting_value as { total?: number };
+      setTotalSeats(value.total || 4);
+    }
+  };
 
   const fetchTeam = async () => {
     setLoading(true);
@@ -90,6 +103,7 @@ export default function Team() {
   };
 
   useEffect(() => {
+    fetchSeats();
     fetchTeam();
   }, []);
 
