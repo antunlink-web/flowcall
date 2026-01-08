@@ -424,117 +424,100 @@ export function LeadDetailView({ leadId, onClose }: LeadDetailViewProps) {
                 {/* Action Buttons with Subcategory Dropdowns */}
                 <div className="flex gap-2 pt-2">
                   {/* Callback Button */}
-                  {getCategories("callback").length > 0 ? (
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button className="gap-1 bg-[hsl(200,20%,40%)] hover:bg-[hsl(200,20%,35%)] rounded-md">
-                          <RotateCcw className="w-4 h-4" />
-                          Call back
-                          <ChevronDown className="w-3 h-3 ml-1" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent>
-                        {getCategories("callback").map((cat) => (
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button className="gap-1 bg-[hsl(200,20%,40%)] hover:bg-[hsl(200,20%,35%)] rounded-md">
+                        <RotateCcw className="w-4 h-4" />
+                        Call back
+                        <ChevronDown className="w-3 h-3 ml-1" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent className="bg-popover border shadow-md z-50">
+                      {getCategories("callback").length > 0 ? (
+                        getCategories("callback").map((cat) => (
                           <DropdownMenuItem key={cat} onClick={() => handleStatusChange("callback", cat)}>
                             {cat}
                           </DropdownMenuItem>
-                        ))}
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  ) : (
-                    <Button
-                      className="gap-1 bg-[hsl(200,20%,40%)] hover:bg-[hsl(200,20%,35%)] rounded-md"
-                      onClick={() => handleStatusChange("callback")}
-                    >
-                      <RotateCcw className="w-4 h-4" />
-                      Call back
-                    </Button>
-                  )}
+                        ))
+                      ) : (
+                        <DropdownMenuItem onClick={() => handleStatusChange("callback")}>
+                          Call back
+                        </DropdownMenuItem>
+                      )}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
 
                   {/* Winner Button */}
-                  {getCategories("winner").length > 0 ? (
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button className="gap-1 bg-green-600 hover:bg-green-700 rounded-md">
-                          <ThumbsUp className="w-4 h-4" />
-                          Winner
-                          <ChevronDown className="w-3 h-3 ml-1" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent>
-                        {getCategories("winner").map((cat) => (
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button className="gap-1 bg-green-600 hover:bg-green-700 rounded-md">
+                        <ThumbsUp className="w-4 h-4" />
+                        Winner
+                        <ChevronDown className="w-3 h-3 ml-1" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent className="bg-popover border shadow-md z-50">
+                      {getCategories("winner").length > 0 ? (
+                        getCategories("winner").map((cat) => (
                           <DropdownMenuItem key={cat} onClick={() => handleStatusChange("won", cat)}>
                             {cat}
                           </DropdownMenuItem>
-                        ))}
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  ) : (
-                    <Button
-                      className="gap-1 bg-green-600 hover:bg-green-700 rounded-md"
-                      onClick={() => handleStatusChange("won")}
-                    >
-                      <ThumbsUp className="w-4 h-4" />
-                      Winner
-                    </Button>
-                  )}
+                        ))
+                      ) : (
+                        <DropdownMenuItem onClick={() => handleStatusChange("won")}>
+                          Winner
+                        </DropdownMenuItem>
+                      )}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
 
                   {/* Loser Button */}
-                  {getCategories("loser").length > 0 ? (
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button className="gap-1 bg-red-600 hover:bg-red-700 rounded-md">
-                          <ThumbsDown className="w-4 h-4" />
-                          Loser
-                          <ChevronDown className="w-3 h-3 ml-1" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent>
-                        {getCategories("loser").map((cat) => (
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button className="gap-1 bg-red-600 hover:bg-red-700 rounded-md">
+                        <ThumbsDown className="w-4 h-4" />
+                        Loser
+                        <ChevronDown className="w-3 h-3 ml-1" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent className="bg-popover border shadow-md z-50">
+                      {getCategories("loser").length > 0 ? (
+                        getCategories("loser").map((cat) => (
                           <DropdownMenuItem key={cat} onClick={() => handleStatusChange("lost", cat)}>
                             {cat}
                           </DropdownMenuItem>
-                        ))}
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  ) : (
-                    <Button
-                      className="gap-1 bg-red-600 hover:bg-red-700 rounded-md"
-                      onClick={() => handleStatusChange("lost")}
-                    >
-                      <ThumbsDown className="w-4 h-4" />
-                      Loser
-                    </Button>
-                  )}
+                        ))
+                      ) : (
+                        <DropdownMenuItem onClick={() => handleStatusChange("lost")}>
+                          Loser
+                        </DropdownMenuItem>
+                      )}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
 
                   {/* Archive Button */}
-                  {getCategories("archive").length > 0 ? (
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="secondary" className="gap-1 rounded-md">
-                          <Archive className="w-4 h-4" />
-                          Archive
-                          <ChevronDown className="w-3 h-3 ml-1" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent>
-                        {getCategories("archive").map((cat) => (
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="secondary" className="gap-1 rounded-md">
+                        <Archive className="w-4 h-4" />
+                        Archive
+                        <ChevronDown className="w-3 h-3 ml-1" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent className="bg-popover border shadow-md z-50">
+                      {getCategories("archive").length > 0 ? (
+                        getCategories("archive").map((cat) => (
                           <DropdownMenuItem key={cat} onClick={() => handleStatusChange("archived", cat)}>
                             {cat}
                           </DropdownMenuItem>
-                        ))}
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  ) : (
-                    <Button
-                      variant="secondary"
-                      className="gap-1 rounded-md"
-                      onClick={() => handleStatusChange("archived")}
-                    >
-                      <Archive className="w-4 h-4" />
-                      Archive
-                    </Button>
-                  )}
+                        ))
+                      ) : (
+                        <DropdownMenuItem onClick={() => handleStatusChange("archived")}>
+                          Archive
+                        </DropdownMenuItem>
+                      )}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 </div>
               </div>
             </TabsContent>
