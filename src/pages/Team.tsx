@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Download, Plus, Pencil, Trash2, Mail, Clock } from "lucide-react";
+import { Loader2, Download, Plus, Pencil, Trash2, Mail, Clock, Archive } from "lucide-react";
 import {
   Table,
   TableBody,
@@ -239,6 +239,32 @@ export default function Team() {
     }
 
     toast({ title: "User archived", description: `${email} has been archived` });
+    fetchTeam();
+  };
+
+  const handleDeleteUser = async (userId: string, email: string) => {
+    // Delete user roles first
+    await supabase.from("user_roles").delete().eq("user_id", userId);
+    
+    // Delete from list_users
+    await supabase.from("list_users").delete().eq("user_id", userId);
+    
+    // Delete the profile
+    const { error } = await supabase
+      .from("profiles")
+      .delete()
+      .eq("id", userId);
+
+    if (error) {
+      toast({ 
+        title: "Failed to delete user", 
+        description: error.message,
+        variant: "destructive" 
+      });
+      return;
+    }
+
+    toast({ title: "User deleted", description: `${email} has been permanently deleted` });
     fetchTeam();
   };
 
@@ -546,40 +572,80 @@ export default function Team() {
                       </Dialog>
 
                       {isAccountOwner(member) ? (
-                        <Button 
-                          variant="outline" 
-                          size="icon" 
-                          className="h-8 w-8 text-muted-foreground cursor-not-allowed opacity-50"
-                          disabled
-                          title="Cannot delete the account owner"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
+                        <>
+                          <Button 
+                            variant="outline" 
+                            size="icon" 
+                            className="h-8 w-8 text-muted-foreground cursor-not-allowed opacity-50"
+                            disabled
+                            title="Cannot archive the account owner"
+                          >
+                            <Archive className="h-4 w-4" />
+                          </Button>
+                          <Button 
+                            variant="outline" 
+                            size="icon" 
+                            className="h-8 w-8 text-muted-foreground cursor-not-allowed opacity-50"
+                            disabled
+                            title="Cannot delete the account owner"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </>
                       ) : (
-                        <AlertDialog>
-                          <AlertDialogTrigger asChild>
-                            <Button variant="outline" size="icon" className="h-8 w-8 text-destructive hover:text-destructive">
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </AlertDialogTrigger>
-                          <AlertDialogContent>
-                            <AlertDialogHeader>
-                              <AlertDialogTitle>Archive user?</AlertDialogTitle>
-                              <AlertDialogDescription>
-                                This will archive {member.full_name || member.email}. They will no longer be able to access the system.
-                              </AlertDialogDescription>
-                            </AlertDialogHeader>
-                            <AlertDialogFooter>
-                              <AlertDialogCancel>Cancel</AlertDialogCancel>
-                              <AlertDialogAction 
-                                className="bg-destructive hover:bg-destructive/90"
-                                onClick={() => handleArchiveUser(member.id, member.email)}
-                              >
-                                Archive
-                              </AlertDialogAction>
-                            </AlertDialogFooter>
-                          </AlertDialogContent>
-                        </AlertDialog>
+                        <>
+                          {/* Archive Button */}
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button variant="outline" size="icon" className="h-8 w-8 text-amber-600 hover:text-amber-700" title="Archive user">
+                                <Archive className="h-4 w-4" />
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>Archive user?</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  This will archive {member.full_name || member.email}. They will no longer be able to access the system but their data will be preserved.
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                <AlertDialogAction 
+                                  className="bg-amber-600 hover:bg-amber-700"
+                                  onClick={() => handleArchiveUser(member.id, member.email)}
+                                >
+                                  Archive
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
+
+                          {/* Delete Button */}
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button variant="outline" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" title="Delete user permanently">
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>Delete user permanently?</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  This will permanently delete {member.full_name || member.email} and all their associated data. This action cannot be undone.
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                <AlertDialogAction 
+                                  className="bg-destructive hover:bg-destructive/90"
+                                  onClick={() => handleDeleteUser(member.id, member.email)}
+                                >
+                                  Delete Permanently
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
+                        </>
                       )}
                     </div>
                   </TableCell>
