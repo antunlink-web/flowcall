@@ -86,25 +86,6 @@ export default function Leads() {
   const { isAdminOrManager } = useUserRole();
   const { toast } = useToast();
 
-  // Derive available fields from all leads
-  const allFields = Array.from(
-    new Set(leads.flatMap((lead) => Object.keys(lead.data || {})))
-  ).sort();
-
-  // If a lead is selected via query param, show the detail view
-  if (selectedLeadId) {
-    return (
-      <DashboardLayout>
-        <LeadDetailView
-          leadId={selectedLeadId}
-          onClose={() => {
-            setSearchParams({});
-          }}
-        />
-      </DashboardLayout>
-    );
-  }
-
   const fetchData = async (search?: string) => {
     setLoading(true);
 
@@ -142,6 +123,25 @@ export default function Leads() {
 
     return () => clearTimeout(timer);
   }, [user, searchQuery]);
+
+  // Derive available fields from all leads
+  const allFields = Array.from(
+    new Set(leads.flatMap((lead) => Object.keys(lead.data || {})))
+  ).sort();
+
+  // If a lead is selected via query param, show the detail view
+  if (selectedLeadId) {
+    return (
+      <DashboardLayout>
+        <LeadDetailView
+          leadId={selectedLeadId}
+          onClose={() => {
+            setSearchParams({});
+          }}
+        />
+      </DashboardLayout>
+    );
+  }
 
   // Apply local filters (status, campaign) on fetched leads
   const filteredLeads = leads.filter((lead) => {
