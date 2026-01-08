@@ -216,6 +216,33 @@ export default function ManageLists() {
     setListSettings(list.settings || {});
     setEmailConfig((list as any).email_config || {});
     setConfigSection("fields");
+    
+    // Load category settings from list settings
+    const settings = list.settings || {};
+    setCallbackCategories(settings.callbackCategories || "Call again, Busy");
+    setWinnerCategories(settings.winnerCategories || "Sold, Interested");
+    setLoserCategories(settings.loserCategories || "Not interested, Wrong number");
+    setArchiveCategories(settings.archiveCategories || "");
+    setExpandedCategory(null);
+  };
+
+  const handleSaveCategories = async () => {
+    if (!configureList) return;
+    
+    const updatedSettings = {
+      ...listSettings,
+      callbackCategories,
+      winnerCategories,
+      loserCategories,
+      archiveCategories,
+    };
+    
+    const success = await updateList(configureList.id, { settings: updatedSettings });
+    if (success) {
+      setListSettings(updatedSettings);
+      setConfigureList({ ...configureList, settings: updatedSettings });
+      toast({ title: "Categories saved successfully" });
+    }
   };
 
   // Template dialog handlers
@@ -812,7 +839,7 @@ export default function ManageLists() {
                 </div>
 
                 <div className="pl-44">
-                  <Button className="bg-destructive hover:bg-destructive/90">Save</Button>
+                  <Button onClick={handleSaveCategories} className="bg-destructive hover:bg-destructive/90">Save</Button>
                 </div>
               </div>
             </div>

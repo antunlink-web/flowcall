@@ -18,6 +18,11 @@ export interface ListSettings {
   ccEmail?: string;
   prioritiseNewLeads?: boolean;
   script?: string;
+  // Category settings
+  callbackCategories?: string;
+  winnerCategories?: string;
+  loserCategories?: string;
+  archiveCategories?: string;
 }
 
 export interface List {
