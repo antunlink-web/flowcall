@@ -420,55 +420,25 @@ export function TopNavbar() {
                 <ChevronDown className="w-3 h-3" />
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-56 bg-background">
+            <DropdownMenuContent align="end" className="w-48 bg-background">
               <DropdownMenuItem asChild>
-                <NavLink to="/preferences">
-                  Preferences
+                <NavLink to="/manage/settings">
+                  Settings
                 </NavLink>
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
-                <NavLink to="/preferences/profile">
-                  Profile Information
+                <NavLink to="/manage/account">
+                  Account Settings
                 </NavLink>
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
-                <NavLink to="/preferences/credentials">
-                  Credentials
+                <NavLink to="/manage/account?section=billing">
+                  Billing
                 </NavLink>
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
-                <NavLink to="/preferences/email">
-                  E-mail
-                </NavLink>
-              </DropdownMenuItem>
-              <DropdownMenuItem asChild>
-                <NavLink to="/preferences/texting">
-                  Texting
-                </NavLink>
-              </DropdownMenuItem>
-              <DropdownMenuItem asChild>
-                <NavLink to="/preferences/dialling">
-                  Dialling
-                </NavLink>
-              </DropdownMenuItem>
-              <DropdownMenuItem asChild>
-                <NavLink to="/preferences/working">
-                  Working
-                </NavLink>
-              </DropdownMenuItem>
-              <DropdownMenuItem asChild>
-                <NavLink to="/preferences/queue">
-                  Queue
-                </NavLink>
-              </DropdownMenuItem>
-              <DropdownMenuItem asChild>
-                <NavLink to="/preferences/notifications">
-                  Notifications
-                </NavLink>
-              </DropdownMenuItem>
-              <DropdownMenuItem asChild>
-                <NavLink to="/preferences/email-dropbox">
-                  Email Dropbox
+                <NavLink to="/manage/account?section=referral">
+                  Make Money
                 </NavLink>
               </DropdownMenuItem>
               <DropdownMenuSeparator />
