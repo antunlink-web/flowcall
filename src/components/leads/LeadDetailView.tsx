@@ -3,9 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Select,
@@ -28,8 +26,9 @@ import {
   ThumbsUp,
   ThumbsDown,
   Archive,
-  Save,
-  RefreshCw,
+  Clock,
+  Users,
+  ChevronDown,
 } from "lucide-react";
 
 interface LeadDetailViewProps {
@@ -62,14 +61,14 @@ export function LeadDetailView({ leadId, onClose }: LeadDetailViewProps) {
   const [lead, setLead] = useState<Lead | null>(null);
   const [list, setList] = useState<List | null>(null);
   const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [editedData, setEditedData] = useState<Record<string, string>>({});
   const [comment, setComment] = useState("");
+  const [emailCount, setEmailCount] = useState(0);
   const { toast } = useToast();
   const navigate = useNavigate();
 
   useEffect(() => {
     fetchLead();
+    fetchEmailCount();
   }, [leadId]);
 
   const fetchLead = async () => {
@@ -87,29 +86,18 @@ export function LeadDetailView({ leadId, onClose }: LeadDetailViewProps) {
     }
 
     setLead(data as Lead);
-    setEditedData((data.data as Record<string, string>) || {});
     if (data.lists) {
       setList(data.lists as List);
     }
     setLoading(false);
   };
 
-  const handleSave = async () => {
-    if (!lead) return;
-    setSaving(true);
-
-    const { error } = await supabase
-      .from("leads")
-      .update({ data: editedData, updated_at: new Date().toISOString() })
-      .eq("id", lead.id);
-
-    if (error) {
-      toast({ title: "Failed to save", variant: "destructive" });
-    } else {
-      toast({ title: "Lead saved" });
-      fetchLead();
-    }
-    setSaving(false);
+  const fetchEmailCount = async () => {
+    const { count } = await supabase
+      .from("email_logs")
+      .select("*", { count: "exact", head: true })
+      .eq("lead_id", leadId);
+    setEmailCount(count || 0);
   };
 
   const handleStatusChange = async (newStatus: string) => {
@@ -139,7 +127,7 @@ export function LeadDetailView({ leadId, onClose }: LeadDetailViewProps) {
       archived: "bg-gray-500 text-white",
     };
     return (
-      <Badge className={`${colors[status] || "bg-muted"} capitalize`}>
+      <Badge className={`${colors[status] || "bg-muted"} capitalize text-xs px-2`}>
         {status}
       </Badge>
     );
@@ -183,6 +171,15 @@ export function LeadDetailView({ leadId, onClose }: LeadDetailViewProps) {
     return phones;
   };
 
+  // Get non-phone data fields for display
+  const getDataFields = () => {
+    if (!lead?.data) return [];
+    return Object.entries(lead.data).filter(([key]) => {
+      const keyLower = key.toLowerCase();
+      return !(keyLower.includes("phone") || keyLower.includes("tel"));
+    });
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-[60vh]">
@@ -195,124 +192,149 @@ export function LeadDetailView({ leadId, onClose }: LeadDetailViewProps) {
 
   const phones = getPhones();
   const displayName = getDisplayName();
-  const listFields = list?.fields || [];
+  const dataFields = getDataFields();
+  const currentTime = format(new Date(), "HH:mm");
 
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
       <div className="border-b bg-muted/30 px-6 py-4">
-        <div className="flex items-start justify-between">
-          <div className="flex items-start gap-4">
-            <Button variant="ghost" size="icon" onClick={onClose}>
-              <ArrowLeft className="w-5 h-5" />
-            </Button>
-            <div>
-              <div className="flex items-center gap-2">
-                {getStatusBadge(lead.status)}
-                <h1 className="text-xl font-semibold">{displayName}</h1>
-              </div>
-              {phones.map((phone, i) => (
-                <a
-                  key={i}
-                  href={`tel:${phone}`}
-                  className="text-primary hover:underline flex items-center gap-1 text-sm mt-1"
-                >
-                  {phone}
-                  <X className="w-3 h-3 text-muted-foreground hover:text-destructive" />
-                </a>
-              ))}
-            </div>
+        <div className="flex items-center gap-4">
+          <Button variant="ghost" size="icon" onClick={onClose}>
+            <ArrowLeft className="w-5 h-5" />
+          </Button>
+          <div className="flex items-center gap-3">
+            {getStatusBadge(lead.status)}
+            <h1 className="text-2xl font-semibold">{displayName}</h1>
           </div>
+        </div>
+        {/* Phone numbers */}
+        <div className="ml-14 mt-2 space-y-1">
+          {phones.map((phone, i) => (
+            <a
+              key={i}
+              href={`tel:${phone}`}
+              className="text-primary hover:underline flex items-center gap-2 text-sm"
+            >
+              {phone}
+              <X className="w-3 h-3 text-muted-foreground hover:text-destructive cursor-pointer" />
+            </a>
+          ))}
         </div>
       </div>
 
       <div className="flex">
         {/* Left Column - Lead Info & Actions */}
-        <div className="flex-1 p-6 space-y-6 border-r max-w-2xl">
-          {/* Metadata */}
-          <div className="grid grid-cols-2 gap-x-8 gap-y-2 text-sm">
-            {Object.entries(lead.data || {})
-              .filter(([key, value]) => {
-                const keyLower = key.toLowerCase();
-                return !(keyLower.includes("phone") || keyLower.includes("tel"));
-              })
-              .slice(0, 6)
-              .map(([key, value]) => (
-                <div key={key} className="flex justify-between">
-                  <span className="text-muted-foreground font-medium">{key}</span>
-                  <span className="text-right">
-                    {String(value || "").startsWith("http") ? (
-                      <a
-                        href={String(value)}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-primary hover:underline"
-                      >
-                        {String(value)}
-                      </a>
-                    ) : (
-                      String(value || "-")
-                    )}
-                  </span>
-                </div>
-              ))}
+        <div className="flex-1 p-6 space-y-6 max-w-2xl">
+          {/* Lead Data Fields */}
+          <div className="space-y-2">
+            {dataFields.slice(0, 6).map(([key, value]) => (
+              <div key={key} className="flex text-sm">
+                <span className="w-40 text-right pr-4 text-muted-foreground font-medium flex-shrink-0">
+                  {key}
+                </span>
+                <span>
+                  {String(value || "").startsWith("http") ? (
+                    <a
+                      href={String(value)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-primary hover:underline"
+                    >
+                      {String(value)}
+                    </a>
+                  ) : (
+                    String(value || "-")
+                  )}
+                </span>
+              </div>
+            ))}
           </div>
 
-          <div className="grid grid-cols-2 gap-x-8 gap-y-1 text-sm border-t pt-4">
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">First created</span>
-              <span>
-                {format(new Date(lead.created_at), "dd-MM-yyyy HH:mm")} (
-                {formatDistanceToNow(new Date(lead.created_at), { addSuffix: false })} ago)
+          {/* Metadata Section */}
+          <div className="space-y-1 border-t pt-4">
+            <div className="flex text-sm">
+              <span className="w-40 text-right pr-4 text-muted-foreground font-medium flex-shrink-0">
+                First created
               </span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Last updated</span>
-              <span>
-                {format(new Date(lead.updated_at), "dd-MM-yyyy HH:mm")} (
-                {formatDistanceToNow(new Date(lead.updated_at), { addSuffix: false })} ago)
-              </span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Current List</span>
               <span className="text-primary">
-                {list?.name || "No list"} →
+                {format(new Date(lead.created_at), "dd-MM-yyyy HH:mm")} ({formatDistanceToNow(new Date(lead.created_at))} ago)
               </span>
             </div>
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Claimed by</span>
-              <span>{lead.claimed_by ? "Claimed" : "Not claimed - Claim now"}</span>
+            <div className="flex text-sm">
+              <span className="w-40 text-right pr-4 text-muted-foreground font-medium flex-shrink-0">
+                Last updated
+              </span>
+              <span className="text-primary">
+                {format(new Date(lead.updated_at), "dd-MM-yyyy HH:mm")} ({formatDistanceToNow(new Date(lead.updated_at))} ago)
+              </span>
+            </div>
+            <div className="flex text-sm">
+              <span className="w-40 text-right pr-4 text-muted-foreground font-medium flex-shrink-0">
+                Current List
+              </span>
+              <span className="text-primary flex items-center gap-1">
+                {list?.name || "No list"} <span className="text-muted-foreground">→</span>
+              </span>
+            </div>
+            <div className="flex text-sm">
+              <span className="w-40 text-right pr-4 text-muted-foreground font-medium flex-shrink-0">
+                Claimed by
+              </span>
+              <span>
+                {lead.claimed_by ? (
+                  "Claimed"
+                ) : (
+                  <>
+                    Not claimed - <span className="text-primary cursor-pointer hover:underline">Claim now</span>
+                  </>
+                )}
+              </span>
             </div>
           </div>
 
           {/* Communication Tabs */}
           <Tabs defaultValue="call" className="mt-6">
-            <TabsList>
-              <TabsTrigger value="call" className="gap-1">
-                <Phone className="w-4 h-4" />
+            <TabsList className="bg-transparent border-b w-full justify-start rounded-none h-auto p-0">
+              <TabsTrigger 
+                value="call" 
+                className="gap-1 rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-4 pb-2"
+              >
+                <Phone className="w-4 h-4 text-red-500" />
                 Call
               </TabsTrigger>
-              <TabsTrigger value="email" className="gap-1">
+              <TabsTrigger 
+                value="email" 
+                className="gap-1 rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-4 pb-2"
+              >
                 <Mail className="w-4 h-4" />
                 E-mail
               </TabsTrigger>
-              <TabsTrigger value="sms" className="gap-1">
+              <TabsTrigger 
+                value="sms" 
+                className="gap-1 rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-4 pb-2"
+              >
                 <MessageSquare className="w-4 h-4" />
                 SMS
               </TabsTrigger>
             </TabsList>
+            
             <TabsContent value="call" className="mt-4">
               <div className="border rounded-md p-4 space-y-4">
                 <Textarea
                   placeholder="Comment"
                   value={comment}
                   onChange={(e) => setComment(e.target.value)}
-                  className="min-h-[100px]"
+                  className="min-h-[120px] resize-none"
                 />
-                <div className="flex items-center gap-4 text-sm">
-                  <span className="text-muted-foreground">Follow-up</span>
+                
+                {/* Follow-up Section */}
+                <div className="flex items-center gap-2 pt-2 border-t">
+                  <Users className="w-5 h-5 text-muted-foreground" />
+                  <div className="flex-1" />
+                  <span className="text-sm text-muted-foreground">Follow-up</span>
                   <Select defaultValue="after">
-                    <SelectTrigger className="w-24">
+                    <SelectTrigger className="w-20 h-8">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -321,7 +343,7 @@ export function LeadDetailView({ leadId, onClose }: LeadDetailViewProps) {
                     </SelectContent>
                   </Select>
                   <Select defaultValue="27">
-                    <SelectTrigger className="w-28">
+                    <SelectTrigger className="w-28 h-8">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -334,34 +356,36 @@ export function LeadDetailView({ leadId, onClose }: LeadDetailViewProps) {
                     </SelectContent>
                   </Select>
                 </div>
-                <div className="flex gap-2">
+                
+                {/* Action Buttons */}
+                <div className="flex gap-2 pt-2">
                   <Button
-                    variant="default"
-                    className="gap-1 bg-[hsl(200,20%,35%)]"
+                    className="gap-1 bg-[hsl(200,20%,40%)] hover:bg-[hsl(200,20%,35%)] rounded-md"
                     onClick={() => handleStatusChange("callback")}
                   >
                     <RotateCcw className="w-4 h-4" />
                     Call back
+                    <ChevronDown className="w-3 h-3 ml-1" />
                   </Button>
                   <Button
-                    variant="default"
-                    className="gap-1 bg-green-600 hover:bg-green-700"
+                    className="gap-1 bg-green-600 hover:bg-green-700 rounded-md"
                     onClick={() => handleStatusChange("won")}
                   >
                     <ThumbsUp className="w-4 h-4" />
                     Winner
+                    <ChevronDown className="w-3 h-3 ml-1" />
                   </Button>
                   <Button
-                    variant="default"
-                    className="gap-1 bg-red-600 hover:bg-red-700"
+                    className="gap-1 bg-red-600 hover:bg-red-700 rounded-md"
                     onClick={() => handleStatusChange("lost")}
                   >
                     <ThumbsDown className="w-4 h-4" />
                     Loser
+                    <ChevronDown className="w-3 h-3 ml-1" />
                   </Button>
                   <Button
                     variant="secondary"
-                    className="gap-1"
+                    className="gap-1 rounded-md"
                     onClick={() => handleStatusChange("archived")}
                   >
                     <Archive className="w-4 h-4" />
@@ -370,85 +394,101 @@ export function LeadDetailView({ leadId, onClose }: LeadDetailViewProps) {
                 </div>
               </div>
             </TabsContent>
+            
             <TabsContent value="email" className="mt-4">
-              <div className="text-muted-foreground text-sm">
+              <div className="text-muted-foreground text-sm p-4 border rounded-md">
                 Email composer coming soon...
               </div>
             </TabsContent>
+            
             <TabsContent value="sms" className="mt-4">
-              <div className="text-muted-foreground text-sm">
+              <div className="text-muted-foreground text-sm p-4 border rounded-md">
                 SMS composer coming soon...
               </div>
             </TabsContent>
           </Tabs>
         </div>
 
-        {/* Right Column - Editable Fields */}
-        <div className="w-96 p-6 space-y-4 bg-muted/20">
-          <div className="flex items-center justify-between">
-            <Tabs defaultValue="fields">
-              <TabsList>
-                <TabsTrigger value="activity">Activity</TabsTrigger>
-                <TabsTrigger value="colleagues">Colleagues</TabsTrigger>
-                <TabsTrigger value="fields">
+        {/* Right Column - Activity & Stats */}
+        <div className="w-[400px] border-l bg-muted/10">
+          {/* Tabs Header */}
+          <div className="border-b px-4 py-2">
+            <Tabs defaultValue="activity">
+              <div className="flex items-center justify-between">
+                <TabsList className="bg-transparent h-auto p-0 gap-4">
+                  <TabsTrigger 
+                    value="activity" 
+                    className="px-0 py-1 text-sm rounded-none border-b-2 border-transparent data-[state=active]:border-red-500 data-[state=active]:bg-transparent data-[state=active]:text-red-500"
+                  >
+                    Activity <Badge variant="secondary" className="ml-1 text-xs">{lead.call_attempts}</Badge>
+                  </TabsTrigger>
+                  <TabsTrigger 
+                    value="colleagues" 
+                    className="px-0 py-1 text-sm rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent"
+                  >
+                    Colleagues <Badge variant="secondary" className="ml-1 text-xs">0</Badge>
+                  </TabsTrigger>
+                </TabsList>
+                <Button variant="ghost" size="icon" className="h-6 w-6">
                   <ExternalLink className="w-4 h-4" />
-                </TabsTrigger>
-              </TabsList>
+                </Button>
+              </div>
             </Tabs>
           </div>
 
-          <Button
-            onClick={handleSave}
-            disabled={saving}
-            className="w-20 bg-red-600 hover:bg-red-700"
-          >
-            {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : "Save"}
-          </Button>
-
-          <div className="space-y-3">
-            {listFields.length > 0
-              ? listFields.map((field) => (
-                  <div key={field.id} className="flex items-center gap-2">
-                    <label className="w-32 text-sm text-muted-foreground text-right flex-shrink-0">
-                      {field.name}
-                    </label>
-                    <Input
-                      value={editedData[field.name] || ""}
-                      onChange={(e) =>
-                        setEditedData({ ...editedData, [field.name]: e.target.value })
-                      }
-                      className="flex-1"
-                    />
-                    <Checkbox />
-                  </div>
-                ))
-              : Object.entries(editedData).map(([key, value]) => (
-                  <div key={key} className="flex items-center gap-2">
-                    <label className="w-32 text-sm text-muted-foreground text-right flex-shrink-0">
-                      {key}
-                    </label>
-                    <Input
-                      value={String(value || "")}
-                      onChange={(e) =>
-                        setEditedData({ ...editedData, [key]: e.target.value })
-                      }
-                      className="flex-1"
-                    />
-                    <Checkbox />
-                  </div>
-                ))}
+          {/* Stats Cards */}
+          <div className="grid grid-cols-3 gap-2 p-4">
+            <div className="border rounded-lg p-3 bg-background text-center">
+              <div className="flex items-center justify-center gap-2">
+                <span className="text-2xl font-bold">{lead.call_attempts}</span>
+                <Phone className="w-5 h-5 text-red-500" />
+              </div>
+              <p className="text-xs text-muted-foreground mt-1">Call attempts</p>
+            </div>
+            <div className="border rounded-lg p-3 bg-background text-center">
+              <div className="flex items-center justify-center gap-2">
+                <span className="text-2xl font-bold">{emailCount}</span>
+                <Mail className="w-5 h-5 text-red-500" />
+              </div>
+              <p className="text-xs text-muted-foreground mt-1">E-mails</p>
+            </div>
+            <div className="border rounded-lg p-3 bg-background text-center">
+              <div className="flex items-center justify-center gap-2">
+                <span className="text-2xl font-bold">{currentTime}</span>
+                <Clock className="w-5 h-5 text-primary" />
+              </div>
+              <p className="text-xs text-muted-foreground mt-1">Local time</p>
+            </div>
           </div>
 
-          <Button
-            onClick={handleSave}
-            disabled={saving}
-            className="w-20 bg-red-600 hover:bg-red-700"
-          >
-            {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : "Save"}
-          </Button>
-          <Button variant="ghost" size="icon" onClick={fetchLead}>
-            <RefreshCw className="w-4 h-4" />
-          </Button>
+          {/* Activity Feed */}
+          <div className="px-4 pb-4">
+            {lead.status === "lost" || lead.status === "won" ? (
+              <div className="flex gap-3 p-3 border rounded-lg bg-background">
+                <div className={`w-10 h-10 rounded flex items-center justify-center ${
+                  lead.status === "lost" ? "bg-red-100" : "bg-green-100"
+                }`}>
+                  {lead.status === "lost" ? (
+                    <ThumbsDown className="w-5 h-5 text-red-600" />
+                  ) : (
+                    <ThumbsUp className="w-5 h-5 text-green-600" />
+                  )}
+                </div>
+                <div className="flex-1">
+                  <p className="font-medium text-sm">
+                    {lead.status === "lost" ? "Loser" : "Winner"} <span className="text-muted-foreground font-normal">by Unknown</span>
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {format(new Date(lead.updated_at), "dd-MM-yyyy HH:mm")} ({formatDistanceToNow(new Date(lead.updated_at))} ago)
+                  </p>
+                </div>
+              </div>
+            ) : (
+              <p className="text-sm text-muted-foreground text-center py-4">
+                No activity recorded yet
+              </p>
+            )}
+          </div>
         </div>
       </div>
     </div>
