@@ -422,8 +422,8 @@ export function TopNavbar() {
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-48 bg-background">
               <DropdownMenuItem asChild>
-                <NavLink to="/manage/settings">
-                  Settings
+                <NavLink to="/preferences">
+                  Preferences
                 </NavLink>
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
