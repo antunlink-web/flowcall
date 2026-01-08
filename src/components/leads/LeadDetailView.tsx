@@ -35,7 +35,14 @@ import {
   Clock,
   Users,
   ChevronDown,
+  UserRoundCog,
 } from "lucide-react";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { useAuth } from "@/hooks/useAuth";
 
 interface LeadDetailViewProps {
   leadId: string;
@@ -78,7 +85,10 @@ export function LeadDetailView({ leadId, onClose }: LeadDetailViewProps) {
   const [comment, setComment] = useState("");
   const [emailCount, setEmailCount] = useState(0);
   const [claimedByName, setClaimedByName] = useState<string | null>(null);
+  const [agents, setAgents] = useState<Array<{ id: string; full_name: string | null; email: string }>>([]);
+  const [delegateOpen, setDelegateOpen] = useState(false);
   const { toast } = useToast();
+  const { user } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -142,6 +152,35 @@ export function LeadDetailView({ leadId, onClose }: LeadDetailViewProps) {
     }
     
     setLoading(false);
+  };
+
+  const fetchAgents = async () => {
+    const { data } = await supabase
+      .from("profiles")
+      .select("id, full_name, email")
+      .eq("status", "active");
+    setAgents(data || []);
+  };
+
+  const handleDelegate = async (agentId: string) => {
+    if (!lead) return;
+    
+    const { error } = await supabase
+      .from("leads")
+      .update({ 
+        claimed_by: agentId, 
+        claimed_at: new Date().toISOString() 
+      })
+      .eq("id", lead.id);
+
+    if (error) {
+      toast({ title: "Failed to delegate lead", variant: "destructive" });
+    } else {
+      const agent = agents.find(a => a.id === agentId);
+      toast({ title: `Lead delegated to ${agent?.full_name || agent?.email}` });
+      setDelegateOpen(false);
+      fetchLead();
+    }
   };
 
   const fetchEmailCount = async () => {
@@ -405,7 +444,35 @@ export function LeadDetailView({ leadId, onClose }: LeadDetailViewProps) {
                 
                 {/* Follow-up Section */}
                 <div className="flex items-center gap-2 pt-2 border-t">
-                  <Users className="w-5 h-5 text-muted-foreground" />
+                  {/* Delegate Button */}
+                  <Popover open={delegateOpen} onOpenChange={(open) => {
+                    setDelegateOpen(open);
+                    if (open) fetchAgents();
+                  }}>
+                    <PopoverTrigger asChild>
+                      <Button variant="ghost" size="icon" className="h-8 w-8" title="Delegate to another agent">
+                        <UserRoundCog className="w-5 h-5 text-muted-foreground" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-64 p-2" align="start">
+                      <div className="text-sm font-medium mb-2">Delegate to agent</div>
+                      <div className="space-y-1 max-h-48 overflow-y-auto">
+                        {agents.filter(a => a.id !== user?.id).map((agent) => (
+                          <Button
+                            key={agent.id}
+                            variant="ghost"
+                            className="w-full justify-start h-8 text-sm"
+                            onClick={() => handleDelegate(agent.id)}
+                          >
+                            {agent.full_name || agent.email}
+                          </Button>
+                        ))}
+                        {agents.filter(a => a.id !== user?.id).length === 0 && (
+                          <p className="text-sm text-muted-foreground p-2">No other agents available</p>
+                        )}
+                      </div>
+                    </PopoverContent>
+                  </Popover>
                   <div className="flex-1" />
                   <span className="text-sm text-muted-foreground">Follow-up</span>
                   <Select defaultValue="after">
