@@ -71,16 +71,19 @@ serve(async (req) => {
       );
     }
 
-    // Call EU VIES SOAP service
+    // Call EU VIES SOAP service with updated endpoint
     const soapRequest = `<?xml version="1.0" encoding="UTF-8"?>
-<soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/" xmlns:tns1="urn:ec.europa.eu:taxud:vies:services:checkVat:types">
-  <soap:Body>
-    <tns1:checkVat>
-      <tns1:countryCode>${countryCode}</tns1:countryCode>
-      <tns1:vatNumber>${number}</tns1:vatNumber>
-    </tns1:checkVat>
-  </soap:Body>
-</soap:Envelope>`;
+<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:urn="urn:ec.europa.eu:taxud:vies:services:checkVat:types">
+  <soapenv:Header/>
+  <soapenv:Body>
+    <urn:checkVat>
+      <urn:countryCode>${countryCode}</urn:countryCode>
+      <urn:vatNumber>${number}</urn:vatNumber>
+    </urn:checkVat>
+  </soapenv:Body>
+</soapenv:Envelope>`;
+
+    console.log("Calling VIES for:", countryCode, number);
 
     const response = await fetch("https://ec.europa.eu/taxation_customs/vies/services/checkVatService", {
       method: "POST",
@@ -92,15 +95,33 @@ serve(async (req) => {
     });
 
     const xmlResponse = await response.text();
+    console.log("VIES Response:", xmlResponse.substring(0, 500));
 
-    // Parse the SOAP response
-    const validMatch = xmlResponse.match(/<valid>(\w+)<\/valid>/);
-    const nameMatch = xmlResponse.match(/<name>([^<]*)<\/name>/);
-    const addressMatch = xmlResponse.match(/<address>([^<]*)<\/address>/);
+    // Parse the SOAP response - handle different namespace prefixes
+    const validMatch = xmlResponse.match(/<(?:ns2:|tns1:)?valid>(\w+)<\/(?:ns2:|tns1:)?valid>/i);
+    const nameMatch = xmlResponse.match(/<(?:ns2:|tns1:)?name>([^<]*)<\/(?:ns2:|tns1:)?name>/i);
+    const addressMatch = xmlResponse.match(/<(?:ns2:|tns1:)?address>([^<]*)<\/(?:ns2:|tns1:)?address>/i);
+
+    // Check for SOAP fault
+    const faultMatch = xmlResponse.match(/<faultstring>([^<]*)<\/faultstring>/i);
+    if (faultMatch) {
+      console.log("VIES Fault:", faultMatch[1]);
+      return new Response(
+        JSON.stringify({
+          valid: false,
+          countryCode,
+          vatNumber: number,
+          error: `VIES service error: ${faultMatch[1]}`,
+        }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
 
     const isValid = validMatch ? validMatch[1].toLowerCase() === "true" : false;
     const name = nameMatch ? nameMatch[1].trim() : undefined;
     const address = addressMatch ? addressMatch[1].trim().replace(/\n/g, ", ") : undefined;
+
+    console.log("Parsed result:", { isValid, name, address });
 
     const result: VatValidationResult = {
       valid: isValid,
