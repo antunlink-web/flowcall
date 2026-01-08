@@ -77,9 +77,19 @@ export default function Leads() {
   const [showImportDialog, setShowImportDialog] = useState(false);
   const [editingLead, setEditingLead] = useState<Lead | null>(null);
   const [csvFields, setCsvFields] = useState<string[]>([]);
+  const [formData, setFormData] = useState<Record<string, string>>({});
+  const [formStatus, setFormStatus] = useState<LeadStatus>("new");
+  const [formCampaignId, setFormCampaignId] = useState("");
+  const [newFieldName, setNewFieldName] = useState("");
+  
   const { user } = useAuth();
   const { isAdminOrManager } = useUserRole();
   const { toast } = useToast();
+
+  // Derive available fields from all leads
+  const allFields = Array.from(
+    new Set(leads.flatMap((lead) => Object.keys(lead.data || {})))
+  ).sort();
 
   // If a lead is selected via query param, show the detail view
   if (selectedLeadId) {
@@ -94,16 +104,6 @@ export default function Leads() {
       </DashboardLayout>
     );
   }
-
-  // Form state - dynamic fields
-  const [formData, setFormData] = useState<Record<string, string>>({});
-  const [formStatus, setFormStatus] = useState<LeadStatus>("new");
-  const [formCampaignId, setFormCampaignId] = useState("");
-
-  // Derive available fields from all leads
-  const allFields = Array.from(
-    new Set(leads.flatMap((lead) => Object.keys(lead.data || {})))
-  ).sort();
 
   const fetchData = async () => {
     setLoading(true);
@@ -249,7 +249,6 @@ export default function Leads() {
   };
 
   // Dynamic field management
-  const [newFieldName, setNewFieldName] = useState("");
   const addField = () => {
     if (newFieldName && !Object.keys(formData).includes(newFieldName)) {
       setFormData({ ...formData, [newFieldName]: "" });
