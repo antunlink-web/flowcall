@@ -26,26 +26,60 @@ export default function AcceptInvite() {
   const { toast } = useToast();
 
   useEffect(() => {
-    // Wait for the session to be established from the invite link
-    const timer = setTimeout(() => {
-      setChecking(false);
-      if (!session) {
-        toast({
-          title: "Invalid or expired invitation",
-          description: "Please contact your administrator for a new invite.",
-          variant: "destructive",
-        });
-        navigate("/auth");
-      }
-    }, 2000);
-    return () => clearTimeout(timer);
-  }, [session, navigate, toast]);
+    // Check if we have hash params (from the invite link)
+    const hashParams = new URLSearchParams(window.location.hash.substring(1));
+    const hasAuthParams = hashParams.has("access_token") || hashParams.has("error");
+    
+    // If there's an error in the URL
+    if (hashParams.has("error")) {
+      const errorDescription = hashParams.get("error_description") || "Invalid invitation link";
+      toast({
+        title: "Invitation Error",
+        description: errorDescription.replace(/\+/g, " "),
+        variant: "destructive",
+      });
+      navigate("/auth");
+      return;
+    }
 
-  useEffect(() => {
+    // If we already have a session, we're good
     if (session) {
       setChecking(false);
+      // Pre-fill name from user metadata if available
+      const metaName = user?.user_metadata?.full_name;
+      if (metaName) setFullName(metaName);
+      return;
     }
-  }, [session]);
+
+    // If we have auth params, wait for session to be established
+    if (hasAuthParams) {
+      // Give more time for the session to be established from URL params
+      const timer = setTimeout(() => {
+        if (!session) {
+          setChecking(false);
+          // Still no session after waiting - this is ok, the auth listener should handle it
+        }
+      }, 5000);
+      return () => clearTimeout(timer);
+    }
+
+    // No auth params and no session - invalid access
+    toast({
+      title: "Invalid or expired invitation",
+      description: "Please contact your administrator for a new invite.",
+      variant: "destructive",
+    });
+    navigate("/auth");
+  }, [session, user, navigate, toast]);
+
+  // Watch for session changes
+  useEffect(() => {
+    if (session && checking) {
+      setChecking(false);
+      const metaName = user?.user_metadata?.full_name;
+      if (metaName) setFullName(metaName);
+    }
+  }, [session, checking, user]);
 
   const validateForm = () => {
     const newErrors: typeof errors = {};
