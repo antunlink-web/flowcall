@@ -423,8 +423,8 @@ export function TopNavbar() {
             <DropdownMenuContent align="end" className="w-48 bg-background">
               <DropdownMenuItem asChild>
                 <NavLink to="/settings" className="flex items-center gap-2">
-                  <User className="w-4 h-4" />
-                  My Preferences
+                  <Settings className="w-4 h-4" />
+                  Settings
                 </NavLink>
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
