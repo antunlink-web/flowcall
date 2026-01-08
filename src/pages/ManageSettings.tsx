@@ -16,6 +16,7 @@ import {
 import {
   Workflow,
   Phone,
+  Smartphone,
   Mail,
   MessageSquare,
   Clock,
@@ -361,7 +362,7 @@ export default function ManageSettings() {
               >
                 <div className="flex items-center gap-6">
                   <div className="w-16 h-16 bg-muted rounded flex items-center justify-center">
-                    <Phone className="w-8 h-8 text-muted-foreground" />
+                    <Smartphone className="w-8 h-8 text-muted-foreground" />
                   </div>
                   <div>
                     <h3 className="text-xl font-serif text-primary">Powerdialer Smart</h3>
