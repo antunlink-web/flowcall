@@ -43,18 +43,20 @@ import {
 import { useUserRole } from "@/hooks/useUserRole";
 import { format } from "date-fns";
 
+type RoleType = "owner" | "account_manager" | "agent";
+
 interface TeamMember {
   id: string;
   email: string;
   full_name: string | null;
-  role: "admin" | "manager" | "agent";
+  roles: RoleType[];
 }
 
 interface Invitation {
   id: string;
   email: string;
   full_name: string | null;
-  role: "admin" | "manager" | "agent";
+  role: RoleType;
   created_at: string;
   expires_at: string;
   accepted_at: string | null;
@@ -83,11 +85,11 @@ export default function Team() {
   // Invite form state
   const [inviteEmail, setInviteEmail] = useState("");
   const [inviteFullName, setInviteFullName] = useState("");
-  const [inviteRole, setInviteRole] = useState<"admin" | "manager" | "agent">("agent");
+  const [inviteRole, setInviteRole] = useState<RoleType>("agent");
   const [inviting, setInviting] = useState(false);
   
   const { toast } = useToast();
-  const { isAdmin } = useUserRole();
+  const { isOwner } = useUserRole();
 
   const usedSeats = members.length;
   const availableSeats = Math.max(0, totalSeats - usedSeats);
@@ -109,14 +111,20 @@ export default function Team() {
   const fetchTeam = async () => {
     setLoading(true);
     const { data: profiles } = await supabase.from("profiles").select("*");
-    const { data: roles } = await supabase.from("user_roles").select("*");
+    const { data: allRoles } = await supabase.from("user_roles").select("*");
 
-    const teamMembers = (profiles || []).map((p) => ({
-      id: p.id,
-      email: p.email,
-      full_name: p.full_name,
-      role: (roles?.find((r) => r.user_id === p.id)?.role || "agent") as "admin" | "manager" | "agent",
-    }));
+    const teamMembers = (profiles || []).map((p) => {
+      const userRoles = (allRoles || [])
+        .filter((r) => r.user_id === p.id)
+        .map((r) => r.role as RoleType);
+      
+      return {
+        id: p.id,
+        email: p.email,
+        full_name: p.full_name,
+        roles: userRoles.length > 0 ? userRoles : ["agent" as RoleType],
+      };
+    });
 
     setMembers(teamMembers);
     setLoading(false);
@@ -139,9 +147,16 @@ export default function Team() {
     fetchInvitations();
   }, []);
 
-  const updateRole = async (userId: string, newRole: "admin" | "manager" | "agent") => {
-    await supabase.from("user_roles").update({ role: newRole }).eq("user_id", userId);
-    toast({ title: "Role updated" });
+  const updateRole = async (userId: string, newRoles: RoleType[]) => {
+    // Delete existing roles
+    await supabase.from("user_roles").delete().eq("user_id", userId);
+    
+    // Insert new roles
+    for (const role of newRoles) {
+      await supabase.from("user_roles").insert({ user_id: userId, role });
+    }
+    
+    toast({ title: "Roles updated" });
     fetchTeam();
     setEditDialogOpen(false);
   };
@@ -189,18 +204,28 @@ export default function Team() {
     }
   };
 
-  const getRoleBadges = (role: string) => {
+  const getRoleBadges = (roles: RoleType[]) => {
     const badges: { label: string; variant: "default" | "secondary" }[] = [];
     
-    if (role === "admin") {
-      badges.push({ label: "Account owner", variant: "default" });
+    if (roles.includes("owner")) {
+      badges.push({ label: "Account Owner", variant: "default" });
     }
-    if (role === "manager") {
-      badges.push({ label: "Account manager", variant: "default" });
+    if (roles.includes("account_manager")) {
+      badges.push({ label: "Account Manager", variant: "default" });
     }
-    badges.push({ label: "Agent", variant: "secondary" });
+    if (roles.includes("agent")) {
+      badges.push({ label: "Agent", variant: "secondary" });
+    }
     
     return badges;
+  };
+  
+  const getRoleDisplayName = (role: RoleType) => {
+    switch (role) {
+      case "owner": return "Account Owner";
+      case "account_manager": return "Account Manager";
+      case "agent": return "Agent";
+    }
   };
 
   if (loading) {
@@ -306,7 +331,7 @@ export default function Team() {
             </button>
           </div>
           
-          {isAdmin && (
+          {isOwner && (
             <Dialog open={inviteDialogOpen} onOpenChange={setInviteDialogOpen}>
               <DialogTrigger asChild>
                 <Button className="bg-green-600 hover:bg-green-700 text-white">
@@ -341,13 +366,13 @@ export default function Team() {
                   </div>
                   <div>
                     <Label htmlFor="invite-role">Role</Label>
-                    <Select value={inviteRole} onValueChange={(v) => setInviteRole(v as typeof inviteRole)}>
+                    <Select value={inviteRole} onValueChange={(v) => setInviteRole(v as RoleType)}>
                       <SelectTrigger>
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="admin">Admin</SelectItem>
-                        <SelectItem value="manager">Manager</SelectItem>
+                        <SelectItem value="owner">Account Owner</SelectItem>
+                        <SelectItem value="account_manager">Account Manager</SelectItem>
                         <SelectItem value="agent">Agent</SelectItem>
                       </SelectContent>
                     </Select>
@@ -374,7 +399,7 @@ export default function Team() {
             </Dialog>
           )}
 
-          {!isAdmin && (
+          {!isOwner && (
             <Button className="bg-green-600 hover:bg-green-700 text-white" disabled>
               <Plus className="h-4 w-4 mr-2" />
               Invite a user
@@ -402,7 +427,7 @@ export default function Team() {
                   <TableCell>{member.email}</TableCell>
                   <TableCell>
                     <div className="flex flex-wrap gap-1">
-                      {getRoleBadges(member.role).map((badge, idx) => (
+                      {getRoleBadges(member.roles).map((badge, idx) => (
                         <Badge
                           key={idx}
                           variant={badge.variant}
@@ -430,7 +455,7 @@ export default function Team() {
                         </DialogTrigger>
                         <DialogContent>
                           <DialogHeader>
-                            <DialogTitle>Edit User Role</DialogTitle>
+                            <DialogTitle>Edit User Roles</DialogTitle>
                           </DialogHeader>
                           <div className="space-y-4 py-4">
                             <div>
@@ -442,20 +467,39 @@ export default function Team() {
                               <Input value={member.email} disabled />
                             </div>
                             <div>
-                              <Label>Role</Label>
-                              <Select
-                                value={member.role}
-                                onValueChange={(v) => updateRole(member.id, v as "admin" | "manager" | "agent")}
-                              >
-                                <SelectTrigger>
-                                  <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  <SelectItem value="admin">Admin</SelectItem>
-                                  <SelectItem value="manager">Manager</SelectItem>
-                                  <SelectItem value="agent">Agent</SelectItem>
-                                </SelectContent>
-                              </Select>
+                              <Label>Roles</Label>
+                              <div className="space-y-2 mt-2">
+                                {(["owner", "account_manager", "agent"] as RoleType[]).map((roleOption) => (
+                                  <div key={roleOption} className="flex items-center gap-2">
+                                    <input
+                                      type="checkbox"
+                                      id={`role-${member.id}-${roleOption}`}
+                                      checked={member.roles.includes(roleOption)}
+                                      onChange={(e) => {
+                                        let newRoles: RoleType[];
+                                        if (e.target.checked) {
+                                          newRoles = [...member.roles, roleOption];
+                                          // Auto-add agent if adding owner or account_manager
+                                          if ((roleOption === "owner" || roleOption === "account_manager") && !newRoles.includes("agent")) {
+                                            newRoles.push("agent");
+                                          }
+                                        } else {
+                                          newRoles = member.roles.filter(r => r !== roleOption);
+                                        }
+                                        // Ensure at least agent role
+                                        if (newRoles.length === 0) {
+                                          newRoles = ["agent"];
+                                        }
+                                        updateRole(member.id, newRoles);
+                                      }}
+                                      className="h-4 w-4"
+                                    />
+                                    <label htmlFor={`role-${member.id}-${roleOption}`}>
+                                      {getRoleDisplayName(roleOption)}
+                                    </label>
+                                  </div>
+                                ))}
+                              </div>
                             </div>
                           </div>
                         </DialogContent>
@@ -516,8 +560,8 @@ export default function Team() {
                     </TableCell>
                     <TableCell>{invitation.email}</TableCell>
                     <TableCell>
-                      <Badge variant="secondary" className="capitalize">
-                        {invitation.role}
+                      <Badge variant="secondary">
+                        {getRoleDisplayName(invitation.role)}
                       </Badge>
                     </TableCell>
                     <TableCell className="text-muted-foreground">

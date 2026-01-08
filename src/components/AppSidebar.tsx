@@ -25,23 +25,28 @@ import {
 import { useState } from "react";
 
 const navItems = [
-  { to: "/", icon: Phone, label: "Work", roles: ["admin", "manager", "agent"] },
-  { to: "/leads", icon: Users, label: "Leads", roles: ["admin", "manager", "agent"] },
-  { to: "/campaigns", icon: LayoutGrid, label: "Campaigns", roles: ["admin", "manager", "agent"] },
-  { to: "/reports", icon: BarChart3, label: "Reports", roles: ["admin", "manager", "agent"] },
-  { to: "/team", icon: Briefcase, label: "Team", roles: ["admin"] },
-  { to: "/settings", icon: Settings, label: "Settings", roles: ["admin", "manager", "agent"] },
+  { to: "/", icon: Phone, label: "Work", roles: ["owner", "account_manager", "agent"] },
+  { to: "/leads", icon: Users, label: "Leads", roles: ["owner", "account_manager", "agent"] },
+  { to: "/campaigns", icon: LayoutGrid, label: "Campaigns", roles: ["owner", "account_manager", "agent"] },
+  { to: "/reports", icon: BarChart3, label: "Reports", roles: ["owner", "account_manager", "agent"] },
+  { to: "/team", icon: Briefcase, label: "Team", roles: ["owner"] },
+  { to: "/settings", icon: Settings, label: "Settings", roles: ["owner", "account_manager", "agent"] },
 ];
 
 export function AppSidebar() {
   const { user, signOut } = useAuth();
-  const { role, isAdmin } = useUserRole();
+  const { roles, primaryRole } = useUserRole();
   const location = useLocation();
   const [mobileOpen, setMobileOpen] = useState(false);
 
   const visibleItems = navItems.filter(
-    (item) => item.roles.includes(role || "agent")
+    (item) => roles.some(r => item.roles.includes(r)) || (roles.length === 0 && item.roles.includes("agent"))
   );
+
+  // Format roles for display
+  const displayRole = roles.length > 0 
+    ? roles.map(r => r === "owner" ? "Owner" : r === "account_manager" ? "Manager" : "Agent").join(", ")
+    : "Agent";
 
   const userInitials = user?.user_metadata?.full_name
     ?.split(" ")
@@ -142,7 +147,7 @@ export function AppSidebar() {
                   <p className="text-sm font-medium text-sidebar-foreground truncate">
                     {user?.user_metadata?.full_name || user?.email}
                   </p>
-                  <p className="text-xs text-sidebar-muted capitalize">{role}</p>
+                  <p className="text-xs text-sidebar-muted">{displayRole}</p>
                 </div>
               </button>
             </DropdownMenuTrigger>
