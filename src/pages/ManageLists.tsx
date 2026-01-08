@@ -130,6 +130,13 @@ export default function ManageLists() {
   const [previewLead, setPreviewLead] = useState<Record<string, string> | null>(null);
   const [emailConfig, setEmailConfig] = useState<ListEmailConfig>({});
   
+  // Categories state
+  const [callbackCategories, setCallbackCategories] = useState("Call again, Busy");
+  const [winnerCategories, setWinnerCategories] = useState("Sold, Interested");
+  const [loserCategories, setLoserCategories] = useState("Not interested, Wrong number");
+  const [archiveCategories, setArchiveCategories] = useState("");
+  const [expandedCategory, setExpandedCategory] = useState<string | null>(null);
+  
   // Template management state
   const [showEmailTemplateDialog, setShowEmailTemplateDialog] = useState(false);
   const [showSmsTemplateDialog, setShowSmsTemplateDialog] = useState(false);
@@ -717,6 +724,44 @@ export default function ManageLists() {
         );
 
       case "categories":
+        const parseCategories = (value: string) => 
+          value.split(',').map(c => c.trim()).filter(c => c.length > 0);
+        
+        const renderCategoryButton = (
+          id: string, 
+          label: string, 
+          icon: React.ReactNode, 
+          bgColor: string, 
+          categories: string[]
+        ) => (
+          <div className="relative">
+            <Button 
+              className={`w-full ${bgColor} justify-between`}
+              onClick={() => setExpandedCategory(expandedCategory === id ? null : id)}
+            >
+              <span className="flex items-center gap-2">
+                {icon}
+                {label}
+              </span>
+              {categories.length > 0 && (
+                <ChevronDown className={`h-4 w-4 transition-transform ${expandedCategory === id ? 'rotate-180' : ''}`} />
+              )}
+            </Button>
+            {expandedCategory === id && categories.length > 0 && (
+              <div className="absolute top-full left-0 right-0 mt-1 bg-background border border-border rounded shadow-lg z-50">
+                {categories.map((cat, idx) => (
+                  <button 
+                    key={idx} 
+                    className="w-full px-3 py-2 text-left text-sm hover:bg-muted transition-colors first:rounded-t last:rounded-b"
+                  >
+                    {cat}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        );
+
         return (
           <div className="flex gap-8">
             <div className="flex-1 space-y-6">
@@ -732,22 +777,38 @@ export default function ManageLists() {
               <div className="space-y-4">
                 <div className="flex items-center gap-4">
                   <Label className="w-40 text-right">Call back categories</Label>
-                  <Input defaultValue="Call again, Busy" className="flex-1" />
+                  <Input 
+                    value={callbackCategories} 
+                    onChange={(e) => setCallbackCategories(e.target.value)}
+                    className="flex-1" 
+                  />
                 </div>
 
                 <div className="flex items-center gap-4">
                   <Label className="w-40 text-right">Winner categories</Label>
-                  <Input defaultValue="Sold, Interested" className="flex-1" />
+                  <Input 
+                    value={winnerCategories} 
+                    onChange={(e) => setWinnerCategories(e.target.value)}
+                    className="flex-1" 
+                  />
                 </div>
 
                 <div className="flex items-center gap-4">
                   <Label className="w-40 text-right">Loser categories</Label>
-                  <Input defaultValue="Not interested, Wrong number" className="flex-1" />
+                  <Input 
+                    value={loserCategories} 
+                    onChange={(e) => setLoserCategories(e.target.value)}
+                    className="flex-1" 
+                  />
                 </div>
 
                 <div className="flex items-center gap-4">
                   <Label className="w-40 text-right">Archive categories</Label>
-                  <Input className="flex-1" />
+                  <Input 
+                    value={archiveCategories} 
+                    onChange={(e) => setArchiveCategories(e.target.value)}
+                    className="flex-1" 
+                  />
                 </div>
 
                 <div className="pl-44">
@@ -759,33 +820,34 @@ export default function ManageLists() {
             <div className="w-48">
               <h3 className="text-lg font-medium mb-4">Preview</h3>
               <div className="space-y-3">
-                <Button className="w-full bg-teal-500 hover:bg-teal-600 justify-between">
-                  <span className="flex items-center gap-2">
-                    <RefreshCw className="h-4 w-4" />
-                    Call back
-                  </span>
-                  <ChevronDown className="h-4 w-4" />
-                </Button>
-                <Button className="w-full bg-green-500 hover:bg-green-600 justify-between">
-                  <span className="flex items-center gap-2">
-                    <ThumbsUp className="h-4 w-4" />
-                    Winner
-                  </span>
-                  <ChevronDown className="h-4 w-4" />
-                </Button>
-                <Button className="w-full bg-red-500 hover:bg-red-600 justify-between">
-                  <span className="flex items-center gap-2">
-                    <ThumbsDown className="h-4 w-4" />
-                    Loser
-                  </span>
-                  <ChevronDown className="h-4 w-4" />
-                </Button>
-                <Button className="w-full bg-slate-500 hover:bg-slate-600 justify-between">
-                  <span className="flex items-center gap-2">
-                    <Archive className="h-4 w-4" />
-                    Archive
-                  </span>
-                </Button>
+                {renderCategoryButton(
+                  'callback',
+                  'Call back',
+                  <RefreshCw className="h-4 w-4" />,
+                  'bg-teal-500 hover:bg-teal-600',
+                  parseCategories(callbackCategories)
+                )}
+                {renderCategoryButton(
+                  'winner',
+                  'Winner',
+                  <ThumbsUp className="h-4 w-4" />,
+                  'bg-green-500 hover:bg-green-600',
+                  parseCategories(winnerCategories)
+                )}
+                {renderCategoryButton(
+                  'loser',
+                  'Loser',
+                  <ThumbsDown className="h-4 w-4" />,
+                  'bg-red-500 hover:bg-red-600',
+                  parseCategories(loserCategories)
+                )}
+                {renderCategoryButton(
+                  'archive',
+                  'Archive',
+                  <Archive className="h-4 w-4" />,
+                  'bg-slate-500 hover:bg-slate-600',
+                  parseCategories(archiveCategories)
+                )}
               </div>
             </div>
           </div>
