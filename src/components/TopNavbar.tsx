@@ -240,7 +240,15 @@ export function TopNavbar() {
         {/* Left Section - Search & Home */}
         <div className="flex items-center gap-1">
           {/* Search Field with Dropdown */}
-          <Popover open={searchOpen} onOpenChange={setSearchOpen}>
+          <Popover open={searchOpen} onOpenChange={(open) => {
+            // Only close if clicking outside, not when interacting with results
+            if (!open) {
+              // Small delay to allow click events to fire on results
+              setTimeout(() => setSearchOpen(false), 150);
+            } else {
+              setSearchOpen(open);
+            }
+          }}>
             <PopoverTrigger asChild>
               <div className="relative">
                 <input
@@ -262,7 +270,22 @@ export function TopNavbar() {
                 />
               </div>
             </PopoverTrigger>
-            <PopoverContent align="start" className="w-[500px] p-0" onOpenAutoFocus={(e) => e.preventDefault()}>
+            <PopoverContent 
+              align="start" 
+              className="w-[500px] p-0" 
+              onOpenAutoFocus={(e) => e.preventDefault()}
+              onPointerDownOutside={(e) => {
+                // Prevent closing when clicking inside the popover
+                e.preventDefault();
+              }}
+              onInteractOutside={(e) => {
+                // Only close if clicking outside both the trigger and content
+                const target = e.target as HTMLElement;
+                if (!target.closest('[data-search-popover]')) {
+                  setSearchOpen(false);
+                }
+              }}
+            >
               {searchQuery.length < 2 ? (
                 <p className="px-3 py-3 text-sm text-muted-foreground">
                   Please enter 2 or more characters
