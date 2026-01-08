@@ -461,31 +461,42 @@ export default function ManageAccount() {
               <div className="w-16 h-0.5 bg-primary mb-8" />
             </div>
 
-            {renderAccountInfoCard()}
+            <div className="border border-border rounded p-6 space-y-6">
+              <p className="text-muted-foreground">
+                No payment method configured. Add a payment method to manage your subscription.
+              </p>
 
-            <div className="flex items-center justify-between mb-2">
-              <h2 className="text-lg">Paying with Card</h2>
-              <span className="text-primary cursor-pointer hover:underline">Edit</span>
-            </div>
+              <div className="space-y-3">
+                <Button variant="outline" className="w-full justify-start gap-3 h-14" disabled>
+                  <CreditCard className="h-5 w-5" />
+                  <div className="text-left">
+                    <p className="font-medium">Credit / Debit Card</p>
+                    <p className="text-xs text-muted-foreground">Visa, Mastercard, American Express</p>
+                  </div>
+                </Button>
 
-            <div className="border-2 border-green-500 rounded p-4 flex items-center justify-between">
-              <div className="flex items-center gap-4">
-                <div className="w-12 h-8 bg-gradient-to-r from-red-500 to-orange-400 rounded flex items-center justify-center">
-                  <div className="w-4 h-4 bg-red-600 rounded-full opacity-80 -mr-1" />
-                  <div className="w-4 h-4 bg-orange-500 rounded-full opacity-80" />
-                </div>
-                <div>
-                  <p className="font-medium">Ending in 6227</p>
-                  <p className="text-sm text-muted-foreground">Mastercard</p>
-                </div>
+                <Button variant="outline" className="w-full justify-start gap-3 h-14" disabled>
+                  <Wallet className="h-5 w-5" />
+                  <div className="text-left">
+                    <p className="font-medium">Bank Transfer</p>
+                    <p className="text-xs text-muted-foreground">Direct bank payment</p>
+                  </div>
+                </Button>
+
+                <Button variant="outline" className="w-full justify-start gap-3 h-14" disabled>
+                  <Receipt className="h-5 w-5" />
+                  <div className="text-left">
+                    <p className="font-medium">Invoice</p>
+                    <p className="text-xs text-muted-foreground">Pay by invoice (enterprise only)</p>
+                  </div>
+                </Button>
               </div>
-              <div className="w-10 h-10 bg-green-500 rounded-full flex items-center justify-center">
-                <Check className="w-6 h-6 text-white" />
-              </div>
-            </div>
 
-            <div className="text-center pt-4">
-              <span className="text-primary cursor-pointer hover:underline">Choose another way to pay</span>
+              <div className="pt-4 border-t border-border">
+                <p className="text-sm text-muted-foreground text-center">
+                  Payment integration coming soon. Contact support for billing inquiries.
+                </p>
+              </div>
             </div>
           </div>
         );
