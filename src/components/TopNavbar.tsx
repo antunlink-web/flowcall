@@ -38,6 +38,7 @@ import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { formatDistanceToNow, format } from "date-fns";
 import { Loader2 } from "lucide-react";
+import { AvatarImage } from "@/components/ui/avatar";
 
 interface SearchResult {
   id: string;
@@ -83,6 +84,23 @@ export function TopNavbar() {
 
   const [recentLeads, setRecentLeads] = useState<RecentLead[]>([]);
   const [historyOpen, setHistoryOpen] = useState(false);
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+
+  // Fetch user avatar
+  useEffect(() => {
+    const fetchAvatar = async () => {
+      if (!user) return;
+      const { data } = await supabase
+        .from("profiles")
+        .select("avatar_url")
+        .eq("id", user.id)
+        .single();
+      if (data?.avatar_url) {
+        setAvatarUrl(data.avatar_url);
+      }
+    };
+    fetchAvatar();
+  }, [user]);
 
   // Search contacts when query changes - uses RPC for full database search
   useEffect(() => {
@@ -411,11 +429,15 @@ export function TopNavbar() {
           {/* User Menu */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="sm" className="text-white/90 hover:text-white hover:bg-white/10 gap-1 h-8 ml-2">
-                <Avatar className="w-6 h-6">
-                  <AvatarFallback className="bg-muted text-muted-foreground text-xs">
-                    {userInitials}
-                  </AvatarFallback>
+              <Button variant="ghost" size="sm" className="text-white/90 hover:text-white hover:bg-white/10 gap-1 h-10 ml-2">
+                <Avatar className="w-9 h-9 rounded-none">
+                  {avatarUrl ? (
+                    <AvatarImage src={avatarUrl} className="object-cover rounded-none" />
+                  ) : (
+                    <AvatarFallback className="bg-muted text-muted-foreground text-sm rounded-none">
+                      {userInitials}
+                    </AvatarFallback>
+                  )}
                 </Avatar>
                 <ChevronDown className="w-3 h-3" />
               </Button>
