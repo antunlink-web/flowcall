@@ -15,7 +15,6 @@ import { Link } from "react-router-dom";
 
 const subNavItems = [
   { label: "Lists", href: "/manage/lists" },
-  { label: "Pipeline", href: "/manage/pipeline" },
   { label: "Users", href: "/manage/users" },
   { label: "Duplicates", href: "/manage/duplicates" },
   { label: "Claims", href: "/manage/claims" },
@@ -29,12 +28,6 @@ const menuItems = [
     title: "Configure Lists",
     description: "Manage and Configure lists",
     href: "/manage/lists",
-  },
-  {
-    icon: ArrowRight,
-    title: "Manage Pipeline",
-    description: "Manage pipeline automations to move leads between lists with options to filter and change leads in bulk",
-    href: "/manage/pipeline",
   },
   {
     icon: Download,
