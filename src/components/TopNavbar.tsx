@@ -430,11 +430,11 @@ export function TopNavbar() {
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" size="sm" className="text-white/90 hover:text-white hover:bg-white/10 gap-1 h-10 ml-2">
-                <Avatar className="w-9 h-9 rounded-none">
+                <Avatar className="w-9 h-9 rounded-md ring-2 ring-white/30">
                   {avatarUrl ? (
-                    <AvatarImage src={avatarUrl} className="object-cover rounded-none" />
+                    <AvatarImage src={avatarUrl} className="object-cover rounded-md" />
                   ) : (
-                    <AvatarFallback className="bg-muted text-muted-foreground text-sm rounded-none">
+                    <AvatarFallback className="bg-muted text-muted-foreground text-sm rounded-md">
                       {userInitials}
                     </AvatarFallback>
                   )}

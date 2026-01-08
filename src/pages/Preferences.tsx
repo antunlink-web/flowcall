@@ -174,9 +174,9 @@ export default function Preferences() {
                 <div className="grid grid-cols-[120px_1fr] items-start gap-4">
                   <Label className="text-right pt-2">Avatar</Label>
                   <div>
-                    <Avatar className="w-16 h-16 rounded-none mb-2">
-                      <AvatarImage src={avatarUrl || undefined} className="object-cover" />
-                      <AvatarFallback className="rounded-none bg-muted">
+                    <Avatar className="w-16 h-16 rounded-md ring-2 ring-border mb-2">
+                      <AvatarImage src={avatarUrl || undefined} className="object-cover rounded-md" />
+                      <AvatarFallback className="rounded-md bg-muted">
                         <User className="w-8 h-8 text-muted-foreground" />
                       </AvatarFallback>
                     </Avatar>
