@@ -38,6 +38,45 @@ export type Database = {
         }
         Relationships: []
       }
+      branding_settings: {
+        Row: {
+          accent_color: string | null
+          app_name: string | null
+          company_name: string | null
+          created_at: string
+          favicon_url: string | null
+          id: string
+          logo_url: string | null
+          primary_color: string | null
+          secondary_color: string | null
+          updated_at: string
+        }
+        Insert: {
+          accent_color?: string | null
+          app_name?: string | null
+          company_name?: string | null
+          created_at?: string
+          favicon_url?: string | null
+          id?: string
+          logo_url?: string | null
+          primary_color?: string | null
+          secondary_color?: string | null
+          updated_at?: string
+        }
+        Update: {
+          accent_color?: string | null
+          app_name?: string | null
+          company_name?: string | null
+          created_at?: string
+          favicon_url?: string | null
+          id?: string
+          logo_url?: string | null
+          primary_color?: string | null
+          secondary_color?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       call_logs: {
         Row: {
           created_at: string
