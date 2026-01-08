@@ -108,25 +108,26 @@ export default function Leads() {
   const fetchData = async (search?: string) => {
     setLoading(true);
 
-    let leadsPromise;
+    let leadsResult;
     
     if (search && search.trim()) {
       // Use RPC function for searching JSONB data
-      leadsPromise = supabase.rpc("search_leads", { search_term: search.trim() });
+      console.log("Searching with RPC:", search.trim());
+      const { data, error } = await supabase.rpc("search_leads", { search_term: search.trim() });
+      console.log("RPC result:", { data, error });
+      leadsResult = data;
     } else {
-      leadsPromise = supabase
+      const { data } = await supabase
         .from("leads")
         .select("*")
         .order("created_at", { ascending: false })
         .limit(100);
+      leadsResult = data;
     }
 
-    const [{ data: leadData }, { data: campaignData }] = await Promise.all([
-      leadsPromise,
-      supabase.from("campaigns").select("*"),
-    ]);
+    const { data: campaignData } = await supabase.from("campaigns").select("*");
 
-    setLeads((leadData as Lead[]) || []);
+    setLeads((leadsResult as Lead[]) || []);
     setCampaigns((campaignData as Campaign[]) || []);
     setLoading(false);
   };
