@@ -504,7 +504,7 @@ export default function ManageAccount() {
                         setVatVerified(null);
                         setVatError(null);
                       }}
-                      placeholder="e.g., DK12345678"
+                      placeholder="e.g., DE12345678"
                       className={`${vatVerified === true ? "border-green-500 pr-10" : vatVerified === false ? "border-destructive pr-10" : ""}`}
                     />
                     {vatVerified === true && (
