@@ -204,6 +204,25 @@ export default function Team() {
     }
   };
 
+  const handleDeleteInvitation = async (invitationId: string, email: string) => {
+    const { error } = await supabase
+      .from("user_invitations")
+      .delete()
+      .eq("id", invitationId);
+
+    if (error) {
+      toast({ 
+        title: "Failed to delete invitation", 
+        description: error.message,
+        variant: "destructive" 
+      });
+      return;
+    }
+
+    toast({ title: "Invitation deleted", description: `Invitation for ${email} has been removed` });
+    fetchInvitations();
+  };
+
   const getRoleBadges = (roles: RoleType[]) => {
     const badges: { label: string; variant: "default" | "secondary" }[] = [];
     
@@ -543,12 +562,13 @@ export default function Team() {
                 <TableHead>Role</TableHead>
                 <TableHead>Invited</TableHead>
                 <TableHead>Status</TableHead>
+                <TableHead className="w-[80px] text-right"></TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {pendingInvitations.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
+                  <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
                     No pending invitations
                   </TableCell>
                 </TableRow>
@@ -572,6 +592,34 @@ export default function Team() {
                         <Clock className="h-4 w-4" />
                         <span className="text-sm">Pending</span>
                       </div>
+                    </TableCell>
+                    <TableCell className="text-right">
+                      {isOwner && (
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button variant="outline" size="icon" className="h-8 w-8 text-destructive hover:text-destructive">
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>Delete invitation?</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                This will delete the invitation for {invitation.email}. They will no longer be able to use the invite link.
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Cancel</AlertDialogCancel>
+                              <AlertDialogAction 
+                                className="bg-destructive hover:bg-destructive/90"
+                                onClick={() => handleDeleteInvitation(invitation.id, invitation.email)}
+                              >
+                                Delete
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
+                      )}
                     </TableCell>
                   </TableRow>
                 ))
