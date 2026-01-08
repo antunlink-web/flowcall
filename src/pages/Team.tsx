@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Download, Plus, Pencil, Trash2, Mail, Clock, Archive } from "lucide-react";
+import { Loader2, Download, Plus, Pencil, Trash2, Mail, Clock, Archive, RotateCcw } from "lucide-react";
 import {
   Table,
   TableBody,
@@ -50,6 +50,7 @@ interface TeamMember {
   email: string;
   full_name: string | null;
   roles: RoleType[];
+  status: string;
 }
 
 interface Invitation {
@@ -123,6 +124,7 @@ export default function Team() {
         email: p.email,
         full_name: p.full_name,
         roles: userRoles.length > 0 ? userRoles : ["agent" as RoleType],
+        status: p.status,
       };
     });
 
@@ -268,7 +270,29 @@ export default function Team() {
     fetchTeam();
   };
 
+  const handleRestoreUser = async (userId: string, email: string) => {
+    const { error } = await supabase
+      .from("profiles")
+      .update({ status: "active" })
+      .eq("id", userId);
+
+    if (error) {
+      toast({ 
+        title: "Failed to restore user", 
+        description: error.message,
+        variant: "destructive" 
+      });
+      return;
+    }
+
+    toast({ title: "User restored", description: `${email} has been restored` });
+    fetchTeam();
+  };
+
   const isAccountOwner = (member: TeamMember) => member.roles.includes("owner");
+  
+  const activeMembers = members.filter(m => m.status === "active");
+  const archivedMembers = members.filter(m => m.status === "archived");
 
   const getRoleBadges = (roles: RoleType[]) => {
     const badges: { label: string; variant: "default" | "secondary" }[] = [];
@@ -373,7 +397,7 @@ export default function Team() {
                   : "border-transparent text-muted-foreground hover:text-foreground"
               }`}
             >
-              Active ({members.length})
+              Active ({activeMembers.length})
             </button>
             <button
               onClick={() => setActiveTab("invited")}
@@ -393,7 +417,7 @@ export default function Team() {
                   : "border-transparent text-muted-foreground hover:text-foreground"
               }`}
             >
-              Archived (0)
+              Archived ({archivedMembers.length})
             </button>
           </div>
           
@@ -485,7 +509,7 @@ export default function Team() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {members.map((member) => (
+              {activeMembers.map((member) => (
                 <TableRow key={member.id}>
                   <TableCell className="font-medium text-primary">
                     {member.full_name || member.email.split("@")[0]}
@@ -731,9 +755,85 @@ export default function Team() {
         )}
 
         {activeTab === "archived" && (
-          <div className="text-center text-muted-foreground py-8">
-            No archived users
-          </div>
+          archivedMembers.length === 0 ? (
+            <div className="text-center text-muted-foreground py-8">
+              No archived users
+            </div>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="w-[200px]">Name</TableHead>
+                  <TableHead className="w-[250px]">Email</TableHead>
+                  <TableHead>Roles</TableHead>
+                  <TableHead className="w-[120px] text-right"></TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {archivedMembers.map((member) => (
+                  <TableRow key={member.id}>
+                    <TableCell className="font-medium text-muted-foreground">
+                      {member.full_name || member.email.split("@")[0]}
+                    </TableCell>
+                    <TableCell className="text-muted-foreground">{member.email}</TableCell>
+                    <TableCell>
+                      <div className="flex flex-wrap gap-1">
+                        {getRoleBadges(member.roles).map((badge, idx) => (
+                          <Badge
+                            key={idx}
+                            variant="secondary"
+                            className="bg-muted text-muted-foreground"
+                          >
+                            {badge.label}
+                          </Badge>
+                        ))}
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex justify-end gap-1">
+                        {/* Restore Button */}
+                        <Button 
+                          variant="outline" 
+                          size="icon" 
+                          className="h-8 w-8 text-green-600 hover:text-green-700"
+                          title="Restore user"
+                          onClick={() => handleRestoreUser(member.id, member.email)}
+                        >
+                          <RotateCcw className="h-4 w-4" />
+                        </Button>
+
+                        {/* Delete Button */}
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button variant="outline" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" title="Delete user permanently">
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>Delete user permanently?</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                This will permanently delete {member.full_name || member.email} and all their associated data. This action cannot be undone.
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Cancel</AlertDialogCancel>
+                              <AlertDialogAction 
+                                className="bg-destructive hover:bg-destructive/90"
+                                onClick={() => handleDeleteUser(member.id, member.email)}
+                              >
+                                Delete Permanently
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )
         )}
       </div>
     </DashboardLayout>
