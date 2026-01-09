@@ -43,19 +43,42 @@ export default function Dialer() {
 
     try {
       const deviceName = navigator.userAgent.includes("Android") ? "Android" : "Mobile";
-      const deviceInfo = {
-        user_id: user.id,
-        device_type: "mobile" as const,
-        device_name: deviceName,
-        is_active: true,
-        last_seen_at: new Date().toISOString(),
-      };
-
-      const { error } = await supabase
+      
+      // Check if a mobile device already exists for this user
+      const { data: existingDevice } = await supabase
         .from("user_devices")
-        .upsert(deviceInfo, { onConflict: "user_id,device_type,device_name" });
+        .select("id")
+        .eq("user_id", user.id)
+        .eq("device_type", "mobile")
+        .maybeSingle();
 
-      if (error) throw error;
+      if (existingDevice) {
+        // Update existing device
+        const { error } = await supabase
+          .from("user_devices")
+          .update({
+            device_name: deviceName,
+            is_active: true,
+            last_seen_at: new Date().toISOString(),
+          })
+          .eq("id", existingDevice.id);
+
+        if (error) throw error;
+      } else {
+        // Insert new device
+        const { error } = await supabase
+          .from("user_devices")
+          .insert({
+            user_id: user.id,
+            device_type: "mobile",
+            device_name: deviceName,
+            is_active: true,
+            last_seen_at: new Date().toISOString(),
+          });
+
+        if (error) throw error;
+      }
+
       setDeviceRegistered(true);
       toast({
         title: "Device registered",
