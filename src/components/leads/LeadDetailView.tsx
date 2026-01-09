@@ -130,6 +130,7 @@ export function LeadDetailView({ leadId, onClose }: LeadDetailViewProps) {
   const [emailSubject, setEmailSubject] = useState("");
   const [emailBody, setEmailBody] = useState("");
   const [emailSending, setEmailSending] = useState(false);
+  const [selectedEmailTo, setSelectedEmailTo] = useState("");
   const { toast } = useToast();
   const { user } = useAuth();
   const { sendDialRequest } = useDialRequest();
@@ -455,15 +456,32 @@ export function LeadDetailView({ leadId, onClose }: LeadDetailViewProps) {
   };
 
   // Email helper functions
-  const getLeadEmail = () => {
-    if (!lead?.data) return "";
+  // Get all email addresses from lead
+  const getLeadEmails = (): string[] => {
+    if (!lead?.data) return [];
+    const emails: string[] = [];
     for (const [key, value] of Object.entries(lead.data)) {
       if (key.toLowerCase().includes("email") && typeof value === "string" && value.trim()) {
-        return value;
+        emails.push(value);
       }
     }
-    return "";
+    return emails;
   };
+
+  const getLeadEmail = () => {
+    const emails = getLeadEmails();
+    return selectedEmailTo || emails[0] || "";
+  };
+
+  // Set initial email when lead loads
+  useEffect(() => {
+    if (lead?.data) {
+      const emails = getLeadEmails();
+      if (emails.length > 0 && !selectedEmailTo) {
+        setSelectedEmailTo(emails[0]);
+      }
+    }
+  }, [lead]);
 
   const getLeadFirstName = () => {
     if (!lead?.data) return "";
@@ -902,8 +920,31 @@ export function LeadDetailView({ leadId, onClose }: LeadDetailViewProps) {
                       )}
                     </DropdownMenuContent>
                   </DropdownMenu>
-                  <div className="text-sm text-muted-foreground">
-                    To: <span className="font-medium text-foreground">{getLeadEmail() || "No email"}</span>
+                  <div className="flex items-center gap-2 text-sm">
+                    <span className="text-muted-foreground">To:</span>
+                    {getLeadEmails().length > 1 ? (
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="outline" size="sm" className="h-7 gap-1">
+                            {selectedEmailTo || "Select email"}
+                            <ChevronDown className="w-3 h-3" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="bg-popover border shadow-md z-50">
+                          {getLeadEmails().map((email) => (
+                            <DropdownMenuItem
+                              key={email}
+                              onClick={() => setSelectedEmailTo(email)}
+                              className={selectedEmailTo === email ? "bg-accent" : ""}
+                            >
+                              {email}
+                            </DropdownMenuItem>
+                          ))}
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    ) : (
+                      <span className="font-medium text-foreground">{getLeadEmail() || "No email"}</span>
+                    )}
                   </div>
                 </div>
 
