@@ -3,7 +3,7 @@ import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
 import { useUserRole } from "@/hooks/useUserRole";
 import { Button } from "@/components/ui/button";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import {
   DropdownMenu,
@@ -33,12 +33,14 @@ import {
   CreditCard,
   DollarSign,
   X,
+  Lock,
+  Clock,
+  AlertTriangle,
+  Loader2,
 } from "lucide-react";
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { formatDistanceToNow, format } from "date-fns";
-import { Loader2 } from "lucide-react";
-import { AvatarImage } from "@/components/ui/avatar";
 
 interface SearchResult {
   id: string;
@@ -67,11 +69,21 @@ interface RecentLead {
   callback_scheduled_at: string | null;
 }
 
-const iconNavItems = [
-  { icon: Calendar, label: "Calendar", to: "/" },
-  { icon: Users, label: "Team", to: "/team" },
-  { icon: Bell, label: "Alerts", to: "/" },
-];
+interface ScheduledLead {
+  id: string;
+  campaign_name: string;
+  company_name: string;
+  phone: string;
+  callback_scheduled_at: string;
+}
+
+interface LockedLead {
+  id: string;
+  campaign_name: string;
+  company_name: string;
+  phone: string;
+  claimed_at: string;
+}
 
 export function TopNavbar() {
   const { user, signOut } = useAuth();
@@ -84,9 +96,13 @@ export function TopNavbar() {
 
   const [recentLeads, setRecentLeads] = useState<RecentLead[]>([]);
   const [historyOpen, setHistoryOpen] = useState(false);
+  const [calendarOpen, setCalendarOpen] = useState(false);
+  const [lockedOpen, setLockedOpen] = useState(false);
+  const [timersOpen, setTimersOpen] = useState(false);
+  const [alertsOpen, setAlertsOpen] = useState(false);
+  const [scheduledLeads, setScheduledLeads] = useState<ScheduledLead[]>([]);
+  const [lockedLeads, setLockedLeads] = useState<LockedLead[]>([]);
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
-
-  // Fetch user avatar
   useEffect(() => {
     const fetchAvatar = async () => {
       if (!user) return;
@@ -201,6 +217,18 @@ export function TopNavbar() {
     }
   }, [historyOpen, user]);
 
+  useEffect(() => {
+    if (calendarOpen && user) {
+      fetchScheduledLeads();
+    }
+  }, [calendarOpen, user]);
+
+  useEffect(() => {
+    if (lockedOpen && user) {
+      fetchLockedLeads();
+    }
+  }, [lockedOpen, user]);
+
   const fetchRecentLeads = async () => {
     const { data, error } = await supabase
       .from("leads")
@@ -225,6 +253,61 @@ export function TopNavbar() {
           status: lead.status,
           updated_at: lead.updated_at,
           callback_scheduled_at: lead.callback_scheduled_at,
+        }))
+      );
+    }
+  };
+
+  const fetchScheduledLeads = async () => {
+    const { data, error } = await supabase
+      .from("leads")
+      .select(`
+        id,
+        callback_scheduled_at,
+        data,
+        campaigns(name)
+      `)
+      .not("callback_scheduled_at", "is", null)
+      .gt("callback_scheduled_at", new Date().toISOString())
+      .order("callback_scheduled_at", { ascending: true })
+      .limit(5);
+
+    if (!error && data) {
+      setScheduledLeads(
+        data.map((lead: any) => ({
+          id: lead.id,
+          campaign_name: lead.campaigns?.name || "Unknown Campaign",
+          company_name: (lead.data as any)?.company || (lead.data as any)?.name || "Unknown",
+          phone: (lead.data as any)?.phone || "",
+          callback_scheduled_at: lead.callback_scheduled_at,
+        }))
+      );
+    }
+  };
+
+  const fetchLockedLeads = async () => {
+    if (!user) return;
+    const { data, error } = await supabase
+      .from("leads")
+      .select(`
+        id,
+        claimed_at,
+        data,
+        campaigns(name)
+      `)
+      .eq("claimed_by", user.id)
+      .not("claimed_at", "is", null)
+      .order("claimed_at", { ascending: false })
+      .limit(5);
+
+    if (!error && data) {
+      setLockedLeads(
+        data.map((lead: any) => ({
+          id: lead.id,
+          campaign_name: lead.campaigns?.name || "Unknown Campaign",
+          company_name: (lead.data as any)?.company || (lead.data as any)?.name || "Unknown",
+          phone: (lead.data as any)?.phone || "",
+          claimed_at: lead.claimed_at,
         }))
       );
     }
@@ -405,19 +488,166 @@ export function TopNavbar() {
               </PopoverContent>
             </Popover>
 
-            {/* Icon Navigation */}
-            {iconNavItems.map((item) => (
-              <NavLink key={item.label} to={item.to}>
+            {/* Calendar - Scheduled Leads Popover */}
+            <Popover open={calendarOpen} onOpenChange={setCalendarOpen}>
+              <PopoverTrigger asChild>
                 <Button
                   variant="ghost"
                   size="icon"
                   className="text-white/70 hover:text-white hover:bg-white/10 h-8 w-8"
-                  title={item.label}
+                  title="Scheduled leads"
                 >
-                  <item.icon className="w-4 h-4" />
+                  <Calendar className="w-4 h-4" />
                 </Button>
-              </NavLink>
-            ))}
+              </PopoverTrigger>
+              <PopoverContent align="end" className="w-80 p-0">
+                <div className="p-3 border-b">
+                  <h4 className="font-medium text-sm">Scheduled leads</h4>
+                </div>
+                <div className="max-h-80 overflow-y-auto">
+                  {scheduledLeads.length === 0 ? (
+                    <div className="p-6 text-center">
+                      <p className="text-primary font-medium">No scheduled leads</p>
+                      <p className="text-sm text-muted-foreground mt-1">
+                        Go ahead and work your queue to schedule some.
+                      </p>
+                    </div>
+                  ) : (
+                    scheduledLeads.map((lead) => (
+                      <Link
+                        key={lead.id}
+                        to={`/leads?id=${lead.id}`}
+                        className="block p-3 hover:bg-muted border-b last:border-b-0"
+                        onClick={() => setCalendarOpen(false)}
+                      >
+                        <p className="text-xs text-muted-foreground uppercase tracking-wide">
+                          {lead.campaign_name}
+                        </p>
+                        <p className="font-medium text-sm">
+                          {lead.company_name}{" "}
+                          {lead.phone && <span className="text-muted-foreground">{lead.phone}</span>}
+                        </p>
+                        <p className="text-xs text-amber-600 mt-1">
+                          Callback: {format(new Date(lead.callback_scheduled_at), "dd-MM-yyyy HH:mm")}
+                        </p>
+                      </Link>
+                    ))
+                  )}
+                </div>
+              </PopoverContent>
+            </Popover>
+
+            {/* Lock - Currently Locked Leads Popover */}
+            <Popover open={lockedOpen} onOpenChange={setLockedOpen}>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="text-white/70 hover:text-white hover:bg-white/10 h-8 w-8"
+                  title="Currently working/locked by you"
+                >
+                  <Lock className="w-4 h-4" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent align="end" className="w-80 p-0">
+                <div className="p-3 border-b">
+                  <h4 className="font-medium text-sm">Currently working/locked by you</h4>
+                </div>
+                <div className="max-h-80 overflow-y-auto">
+                  {lockedLeads.length === 0 ? (
+                    <div className="p-6 text-center">
+                      <p className="text-primary font-medium">You have no locked leads</p>
+                      <p className="text-sm text-muted-foreground mt-1">
+                        Find a lead and call them. It is why we are here after all isn't it?
+                      </p>
+                      <Button 
+                        variant="destructive" 
+                        className="mt-4"
+                        onClick={() => setLockedOpen(false)}
+                      >
+                        Switch to view only mode
+                      </Button>
+                    </div>
+                  ) : (
+                    lockedLeads.map((lead) => (
+                      <Link
+                        key={lead.id}
+                        to={`/leads?id=${lead.id}`}
+                        className="block p-3 hover:bg-muted border-b last:border-b-0"
+                        onClick={() => setLockedOpen(false)}
+                      >
+                        <p className="text-xs text-muted-foreground uppercase tracking-wide">
+                          {lead.campaign_name}
+                        </p>
+                        <p className="font-medium text-sm">
+                          {lead.company_name}{" "}
+                          {lead.phone && <span className="text-muted-foreground">{lead.phone}</span>}
+                        </p>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          Locked {formatDistanceToNow(new Date(lead.claimed_at), { addSuffix: true })}
+                        </p>
+                      </Link>
+                    ))
+                  )}
+                </div>
+              </PopoverContent>
+            </Popover>
+
+            {/* Timer Popover */}
+            <Popover open={timersOpen} onOpenChange={setTimersOpen}>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="text-white/70 hover:text-white hover:bg-white/10 h-8 w-8"
+                  title="Timers"
+                >
+                  <Clock className="w-4 h-4" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent align="end" className="w-64 p-0">
+                <div className="p-3 border-b">
+                  <h4 className="font-medium text-sm">Your most recent timers</h4>
+                </div>
+                <div className="p-4">
+                  <p className="text-sm text-muted-foreground">No timers yet</p>
+                </div>
+                <div className="p-2 border-t">
+                  <Link
+                    to="/work?tab=timers"
+                    className="text-primary text-sm hover:underline block text-center"
+                    onClick={() => setTimersOpen(false)}
+                  >
+                    View all timers
+                  </Link>
+                </div>
+              </PopoverContent>
+            </Popover>
+
+            {/* Alerts Popover */}
+            <Popover open={alertsOpen} onOpenChange={setAlertsOpen}>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="text-white/70 hover:text-white hover:bg-white/10 h-8 w-8"
+                  title="Alerts"
+                >
+                  <AlertTriangle className="w-4 h-4" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent align="end" className="w-64 p-0">
+                <div className="p-3 border-b">
+                  <h4 className="font-medium text-sm">Alerts</h4>
+                </div>
+                <div className="p-6 text-center">
+                  <p className="text-primary font-medium">No alerts here</p>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    All clear. Please move along - nothing to view 'ere.
+                  </p>
+                </div>
+              </PopoverContent>
+            </Popover>
           </div>
 
           {/* Help */}
@@ -508,17 +738,46 @@ export function TopNavbar() {
               </NavLink>
             ))}
             <div className="border-t my-4" />
-            {iconNavItems.map((item) => (
-              <NavLink
-                key={item.label}
-                to={item.to}
-                onClick={() => setMobileOpen(false)}
-                className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-foreground hover:bg-muted"
-              >
-                <item.icon className="w-4 h-4" />
-                {item.label}
-              </NavLink>
-            ))}
+            <NavLink
+              to="/work?tab=worklog"
+              onClick={() => setMobileOpen(false)}
+              className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-foreground hover:bg-muted"
+            >
+              <History className="w-4 h-4" />
+              Recently worked
+            </NavLink>
+            <NavLink
+              to="/leads?filter=scheduled"
+              onClick={() => setMobileOpen(false)}
+              className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-foreground hover:bg-muted"
+            >
+              <Calendar className="w-4 h-4" />
+              Scheduled leads
+            </NavLink>
+            <NavLink
+              to="/leads?filter=locked"
+              onClick={() => setMobileOpen(false)}
+              className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-foreground hover:bg-muted"
+            >
+              <Lock className="w-4 h-4" />
+              Locked leads
+            </NavLink>
+            <NavLink
+              to="/work?tab=timers"
+              onClick={() => setMobileOpen(false)}
+              className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-foreground hover:bg-muted"
+            >
+              <Clock className="w-4 h-4" />
+              Timers
+            </NavLink>
+            <NavLink
+              to="/"
+              onClick={() => setMobileOpen(false)}
+              className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-foreground hover:bg-muted"
+            >
+              <AlertTriangle className="w-4 h-4" />
+              Alerts
+            </NavLink>
           </nav>
         </div>
       )}
