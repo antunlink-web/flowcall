@@ -73,7 +73,7 @@ import { useListTemplates, EmailTemplate, SmsTemplate, CallScript, ListEmailConf
 import { CreateListDialog } from "@/components/lists/CreateListDialog";
 import { FieldsEditor } from "@/components/lists/FieldsEditor";
 import { ImportLeadsDialog } from "@/components/lists/ImportLeadsDialog";
-import { UploadProgressBar } from "@/components/UploadProgressBar";
+
 import { format } from "date-fns";
 import {
   Dialog,
@@ -1391,13 +1391,7 @@ export default function ManageLists() {
 
   if (configureList) {
     return (
-      <>
-        <UploadProgressBar
-          isVisible={uploadProgress.isUploading}
-          progress={uploadProgress.progress}
-          message={uploadProgress.message}
-        />
-        <DashboardLayout>
+      <DashboardLayout>
           <div className="border-b border-border bg-background">
           <div className="flex gap-6 px-6">
             {subNavItems.map((item) => (
@@ -1765,18 +1759,11 @@ export default function ManageLists() {
           </DialogContent>
         </Dialog>
       </DashboardLayout>
-      </>
     );
   }
 
   return (
-    <>
-      <UploadProgressBar
-        isVisible={uploadProgress.isUploading}
-        progress={uploadProgress.progress}
-        message={uploadProgress.message}
-      />
-      <DashboardLayout>
+    <DashboardLayout>
         <div className="border-b border-border bg-background">
           <div className="flex gap-6 px-6">
             {subNavItems.map((item) => (
@@ -1854,6 +1841,5 @@ export default function ManageLists() {
           onCreateList={handleCreateList}
         />
       </DashboardLayout>
-    </>
   );
 }
