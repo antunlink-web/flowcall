@@ -336,7 +336,7 @@ export function TopNavbar() {
   return (
     <>
       {/* Main Top Navbar */}
-      <header className="fixed top-0 left-0 right-0 h-12 bg-[hsl(200,20%,35%)] z-50 flex items-center px-4 text-white">
+      <header className="fixed top-0 left-0 right-0 h-14 bg-secondary z-50 flex items-center px-4 text-secondary-foreground shadow-md">
         {/* Left Section - Search & Home */}
         <div className="flex items-center gap-1">
           {/* Search Field with Dropdown */}
@@ -402,8 +402,8 @@ export function TopNavbar() {
 
           {/* Home Icon */}
           <NavLink to="/">
-            <Button variant="ghost" size="icon" className="text-white/90 hover:text-white hover:bg-white/10 h-8 w-8">
-              <Home className="w-4 h-4" />
+            <Button variant="ghost" size="icon" className="text-secondary-foreground/90 hover:text-secondary-foreground hover:bg-secondary-foreground/10 h-9 w-9">
+              <Home className="w-5 h-5" />
             </Button>
           </NavLink>
 
@@ -414,10 +414,10 @@ export function TopNavbar() {
                 key={item.to}
                 to={item.to}
                 className={cn(
-                  "px-4 py-1 text-sm font-medium transition-colors",
-                  location.pathname === item.to
-                    ? "text-white"
-                    : "text-white/70 hover:text-white"
+                  "px-4 py-2 text-sm font-medium transition-colors rounded-md",
+                  location.pathname === item.to || location.pathname.startsWith(item.to + "/") || (item.to === "/work" && location.pathname === "/")
+                    ? "text-secondary-foreground bg-secondary-foreground/10"
+                    : "text-secondary-foreground/70 hover:text-secondary-foreground hover:bg-secondary-foreground/5"
                 )}
               >
                 {item.label}
@@ -435,10 +435,10 @@ export function TopNavbar() {
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="text-white/70 hover:text-white hover:bg-white/10 h-8 w-8"
+                  className="text-secondary-foreground/70 hover:text-secondary-foreground hover:bg-secondary-foreground/10 h-9 w-9"
                   title="History"
                 >
-                  <History className="w-4 h-4" />
+                  <History className="w-5 h-5" />
                 </Button>
               </PopoverTrigger>
               <PopoverContent align="end" className="w-80 p-0">
@@ -494,10 +494,10 @@ export function TopNavbar() {
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="text-white/70 hover:text-white hover:bg-white/10 h-8 w-8"
+                  className="text-secondary-foreground/70 hover:text-secondary-foreground hover:bg-secondary-foreground/10 h-9 w-9"
                   title="Scheduled leads"
                 >
-                  <Calendar className="w-4 h-4" />
+                  <Calendar className="w-5 h-5" />
                 </Button>
               </PopoverTrigger>
               <PopoverContent align="end" className="w-80 p-0">
@@ -543,10 +543,10 @@ export function TopNavbar() {
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="text-white/70 hover:text-white hover:bg-white/10 h-8 w-8"
+                  className="text-secondary-foreground/70 hover:text-secondary-foreground hover:bg-secondary-foreground/10 h-9 w-9"
                   title="Currently working/locked by you"
                 >
-                  <Lock className="w-4 h-4" />
+                  <Lock className="w-5 h-5" />
                 </Button>
               </PopoverTrigger>
               <PopoverContent align="end" className="w-80 p-0">
@@ -599,10 +599,10 @@ export function TopNavbar() {
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="text-white/70 hover:text-white hover:bg-white/10 h-8 w-8"
+                  className="text-secondary-foreground/70 hover:text-secondary-foreground hover:bg-secondary-foreground/10 h-9 w-9"
                   title="Timers"
                 >
-                  <Clock className="w-4 h-4" />
+                  <Clock className="w-5 h-5" />
                 </Button>
               </PopoverTrigger>
               <PopoverContent align="end" className="w-64 p-0">
@@ -630,10 +630,10 @@ export function TopNavbar() {
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="text-white/70 hover:text-white hover:bg-white/10 h-8 w-8"
+                  className="text-secondary-foreground/70 hover:text-secondary-foreground hover:bg-secondary-foreground/10 h-9 w-9"
                   title="Alerts"
                 >
-                  <AlertTriangle className="w-4 h-4" />
+                  <AlertTriangle className="w-5 h-5" />
                 </Button>
               </PopoverTrigger>
               <PopoverContent align="end" className="w-64 p-0">
@@ -651,25 +651,25 @@ export function TopNavbar() {
           </div>
 
           {/* Help */}
-          <Button variant="ghost" size="sm" className="text-white/70 hover:text-white hover:bg-white/10 gap-1 h-8 hidden md:flex">
-            <HelpCircle className="w-4 h-4" />
+          <Button variant="ghost" size="sm" className="text-secondary-foreground/70 hover:text-secondary-foreground hover:bg-secondary-foreground/10 gap-1 h-9 hidden md:flex">
+            <HelpCircle className="w-5 h-5" />
             Help
           </Button>
 
           {/* User Menu */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="sm" className="text-white/90 hover:text-white hover:bg-white/10 gap-1 h-10 ml-2">
-                <Avatar className="w-9 h-9 rounded-md ring-2 ring-white/30">
+              <Button variant="ghost" size="sm" className="text-secondary-foreground/90 hover:text-secondary-foreground hover:bg-secondary-foreground/10 gap-1 h-11 ml-2">
+                <Avatar className="w-9 h-9 rounded-lg ring-2 ring-secondary-foreground/20">
                   {avatarUrl ? (
-                    <AvatarImage src={avatarUrl} className="object-cover rounded-md" />
+                    <AvatarImage src={avatarUrl} className="object-cover rounded-lg" />
                   ) : (
-                    <AvatarFallback className="bg-muted text-muted-foreground text-sm rounded-md">
+                    <AvatarFallback className="bg-primary text-primary-foreground text-sm rounded-lg">
                       {userInitials}
                     </AvatarFallback>
                   )}
                 </Avatar>
-                <ChevronDown className="w-3 h-3" />
+                <ChevronDown className="w-4 h-4" />
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-48 bg-background">
@@ -705,9 +705,9 @@ export function TopNavbar() {
             variant="ghost"
             size="icon"
             onClick={() => setMobileOpen(!mobileOpen)}
-            className="md:hidden text-white/90 hover:text-white hover:bg-white/10 h-8 w-8"
+            className="md:hidden text-secondary-foreground/90 hover:text-secondary-foreground hover:bg-secondary-foreground/10 h-9 w-9"
           >
-            {mobileOpen ? <X className="w-4 h-4" /> : <Menu className="w-4 h-4" />}
+            {mobileOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
           </Button>
         </div>
       </header>
@@ -715,7 +715,7 @@ export function TopNavbar() {
       {/* Mobile Menu */}
       {mobileOpen && (
         <div
-          className="md:hidden fixed inset-0 bg-black/50 z-40 pt-12"
+          className="md:hidden fixed inset-0 bg-black/50 z-40 pt-14"
           onClick={() => setMobileOpen(false)}
         >
           <nav
