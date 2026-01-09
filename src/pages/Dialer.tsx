@@ -1,16 +1,26 @@
 import { useEffect, useState, useCallback } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
-import { Phone, PhoneOff, Smartphone, Wifi, WifiOff, Volume2 } from "lucide-react";
+import { Phone, PhoneOff, Smartphone, Wifi, WifiOff, Volume2, MessageSquare, Send, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 interface DialRequest {
   id: string;
   phone_number: string;
+  lead_id: string | null;
+  status: string;
+  created_at: string;
+}
+
+interface SmsRequest {
+  id: string;
+  phone_number: string;
+  message: string;
   lead_id: string | null;
   status: string;
   created_at: string;
@@ -22,8 +32,10 @@ export default function Dialer() {
   const navigate = useNavigate();
   const [isConnected, setIsConnected] = useState(false);
   const [currentRequest, setCurrentRequest] = useState<DialRequest | null>(null);
+  const [currentSmsRequest, setCurrentSmsRequest] = useState<SmsRequest | null>(null);
   const [deviceRegistered, setDeviceRegistered] = useState(false);
   const [recentCalls, setRecentCalls] = useState<DialRequest[]>([]);
+  const [recentSms, setRecentSms] = useState<SmsRequest[]>([]);
 
   // Register this device
   const registerDevice = useCallback(async () => {
@@ -46,7 +58,7 @@ export default function Dialer() {
       setDeviceRegistered(true);
       toast({
         title: "Device registered",
-        description: "This device is now ready to receive dial requests.",
+        description: "This device is now ready to receive requests.",
       });
     } catch (error) {
       console.error("Failed to register device:", error);
@@ -62,13 +74,11 @@ export default function Dialer() {
   const handleDialRequest = useCallback(async (request: DialRequest) => {
     setCurrentRequest(request);
     
-    // Play a notification sound
     try {
       const audio = new Audio("/notification.mp3");
       audio.play().catch(() => {});
     } catch (e) {}
 
-    // Vibrate if supported
     if (navigator.vibrate) {
       navigator.vibrate([200, 100, 200]);
     }
@@ -79,20 +89,36 @@ export default function Dialer() {
     });
   }, [toast]);
 
+  // Handle incoming SMS request
+  const handleSmsRequest = useCallback(async (request: SmsRequest) => {
+    setCurrentSmsRequest(request);
+    
+    try {
+      const audio = new Audio("/notification.mp3");
+      audio.play().catch(() => {});
+    } catch (e) {}
+
+    if (navigator.vibrate) {
+      navigator.vibrate([200, 100, 200, 100, 200]);
+    }
+
+    toast({
+      title: "Incoming SMS request",
+      description: `To: ${request.phone_number}`,
+    });
+  }, [toast]);
+
   // Dial the number
   const dialNumber = useCallback(async () => {
     if (!currentRequest) return;
 
-    // Update status to dialing
     await supabase
       .from("dial_requests")
       .update({ status: "dialing" })
       .eq("id", currentRequest.id);
 
-    // Open the phone dialer
     window.location.href = `tel:${currentRequest.phone_number}`;
 
-    // Mark as completed after a short delay
     setTimeout(async () => {
       await supabase
         .from("dial_requests")
@@ -104,7 +130,7 @@ export default function Dialer() {
     }, 1000);
   }, [currentRequest]);
 
-  // Dismiss the request
+  // Dismiss dial request
   const dismissRequest = useCallback(async () => {
     if (!currentRequest) return;
 
@@ -116,12 +142,46 @@ export default function Dialer() {
     setCurrentRequest(null);
   }, [currentRequest]);
 
-  // Subscribe to dial requests
+  // Send SMS
+  const sendSms = useCallback(async () => {
+    if (!currentSmsRequest) return;
+
+    await supabase
+      .from("sms_requests")
+      .update({ status: "sending" })
+      .eq("id", currentSmsRequest.id);
+
+    window.location.href = `sms:${currentSmsRequest.phone_number}?body=${encodeURIComponent(currentSmsRequest.message)}`;
+
+    setTimeout(async () => {
+      await supabase
+        .from("sms_requests")
+        .update({ status: "completed" })
+        .eq("id", currentSmsRequest.id);
+      
+      setRecentSms(prev => [currentSmsRequest, ...prev.slice(0, 9)]);
+      setCurrentSmsRequest(null);
+    }, 1000);
+  }, [currentSmsRequest]);
+
+  // Dismiss SMS request
+  const dismissSmsRequest = useCallback(async () => {
+    if (!currentSmsRequest) return;
+
+    await supabase
+      .from("sms_requests")
+      .update({ status: "dismissed" })
+      .eq("id", currentSmsRequest.id);
+
+    setCurrentSmsRequest(null);
+  }, [currentSmsRequest]);
+
+  // Subscribe to dial and SMS requests
   useEffect(() => {
     if (!user || !deviceRegistered) return;
 
     const channel = supabase
-      .channel("dial-requests")
+      .channel("smart-dialer")
       .on(
         "postgres_changes",
         {
@@ -137,6 +197,21 @@ export default function Dialer() {
           }
         }
       )
+      .on(
+        "postgres_changes",
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "sms_requests",
+          filter: `user_id=eq.${user.id}`,
+        },
+        (payload) => {
+          const request = payload.new as SmsRequest;
+          if (request.status === "pending") {
+            handleSmsRequest(request);
+          }
+        }
+      )
       .subscribe((status) => {
         setIsConnected(status === "SUBSCRIBED");
       });
@@ -144,7 +219,7 @@ export default function Dialer() {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [user, deviceRegistered, handleDialRequest]);
+  }, [user, deviceRegistered, handleDialRequest, handleSmsRequest]);
 
   // Auto-register on mount
   useEffect(() => {
@@ -184,7 +259,7 @@ export default function Dialer() {
             <Smartphone className="h-12 w-12 mx-auto text-primary mb-2" />
             <CardTitle>FlowCall Dialer</CardTitle>
             <CardDescription>
-              Sign in to receive dial requests from your PC
+              Sign in to receive dial and SMS requests from your PC
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -202,7 +277,7 @@ export default function Dialer() {
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-xl font-bold">FlowCall Dialer</h1>
+          <h1 className="text-xl font-bold">FlowCall Smart</h1>
           <p className="text-sm text-muted-foreground">{user.email}</p>
         </div>
         <Badge variant={isConnected ? "default" : "secondary"} className="gap-1">
@@ -224,7 +299,7 @@ export default function Dialer() {
               </p>
               <p className="text-sm text-muted-foreground">
                 {deviceRegistered 
-                  ? "Waiting for dial requests from your PC" 
+                  ? "Waiting for dial or SMS requests" 
                   : "Setting up your device..."}
               </p>
             </div>
@@ -232,13 +307,13 @@ export default function Dialer() {
         </CardContent>
       </Card>
 
-      {/* Incoming Call Card */}
+      {/* Incoming Call Request */}
       {currentRequest && (
-        <Card className="mb-6 border-primary bg-primary/5 animate-pulse">
+        <Card className="mb-6 border-green-500 bg-green-500/5 animate-pulse">
           <CardHeader className="pb-2">
             <div className="flex items-center gap-2">
-              <Volume2 className="h-5 w-5 text-primary" />
-              <CardTitle className="text-lg">Incoming Request</CardTitle>
+              <Phone className="h-5 w-5 text-green-600" />
+              <CardTitle className="text-lg">Incoming Call Request</CardTitle>
             </div>
           </CardHeader>
           <CardContent>
@@ -247,7 +322,7 @@ export default function Dialer() {
             </p>
             <div className="flex gap-3">
               <Button 
-                className="flex-1 gap-2" 
+                className="flex-1 gap-2 bg-green-600 hover:bg-green-700" 
                 size="lg"
                 onClick={dialNumber}
               >
@@ -259,47 +334,126 @@ export default function Dialer() {
                 size="lg"
                 onClick={dismissRequest}
               >
-                <PhoneOff className="h-5 w-5" />
+                <X className="h-5 w-5" />
               </Button>
             </div>
           </CardContent>
         </Card>
       )}
 
-      {/* Recent Calls */}
-      {recentCalls.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Recent Calls</CardTitle>
+      {/* Incoming SMS Request */}
+      {currentSmsRequest && (
+        <Card className="mb-6 border-blue-500 bg-blue-500/5 animate-pulse">
+          <CardHeader className="pb-2">
+            <div className="flex items-center gap-2">
+              <MessageSquare className="h-5 w-5 text-blue-600" />
+              <CardTitle className="text-lg">Incoming SMS Request</CardTitle>
+            </div>
           </CardHeader>
-          <CardContent className="space-y-2">
-            {recentCalls.map((call) => (
-              <div 
-                key={call.id} 
-                className="flex items-center justify-between py-2 border-b last:border-0"
+          <CardContent>
+            <p className="text-lg font-mono font-bold mb-2">
+              {currentSmsRequest.phone_number}
+            </p>
+            <p className="text-sm bg-muted p-3 rounded-md mb-4 max-h-32 overflow-y-auto">
+              {currentSmsRequest.message}
+            </p>
+            <div className="flex gap-3">
+              <Button 
+                className="flex-1 gap-2 bg-blue-600 hover:bg-blue-700" 
+                size="lg"
+                onClick={sendSms}
               >
-                <span className="font-mono">{call.phone_number}</span>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => window.location.href = `tel:${call.phone_number}`}
-                >
-                  <Phone className="h-4 w-4" />
-                </Button>
-              </div>
-            ))}
+                <Send className="h-5 w-5" />
+                Send SMS
+              </Button>
+              <Button 
+                variant="outline" 
+                size="lg"
+                onClick={dismissSmsRequest}
+              >
+                <X className="h-5 w-5" />
+              </Button>
+            </div>
           </CardContent>
         </Card>
       )}
 
+      {/* Recent Activity Tabs */}
+      {(recentCalls.length > 0 || recentSms.length > 0) && (
+        <Card>
+          <Tabs defaultValue="calls" className="w-full">
+            <CardHeader className="pb-2">
+              <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="calls" className="gap-1">
+                  <Phone className="h-4 w-4" /> Calls
+                </TabsTrigger>
+                <TabsTrigger value="sms" className="gap-1">
+                  <MessageSquare className="h-4 w-4" /> SMS
+                </TabsTrigger>
+              </TabsList>
+            </CardHeader>
+            <CardContent>
+              <TabsContent value="calls" className="mt-0 space-y-2">
+                {recentCalls.length === 0 ? (
+                  <p className="text-sm text-muted-foreground text-center py-4">No recent calls</p>
+                ) : (
+                  recentCalls.map((call) => (
+                    <div 
+                      key={call.id} 
+                      className="flex items-center justify-between py-2 border-b last:border-0"
+                    >
+                      <span className="font-mono text-sm">{call.phone_number}</span>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => window.location.href = `tel:${call.phone_number}`}
+                      >
+                        <Phone className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ))
+                )}
+              </TabsContent>
+              <TabsContent value="sms" className="mt-0 space-y-2">
+                {recentSms.length === 0 ? (
+                  <p className="text-sm text-muted-foreground text-center py-4">No recent SMS</p>
+                ) : (
+                  recentSms.map((sms) => (
+                    <div 
+                      key={sms.id} 
+                      className="flex items-center justify-between py-2 border-b last:border-0"
+                    >
+                      <div className="flex-1 min-w-0">
+                        <span className="font-mono text-sm block">{sms.phone_number}</span>
+                        <span className="text-xs text-muted-foreground truncate block">{sms.message}</span>
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => window.location.href = `sms:${sms.phone_number}`}
+                      >
+                        <MessageSquare className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ))
+                )}
+              </TabsContent>
+            </CardContent>
+          </Tabs>
+        </Card>
+      )}
+
       {/* Instructions when idle */}
-      {!currentRequest && recentCalls.length === 0 && (
+      {!currentRequest && !currentSmsRequest && recentCalls.length === 0 && recentSms.length === 0 && (
         <Card className="bg-muted/50">
           <CardContent className="pt-6 text-center">
-            <Phone className="h-12 w-12 mx-auto text-muted-foreground mb-3" />
+            <div className="flex justify-center gap-4 mb-3">
+              <Phone className="h-10 w-10 text-muted-foreground" />
+              <MessageSquare className="h-10 w-10 text-muted-foreground" />
+            </div>
             <p className="text-muted-foreground">
-              Keep this page open. When you click a number on your PC, 
-              it will appear here for you to dial.
+              Keep this page open. When you click a number or send SMS from your PC, 
+              it will appear here.
             </p>
           </CardContent>
         </Card>

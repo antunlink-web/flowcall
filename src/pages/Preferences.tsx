@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useAuth } from "@/hooks/useAuth";
+import { useConnectedDevices } from "@/hooks/useConnectedDevices";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { cn } from "@/lib/utils";
 import { 
@@ -15,7 +16,10 @@ import {
   ChevronRight,
   Upload,
   X,
-  Smartphone
+  Smartphone,
+  Wifi,
+  WifiOff,
+  Circle
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -26,6 +30,71 @@ import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
+import { formatDistanceToNow } from "date-fns";
+
+// FlowCall Smart Section Component
+function FlowCallSmartSection() {
+  const { devices, onlineDevices, loading, isDeviceOnline } = useConnectedDevices();
+  
+  return (
+    <div className="p-3 bg-primary/5 border border-primary/20 rounded-md space-y-3">
+      <div>
+        <p className="text-sm font-medium text-primary mb-1">FlowCall Smart</p>
+        <p className="text-sm text-muted-foreground">
+          Dial numbers and send SMS from your PC through your phone. Install the companion app on your phone and keep it open.
+        </p>
+      </div>
+      
+      {/* Connected Devices Status */}
+      <div className="border-t border-primary/10 pt-3">
+        <p className="text-xs font-medium text-muted-foreground mb-2">Connected Devices</p>
+        {loading ? (
+          <p className="text-sm text-muted-foreground">Loading...</p>
+        ) : devices.length === 0 ? (
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <WifiOff className="w-4 h-4" />
+            <span>No devices registered</span>
+          </div>
+        ) : (
+          <div className="space-y-2">
+            {devices.map((device) => {
+              const online = isDeviceOnline(device.last_seen_at);
+              return (
+                <div key={device.id} className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Circle className={`w-2 h-2 ${online ? "fill-green-500 text-green-500" : "fill-gray-400 text-gray-400"}`} />
+                    <Smartphone className="w-4 h-4 text-muted-foreground" />
+                    <span className="text-sm">{device.device_name}</span>
+                  </div>
+                  <Badge variant={online ? "default" : "secondary"} className="text-xs">
+                    {online ? "Online" : `Last seen ${formatDistanceToNow(new Date(device.last_seen_at))} ago`}
+                  </Badge>
+                </div>
+              );
+            })}
+          </div>
+        )}
+        
+        {onlineDevices.length === 0 && devices.length > 0 && (
+          <p className="text-xs text-amber-600 mt-2">
+            ⚠️ No devices are currently online. Open the companion app on your phone.
+          </p>
+        )}
+      </div>
+      
+      <Button
+        variant="outline"
+        size="sm"
+        className="w-full"
+        onClick={() => window.open("/install", "_blank")}
+      >
+        <Smartphone className="w-4 h-4 mr-2" />
+        Install Companion App
+      </Button>
+    </div>
+  );
+}
 
 const sidebarItems = [
   { id: "profile", label: "Profile information", icon: User },
@@ -458,21 +527,7 @@ export default function Preferences() {
                     </SelectContent>
                   </Select>
                   {dialler === "flowcall-smart" && (
-                    <div className="p-3 bg-primary/5 border border-primary/20 rounded-md">
-                      <p className="text-sm font-medium text-primary mb-1">FlowCall Smart Dialer</p>
-                      <p className="text-sm text-muted-foreground">
-                        Dial numbers from your PC through your Android phone. Install the companion app on your phone and keep it open to receive dial requests.
-                      </p>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="mt-2"
-                        onClick={() => window.open("/install", "_blank")}
-                      >
-                        <Smartphone className="w-4 h-4 mr-2" />
-                        Install Companion App
-                      </Button>
-                    </div>
+                    <FlowCallSmartSection />
                   )}
                 </div>
               </div>
