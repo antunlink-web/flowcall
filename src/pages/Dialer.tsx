@@ -94,7 +94,7 @@ export default function Dialer() {
     }
   }, [user, toast]);
 
-  // Handle incoming dial request
+  // Handle incoming dial request - auto-dial immediately
   const handleDialRequest = useCallback(async (request: DialRequest) => {
     setCurrentRequest(request);
     
@@ -108,9 +108,29 @@ export default function Dialer() {
     }
 
     toast({
-      title: "Incoming dial request",
+      title: "Dialing...",
       description: `Number: ${request.phone_number}`,
     });
+
+    // Update status and open dialer automatically
+    await supabase
+      .from("dial_requests")
+      .update({ status: "dialing" })
+      .eq("id", request.id);
+
+    // Open phone dialer automatically
+    window.location.href = `tel:${request.phone_number}`;
+
+    // Mark as completed after a short delay
+    setTimeout(async () => {
+      await supabase
+        .from("dial_requests")
+        .update({ status: "completed" })
+        .eq("id", request.id);
+      
+      setRecentCalls(prev => [request, ...prev.slice(0, 9)]);
+      setCurrentRequest(null);
+    }, 1000);
   }, [toast]);
 
   // Handle incoming SMS request
