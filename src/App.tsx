@@ -25,6 +25,8 @@ import ManageClaims from "./pages/ManageClaims";
 import ManageDuplicates from "./pages/ManageDuplicates";
 import Preferences from "./pages/Preferences";
 import NotFound from "./pages/NotFound";
+import Dialer from "./pages/Dialer";
+import Install from "./pages/Install";
 
 const queryClient = new QueryClient();
 
@@ -67,6 +69,8 @@ const App = () => (
                 <Route path="/preferences" element={<ProtectedRoute><Preferences /></ProtectedRoute>} />
                 <Route path="/settings" element={<Navigate to="/manage/settings" replace />} />
                 <Route path="/manage" element={<ProtectedRoute><Manage /></ProtectedRoute>} />
+                <Route path="/dialer" element={<Dialer />} />
+                <Route path="/install" element={<Install />} />
                 <Route path="*" element={<NotFound />} />
               </Routes>
             </BrowserRouter>

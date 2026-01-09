@@ -43,6 +43,8 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { useAuth } from "@/hooks/useAuth";
+import { useDialRequest } from "@/hooks/useDialRequest";
+import { Smartphone } from "lucide-react";
 
 interface LeadDetailViewProps {
   leadId: string;
@@ -89,6 +91,7 @@ export function LeadDetailView({ leadId, onClose }: LeadDetailViewProps) {
   const [delegateOpen, setDelegateOpen] = useState(false);
   const { toast } = useToast();
   const { user } = useAuth();
+  const { sendDialRequest } = useDialRequest();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -305,14 +308,24 @@ export function LeadDetailView({ leadId, onClose }: LeadDetailViewProps) {
         {/* Phone numbers */}
         <div className="ml-14 mt-2 space-y-1">
           {phones.map((phone, i) => (
-            <a
-              key={i}
-              href={`tel:${phone}`}
-              className="text-primary hover:underline flex items-center gap-2 text-sm"
-            >
-              {phone}
-              <X className="w-3 h-3 text-muted-foreground hover:text-destructive cursor-pointer" />
-            </a>
+            <div key={i} className="flex items-center gap-2">
+              <a
+                href={`tel:${phone}`}
+                className="text-primary hover:underline flex items-center gap-2 text-sm"
+              >
+                {phone}
+              </a>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-6 px-2 text-xs"
+                onClick={() => sendDialRequest(phone, leadId)}
+                title="Dial via companion phone"
+              >
+                <Smartphone className="w-3 h-3 mr-1" />
+                Dial via Phone
+              </Button>
+            </div>
           ))}
         </div>
       </div>
