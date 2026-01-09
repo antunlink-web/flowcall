@@ -353,72 +353,52 @@ export default function Work() {
                 </Card>
               ) : (
                 lists.map((list) => (
-                  <Card key={list.id} className="hover:shadow-md transition-shadow">
-                    <CardContent className="p-6">
-                      <div className="flex items-start justify-between">
-                        <div className="flex-1">
-                          {/* List Name */}
-                          <div className="flex items-center gap-3 mb-1">
-                            <h3 className="text-sm font-semibold text-primary uppercase tracking-wide">
-                              {list.name}
-                            </h3>
-                            <button className="text-muted-foreground hover:text-warning transition-colors">
-                              <Star className="w-5 h-5" />
-                            </button>
-                          </div>
+                  <Card key={list.id} className="hover:shadow-sm transition-shadow">
+                    <CardContent className="p-3">
+                      <div className="flex items-center justify-between gap-4">
+                        <div className="flex items-center gap-3 min-w-0 flex-1">
+                          <button className="text-muted-foreground hover:text-warning transition-colors flex-shrink-0">
+                            <Star className="w-4 h-4" />
+                          </button>
+                          <h3 className="text-sm font-semibold text-primary uppercase tracking-wide truncate">
+                            {list.name}
+                          </h3>
+                        </div>
 
-                          {/* Stats Row */}
-                          <div className="flex items-center gap-2 text-xs text-muted-foreground mb-4">
-                            <span>{list.totalLeads.toLocaleString()} TOTAL</span>
-                            <ArrowRight className="w-3 h-3" />
-                            <span>{list.donePercentage.toFixed(2)}% DONE</span>
-                            <ArrowRight className="w-3 h-3" />
-                            <span>{list.queuedNow}+ QUEUED NOW</span>
-                          </div>
+                        <div className="flex items-center gap-3 text-xs text-muted-foreground flex-shrink-0">
+                          <span>{list.totalLeads.toLocaleString()} total</span>
+                          <span>{list.donePercentage.toFixed(0)}% done</span>
+                          <span>{list.queuedNow} queued</span>
+                          <Badge 
+                            variant="secondary" 
+                            className="bg-primary/10 text-primary border-0 text-xs px-2 py-0"
+                          >
+                            {list.followupsNow} followups
+                          </Badge>
+                        </div>
 
-                          {/* Followups */}
-                          <div className="flex items-center gap-4">
-                            <div className="flex items-baseline gap-2">
-                              <span className="text-3xl font-light">{list.followupsNow}</span>
-                              <span className="text-sm text-muted-foreground">
-                                Followups now, {list.followupsLater} later today
-                              </span>
-                            </div>
-                          </div>
-
-                          {/* Due Badge & Actions */}
-                          <div className="flex items-center justify-between mt-4">
-                            <Badge 
-                              variant="secondary" 
-                              className="bg-primary/10 text-primary border-0"
-                            >
-                              {list.dueCount} due
-                            </Badge>
-
-                            <div className="flex items-center gap-2">
-                              <Button
-                                variant="outline"
-                                size="icon"
-                                onClick={() => handleStartCalling(list.id)}
-                                className="h-10 w-10"
-                              >
-                                <Phone className="w-4 h-4" />
+                        <div className="flex items-center gap-1 flex-shrink-0">
+                          <Button
+                            variant="outline"
+                            size="icon"
+                            onClick={() => handleStartCalling(list.id)}
+                            className="h-8 w-8"
+                          >
+                            <Phone className="w-3.5 h-3.5" />
+                          </Button>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="outline" size="icon" className="h-8 w-8">
+                                <MoreHorizontal className="w-3.5 h-3.5" />
                               </Button>
-                              <DropdownMenu>
-                                <DropdownMenuTrigger asChild>
-                                  <Button variant="outline" size="icon" className="h-10 w-10">
-                                    <MoreHorizontal className="w-4 h-4" />
-                                  </Button>
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent align="end">
-                                  <DropdownMenuItem onClick={() => handleStartCalling(list.id)}>
-                                    Start Calling
-                                  </DropdownMenuItem>
-                                  <DropdownMenuItem>View Details</DropdownMenuItem>
-                                </DropdownMenuContent>
-                              </DropdownMenu>
-                            </div>
-                          </div>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem onClick={() => handleStartCalling(list.id)}>
+                                Start Calling
+                              </DropdownMenuItem>
+                              <DropdownMenuItem>View Details</DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
                         </div>
                       </div>
                     </CardContent>
