@@ -24,7 +24,7 @@ import {
   Briefcase,
 } from "lucide-react";
 import { useState } from "react";
-import callstackLogo from "@/assets/callstack-logo.png";
+import flowcallLogo from "@/assets/flowcall-logo.png";
 
 const navItems = [
   { to: "/", icon: Phone, label: "Work", roles: ["owner", "account_manager", "agent"] },
@@ -42,8 +42,8 @@ export function AppSidebar() {
   const location = useLocation();
   const [mobileOpen, setMobileOpen] = useState(false);
 
-  const appName = branding?.app_name || "CallStack";
-  const logoUrl = branding?.logo_url || callstackLogo;
+  const appName = branding?.app_name || "FlowCall";
+  const logoUrl = branding?.logo_url || flowcallLogo;
 
   const visibleItems = navItems.filter(
     (item) => roles.some(r => item.roles.includes(r)) || (roles.length === 0 && item.roles.includes("agent"))

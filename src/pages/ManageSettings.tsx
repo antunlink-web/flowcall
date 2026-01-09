@@ -340,7 +340,7 @@ export default function ManageSettings() {
             </div>
 
             <div className="space-y-4">
-              {/* CallStack Voice */}
+              {/* FlowCall Voice */}
               <div 
                 className={`border rounded p-6 cursor-pointer transition-colors ${selectedDialler === 'voice' ? 'border-primary bg-accent/30' : 'border-border hover:bg-accent/50'}`}
                 onClick={() => setSelectedDialler(selectedDialler === 'voice' ? null : 'voice')}
@@ -350,13 +350,13 @@ export default function ManageSettings() {
                     <Phone className="w-8 h-8 text-muted-foreground" />
                   </div>
                   <div>
-                    <h3 className="text-xl font-serif text-primary">CallStack Voice</h3>
+                    <h3 className="text-xl font-serif text-primary">FlowCall Voice</h3>
                     <p className="text-muted-foreground">Coming soon</p>
                   </div>
                 </div>
               </div>
 
-              {/* CallStack Smart */}
+              {/* FlowCall Smart */}
               <div 
                 className={`border rounded p-6 cursor-pointer transition-colors ${selectedDialler === 'smart' ? 'border-primary bg-accent/30' : 'border-border hover:bg-accent/50'}`}
                 onClick={() => setSelectedDialler(selectedDialler === 'smart' ? null : 'smart')}
@@ -366,8 +366,8 @@ export default function ManageSettings() {
                     <Smartphone className="w-8 h-8 text-muted-foreground" />
                   </div>
                   <div>
-                    <h3 className="text-xl font-serif text-primary">CallStack Smart</h3>
-                    <p className="text-muted-foreground">Use your smartphone's plan to call and text CallStack contacts. No need for complicated and expensive calling and texting systems.</p>
+                    <h3 className="text-xl font-serif text-primary">FlowCall Smart</h3>
+                    <p className="text-muted-foreground">Use your smartphone's plan to call and text FlowCall contacts. No need for complicated and expensive calling and texting systems.</p>
                   </div>
                 </div>
                 {selectedDialler === 'smart' && (
@@ -376,11 +376,11 @@ export default function ManageSettings() {
                     <div className="space-y-4 max-w-2xl mx-auto">
                       <div className="flex items-start gap-4 p-4 bg-muted/50 rounded">
                         <span className="text-2xl font-light text-muted-foreground">1</span>
-                        <p>Log in to CallStack from your mobile phone's browser.</p>
+                        <p>Log in to FlowCall from your mobile phone's browser.</p>
                       </div>
                       <div className="flex items-start gap-4 p-4 bg-muted/50 rounded">
                         <span className="text-2xl font-light text-muted-foreground">2</span>
-                        <p>Start working your CallStack <span className="text-primary cursor-pointer">queue</span> in your desktop or laptop browser.</p>
+                        <p>Start working your FlowCall <span className="text-primary cursor-pointer">queue</span> in your desktop or laptop browser.</p>
                       </div>
                       <div className="flex items-start gap-4 p-4 bg-muted/50 rounded">
                         <span className="text-2xl font-light text-muted-foreground">3</span>
@@ -392,7 +392,7 @@ export default function ManageSettings() {
                       </div>
                     </div>
                     <p className="text-sm text-muted-foreground mt-6 text-center">
-                      For an even smoother experience, we recommend saving CallStack to your Home screen:
+                      For an even smoother experience, we recommend saving FlowCall to your Home screen:
                     </p>
                     <ul className="text-sm text-primary mt-2 list-disc list-inside text-center space-y-1">
                       <li>On an iPhone, click the sharing icon at the bottom of the browser, then select "Add to Home Screen".</li>
@@ -419,7 +419,7 @@ export default function ManageSettings() {
                 {selectedDialler === 'softphone' && (
                   <div className="mt-6 pt-6 border-t border-border">
                     <h4 className="font-semibold text-center mb-4">Great choice. Here's how to get started:</h4>
-                    <p className="text-muted-foreground text-center mb-6">CallStack supports any VOIP softphone that is click-to-call compliant.</p>
+                    <p className="text-muted-foreground text-center mb-6">FlowCall supports any VOIP softphone that is click-to-call compliant.</p>
                     <p className="text-sm text-muted-foreground text-center mb-4">You can experiment with different call handlers from your preferences.</p>
                     
                     <div className="max-w-md mx-auto space-y-4 p-4 border rounded bg-muted/30">
