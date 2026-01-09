@@ -6,7 +6,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { Phone, Mail, Users, ArrowLeft } from "lucide-react";
+import { Mail, Users, ArrowLeft } from "lucide-react";
+import callstackLogo from "@/assets/callstack-logo.png";
 import { z } from "zod";
 
 const emailSchema = z.string().email("Please enter a valid email address");
@@ -96,9 +97,7 @@ export default function Auth() {
         {/* Logo/Header */}
         <div className="text-center space-y-2">
           <div className="flex items-center justify-center gap-2">
-            <div className="w-12 h-12 rounded-xl bg-primary flex items-center justify-center">
-              <Phone className="w-6 h-6 text-primary-foreground" />
-            </div>
+            <img src={callstackLogo} alt="CallStack" className="h-14 w-auto" />
           </div>
           <h1 className="text-3xl font-display font-bold text-foreground">CallFlow CRM</h1>
           <p className="text-muted-foreground">Cold calling made simple for teams</p>
@@ -196,7 +195,7 @@ export default function Auth() {
         <div className="grid grid-cols-3 gap-4 text-center">
           <div className="space-y-1">
             <div className="mx-auto w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
-              <Phone className="w-5 h-5 text-primary" />
+              <img src={callstackLogo} alt="CallStack" className="h-6 w-auto" />
             </div>
             <p className="text-xs text-muted-foreground">Click-to-call</p>
           </div>
