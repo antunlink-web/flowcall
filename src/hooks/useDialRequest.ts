@@ -7,6 +7,10 @@ export function useDialRequest() {
   const { user } = useAuth();
   const { toast } = useToast();
 
+  const getDiallerPreference = useCallback(() => {
+    return localStorage.getItem("flowcall_dialler") || "default";
+  }, []);
+
   const sendDialRequest = useCallback(async (phoneNumber: string, leadId?: string) => {
     if (!user) {
       toast({
@@ -17,6 +21,15 @@ export function useDialRequest() {
       return false;
     }
 
+    const diallerPref = getDiallerPreference();
+
+    // If not using FlowCall Smart, just use tel: link
+    if (diallerPref !== "flowcall-smart") {
+      window.location.href = `tel:${phoneNumber}`;
+      return true;
+    }
+
+    // Send dial request to companion phone
     try {
       const { error } = await supabase.from("dial_requests").insert({
         user_id: user.id,
@@ -42,7 +55,7 @@ export function useDialRequest() {
       });
       return false;
     }
-  }, [user, toast]);
+  }, [user, toast, getDiallerPreference]);
 
-  return { sendDialRequest };
+  return { sendDialRequest, getDiallerPreference };
 }
