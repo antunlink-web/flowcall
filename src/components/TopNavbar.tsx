@@ -3,7 +3,6 @@ import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
 import { useUserRole } from "@/hooks/useUserRole";
 import { Button } from "@/components/ui/button";
-import callstackLogo from "@/assets/callstack-logo.png";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -337,27 +336,18 @@ export function TopNavbar() {
   return (
     <>
       {/* Main Top Navbar */}
-      <header className="fixed top-0 left-0 right-0 h-16 bg-card z-50 flex items-center px-6 border-b border-border shadow-sm">
-        {/* Left Section - Logo, Brand Name & Search */}
-        <div className="flex items-center gap-4">
-          {/* Logo and Brand Name */}
-          <Link to="/" className="flex items-center gap-2">
-            <img src={callstackLogo} alt="CallStack" className="h-8 w-auto" />
-            <span className="text-xl font-semibold text-primary hidden md:inline">callstack</span>
-          </Link>
-
+      <header className="fixed top-0 left-0 right-0 h-14 bg-secondary z-50 flex items-center px-4 text-secondary-foreground shadow-md">
+        {/* Left Section - Search & Home */}
+        <div className="flex items-center gap-1">
           {/* Search Field with Dropdown */}
-          <div className="relative ml-4">
-            <div className="flex items-center bg-muted/50 border border-border rounded-full px-3 py-1.5">
-              <Search className="w-4 h-4 text-muted-foreground mr-2" />
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search..."
-                className="w-40 md:w-56 h-6 bg-transparent text-sm text-foreground placeholder:text-muted-foreground focus:outline-none"
-              />
-            </div>
+          <div className="relative">
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search..."
+              className="w-40 md:w-48 h-7 px-2 text-sm bg-white border border-white/20 rounded text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-white/40"
+            />
             {searchQuery.length >= 2 && (
               <div className="absolute top-full left-0 mt-1 w-[500px] bg-popover text-popover-foreground border rounded-md shadow-md outline-none z-[60] animate-in fade-in-0 zoom-in-95">
                 {searchLoading ? (
@@ -410,10 +400,34 @@ export function TopNavbar() {
             )}
           </div>
 
+          {/* Home Icon */}
+          <NavLink to="/">
+            <Button variant="ghost" size="icon" className="text-secondary-foreground/90 hover:text-secondary-foreground hover:bg-secondary-foreground/10 h-9 w-9">
+              <Home className="w-5 h-5" />
+            </Button>
+          </NavLink>
+
+          {/* Main Nav Links */}
+          <nav className="hidden md:flex items-center ml-2">
+            {mainNavItems.map((item) => (
+              <NavLink
+                key={item.to}
+                to={item.to}
+                className={cn(
+                  "px-4 py-2 text-sm font-medium transition-colors rounded-md",
+                  location.pathname === item.to || location.pathname.startsWith(item.to + "/") || (item.to === "/work" && location.pathname === "/")
+                    ? "text-secondary-foreground bg-secondary-foreground/10"
+                    : "text-secondary-foreground/70 hover:text-secondary-foreground hover:bg-secondary-foreground/5"
+                )}
+              >
+                {item.label}
+              </NavLink>
+            ))}
+          </nav>
         </div>
 
         {/* Right Section - Icons & User */}
-        <div className="flex items-center ml-auto gap-2">
+        <div className="flex items-center ml-auto gap-1">
           {/* History Popover */}
           <div className="hidden md:flex items-center gap-1">
             <Popover open={historyOpen} onOpenChange={setHistoryOpen}>
@@ -421,7 +435,7 @@ export function TopNavbar() {
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="text-muted-foreground hover:text-foreground hover:bg-muted h-9 w-9"
+                  className="text-secondary-foreground/70 hover:text-secondary-foreground hover:bg-secondary-foreground/10 h-9 w-9"
                   title="History"
                 >
                   <History className="w-5 h-5" />
@@ -480,7 +494,7 @@ export function TopNavbar() {
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="text-muted-foreground hover:text-foreground hover:bg-muted h-9 w-9"
+                  className="text-secondary-foreground/70 hover:text-secondary-foreground hover:bg-secondary-foreground/10 h-9 w-9"
                   title="Scheduled leads"
                 >
                   <Calendar className="w-5 h-5" />
@@ -529,7 +543,7 @@ export function TopNavbar() {
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="text-muted-foreground hover:text-foreground hover:bg-muted h-9 w-9"
+                  className="text-secondary-foreground/70 hover:text-secondary-foreground hover:bg-secondary-foreground/10 h-9 w-9"
                   title="Currently working/locked by you"
                 >
                   <Lock className="w-5 h-5" />
@@ -585,7 +599,7 @@ export function TopNavbar() {
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="text-muted-foreground hover:text-foreground hover:bg-muted h-9 w-9"
+                  className="text-secondary-foreground/70 hover:text-secondary-foreground hover:bg-secondary-foreground/10 h-9 w-9"
                   title="Timers"
                 >
                   <Clock className="w-5 h-5" />
@@ -616,10 +630,10 @@ export function TopNavbar() {
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="text-muted-foreground hover:text-foreground hover:bg-muted h-9 w-9"
+                  className="text-secondary-foreground/70 hover:text-secondary-foreground hover:bg-secondary-foreground/10 h-9 w-9"
                   title="Alerts"
                 >
-                  <Bell className="w-5 h-5" />
+                  <AlertTriangle className="w-5 h-5" />
                 </Button>
               </PopoverTrigger>
               <PopoverContent align="end" className="w-64 p-0">
@@ -636,25 +650,26 @@ export function TopNavbar() {
             </Popover>
           </div>
 
-          {/* Notifications Bell */}
-          <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground hover:bg-muted h-9 w-9 hidden md:flex">
-            <Bell className="w-5 h-5" />
+          {/* Help */}
+          <Button variant="ghost" size="sm" className="text-secondary-foreground/70 hover:text-secondary-foreground hover:bg-secondary-foreground/10 gap-1 h-9 hidden md:flex">
+            <HelpCircle className="w-5 h-5" />
+            Help
           </Button>
 
           {/* User Menu */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="sm" className="text-foreground hover:bg-muted gap-1 h-11 ml-2">
-                <Avatar className="w-9 h-9 rounded-full ring-2 ring-border">
+              <Button variant="ghost" size="sm" className="text-secondary-foreground/90 hover:text-secondary-foreground hover:bg-secondary-foreground/10 gap-1 h-11 ml-2">
+                <Avatar className="w-9 h-9 rounded-lg ring-2 ring-secondary-foreground/20">
                   {avatarUrl ? (
-                    <AvatarImage src={avatarUrl} className="object-cover rounded-full" />
+                    <AvatarImage src={avatarUrl} className="object-cover rounded-lg" />
                   ) : (
-                    <AvatarFallback className="bg-primary text-primary-foreground text-sm rounded-full">
+                    <AvatarFallback className="bg-primary text-primary-foreground text-sm rounded-lg">
                       {userInitials}
                     </AvatarFallback>
                   )}
                 </Avatar>
-                <ChevronDown className="w-4 h-4 text-muted-foreground" />
+                <ChevronDown className="w-4 h-4" />
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-48 bg-background">
@@ -690,7 +705,7 @@ export function TopNavbar() {
             variant="ghost"
             size="icon"
             onClick={() => setMobileOpen(!mobileOpen)}
-            className="md:hidden text-muted-foreground hover:text-foreground hover:bg-muted h-9 w-9"
+            className="md:hidden text-secondary-foreground/90 hover:text-secondary-foreground hover:bg-secondary-foreground/10 h-9 w-9"
           >
             {mobileOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
           </Button>
@@ -700,7 +715,7 @@ export function TopNavbar() {
       {/* Mobile Menu */}
       {mobileOpen && (
         <div
-          className="md:hidden fixed inset-0 bg-black/50 z-40 pt-16"
+          className="md:hidden fixed inset-0 bg-black/50 z-40 pt-14"
           onClick={() => setMobileOpen(false)}
         >
           <nav
