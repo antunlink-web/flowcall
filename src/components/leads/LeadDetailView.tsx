@@ -1127,9 +1127,16 @@ export function LeadDetailView({ leadId, onClose }: LeadDetailViewProps) {
                             </p>
                           )}
                           {item.subject && (
-                            <p className="text-sm text-muted-foreground mt-1 truncate">
-                              Subject: {item.subject}
-                            </p>
+                            <div className="mt-1 space-y-1">
+                              <p className="text-sm font-medium text-foreground">
+                                {item.subject}
+                              </p>
+                              {item.body && (
+                                <p className="text-sm text-muted-foreground break-words whitespace-pre-wrap line-clamp-3">
+                                  {item.body}
+                                </p>
+                              )}
+                            </div>
                           )}
                           {item.message && (
                             <p className="text-sm text-muted-foreground mt-1 truncate">
