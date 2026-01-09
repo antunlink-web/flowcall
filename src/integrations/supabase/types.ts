@@ -193,6 +193,41 @@ export type Database = {
         }
         Relationships: []
       }
+      dial_requests: {
+        Row: {
+          created_at: string
+          id: string
+          lead_id: string | null
+          phone_number: string
+          status: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          lead_id?: string | null
+          phone_number: string
+          status?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          lead_id?: string | null
+          phone_number?: string
+          status?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dial_requests_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       email_logs: {
         Row: {
           body: string
@@ -542,6 +577,42 @@ export type Database = {
           use_tls?: boolean
           user_id?: string | null
           username?: string
+        }
+        Relationships: []
+      }
+      user_devices: {
+        Row: {
+          created_at: string
+          device_name: string
+          device_type: string
+          id: string
+          is_active: boolean | null
+          last_seen_at: string | null
+          push_subscription: Json | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          device_name: string
+          device_type: string
+          id?: string
+          is_active?: boolean | null
+          last_seen_at?: string | null
+          push_subscription?: Json | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          device_name?: string
+          device_type?: string
+          id?: string
+          is_active?: boolean | null
+          last_seen_at?: string | null
+          push_subscription?: Json | null
+          updated_at?: string
+          user_id?: string
         }
         Relationships: []
       }
