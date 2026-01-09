@@ -43,6 +43,7 @@ import {
   Save,
   Send,
   Settings,
+  Flag,
 } from "lucide-react";
 import {
   Popover,
@@ -101,7 +102,7 @@ interface List {
 
 interface ActivityItem {
   id: string;
-  type: "call" | "email" | "sms";
+  type: "call" | "email" | "sms" | "claimed";
   created_at: string;
   user_name: string | null;
   outcome?: string;
@@ -265,11 +266,21 @@ export function LeadDetailView({ leadId, onClose }: LeadDetailViewProps) {
       .eq("lead_id", leadId)
       .order("created_at", { ascending: false });
 
+    // Fetch lead info for claimed activity
+    const { data: leadData } = await supabase
+      .from("leads")
+      .select("claimed_by, claimed_at")
+      .eq("id", leadId)
+      .single();
+
     // Get unique user IDs
     const userIds = new Set<string>();
     callLogs?.forEach(l => userIds.add(l.user_id));
     emailLogs?.forEach(l => userIds.add(l.user_id));
     smsLogs?.forEach(l => userIds.add(l.user_id));
+    if (leadData?.claimed_by) {
+      userIds.add(leadData.claimed_by);
+    }
 
     // Fetch user names
     const userMap: Record<string, string> = {};
@@ -285,6 +296,16 @@ export function LeadDetailView({ leadId, onClose }: LeadDetailViewProps) {
 
     // Combine and sort all activity
     const items: ActivityItem[] = [];
+
+    // Add claimed activity if exists
+    if (leadData?.claimed_by && leadData?.claimed_at) {
+      items.push({
+        id: `claimed-${leadId}`,
+        type: "claimed",
+        created_at: leadData.claimed_at,
+        user_name: userMap[leadData.claimed_by] || "Unknown",
+      });
+    }
 
     callLogs?.forEach(log => {
       items.push({
@@ -1084,6 +1105,8 @@ export function LeadDetailView({ leadId, onClose }: LeadDetailViewProps) {
                               : "bg-orange-100"
                             : item.type === "email"
                             ? "bg-blue-100"
+                            : item.type === "claimed"
+                            ? "bg-indigo-100"
                             : "bg-purple-100"
                         }`}>
                           {item.type === "call" ? (
@@ -1096,6 +1119,8 @@ export function LeadDetailView({ leadId, onClose }: LeadDetailViewProps) {
                             )
                           ) : item.type === "email" ? (
                             <Mail className="w-5 h-5 text-blue-600" />
+                          ) : item.type === "claimed" ? (
+                            <Flag className="w-5 h-5 text-indigo-600" />
                           ) : (
                             <MessageSquare className="w-5 h-5 text-purple-600" />
                           )}
@@ -1104,26 +1129,38 @@ export function LeadDetailView({ leadId, onClose }: LeadDetailViewProps) {
                           <p className="font-medium text-sm">
                             {item.type === "call" && (
                               <>
-                                <span className="capitalize">{item.outcome}</span>
+                                <span>Marked </span>
+                                <span className="font-semibold">{item.outcome}</span>
                                 <span className="text-muted-foreground font-normal"> by {item.user_name}</span>
                               </>
                             )}
                             {item.type === "email" && (
                               <>
-                                Email sent
+                                <span className="font-semibold">Email</span>
                                 <span className="text-muted-foreground font-normal"> by {item.user_name}</span>
                               </>
                             )}
                             {item.type === "sms" && (
                               <>
-                                SMS sent
+                                <span className="font-semibold">SMS</span>
+                                <span className="text-muted-foreground font-normal"> by {item.user_name}</span>
+                              </>
+                            )}
+                            {item.type === "claimed" && (
+                              <>
+                                <span className="font-semibold">Claimed</span>
                                 <span className="text-muted-foreground font-normal"> by {item.user_name}</span>
                               </>
                             )}
                           </p>
+                          {item.type === "call" && item.duration_seconds !== undefined && item.duration_seconds > 0 && (
+                            <p className="text-sm text-muted-foreground mt-1 flex items-center gap-1">
+                              <Clock className="w-3 h-3" /> Working time: {Math.floor(item.duration_seconds / 60)}:{String(item.duration_seconds % 60).padStart(2, '0')}
+                            </p>
+                          )}
                           {item.notes && (
                             <p className="text-sm text-muted-foreground mt-1 break-words">
-                              "{item.notes}"
+                              <span className="text-lg leading-none mr-1">❝</span>{item.notes}
                             </p>
                           )}
                           {item.subject && (
@@ -1139,11 +1176,11 @@ export function LeadDetailView({ leadId, onClose }: LeadDetailViewProps) {
                             </div>
                           )}
                           {item.message && (
-                            <p className="text-sm text-muted-foreground mt-1 truncate">
-                              "{item.message}"
+                            <p className="text-sm text-muted-foreground mt-1 break-words">
+                              <span className="text-lg leading-none mr-1">❝</span>{item.message}
                             </p>
                           )}
-                          <p className="text-xs text-muted-foreground mt-1">
+                          <p className="text-xs text-muted-foreground mt-2">
                             {format(new Date(item.created_at), "dd-MM-yyyy HH:mm")} ({formatDistanceToNow(new Date(item.created_at))} ago)
                           </p>
                         </div>
