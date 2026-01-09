@@ -1232,8 +1232,8 @@ export default function ManageAccount() {
             </div>
 
             <div className="space-y-4 text-sm text-muted-foreground">
-              <p>We keep track of your account balance when you add or remove seats, make calls with Myphoner Voice etc.</p>
-              <p>Adjust these settings so they fit your usage to make sure your agents can always make calls with Myphoner Voice.</p>
+              <p>We keep track of your account balance when you add or remove seats, make calls with CallStack Voice etc.</p>
+              <p>Adjust these settings so they fit your usage to make sure your agents can always make calls with CallStack Voice.</p>
               <p>We recommend having a minimum balance of €5.00 per active agent at all times.</p>
             </div>
 
@@ -1243,10 +1243,10 @@ export default function ManageAccount() {
 
               <div className="border border-border rounded p-6 space-y-6">
                 <p className="text-sm">
-                  You <span className="font-bold">only</span> need to add credits to your balance if you are using Myphoner Voice.
+                  You <span className="font-bold">only</span> need to add credits to your balance if you are using CallStack Voice.
                 </p>
                 <p className="text-sm">
-                  If you are using Myphoner Voice, we recommend for your account to top up to <span className="font-bold">€40.00</span> when balance falls below <span className="font-bold">€20.00</span>.
+                  If you are using CallStack Voice, we recommend for your account to top up to <span className="font-bold">€40.00</span> when balance falls below <span className="font-bold">€20.00</span>.
                 </p>
 
                 <div className="space-y-4">
