@@ -11,6 +11,7 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
+  DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
 import {
   Select,
@@ -40,6 +41,8 @@ import {
   Pencil,
   RotateCw,
   Save,
+  Send,
+  Settings,
 } from "lucide-react";
 import {
   Popover,
@@ -49,6 +52,7 @@ import {
 import { useAuth } from "@/hooks/useAuth";
 import { useDialRequest } from "@/hooks/useDialRequest";
 import { Smartphone } from "lucide-react";
+import { useListTemplates } from "@/hooks/useListTemplates";
 
 interface LeadDetailViewProps {
   leadId: string;
@@ -77,11 +81,22 @@ interface ListSettings {
   archiveCategories?: string;
 }
 
+interface ListEmailConfig {
+  from_email?: string;
+  from_name?: string;
+  smtp_host?: string;
+  smtp_port?: number;
+  smtp_user?: string;
+  smtp_pass?: string;
+  use_tls?: boolean;
+}
+
 interface List {
   id: string;
   name: string;
   fields: Array<{ id: string; name: string; type: string; show: boolean }>;
   settings?: ListSettings;
+  email_config?: ListEmailConfig;
 }
 
 interface ActivityItem {
@@ -111,10 +126,17 @@ export function LeadDetailView({ leadId, onClose }: LeadDetailViewProps) {
   const [rightTab, setRightTab] = useState("activity");
   const [editData, setEditData] = useState<Record<string, any>>({});
   const [editSaving, setEditSaving] = useState(false);
+  // Email composer state
+  const [emailSubject, setEmailSubject] = useState("");
+  const [emailBody, setEmailBody] = useState("");
+  const [emailSending, setEmailSending] = useState(false);
   const { toast } = useToast();
   const { user } = useAuth();
   const { sendDialRequest } = useDialRequest();
   const navigate = useNavigate();
+  
+  // Get templates for current list
+  const { emailTemplates, loading: templatesLoading } = useListTemplates(list?.id || null);
 
   useEffect(() => {
     fetchLead();
@@ -126,7 +148,7 @@ export function LeadDetailView({ leadId, onClose }: LeadDetailViewProps) {
     setLoading(true);
     const { data, error } = await supabase
       .from("leads")
-      .select("*, lists(id, name, fields, settings)")
+      .select("*, lists(id, name, fields, settings, email_config)")
       .eq("id", leadId)
       .single();
 
@@ -430,6 +452,109 @@ export function LeadDetailView({ leadId, onClose }: LeadDetailViewProps) {
       const keyLower = key.toLowerCase();
       return !(keyLower.includes("phone") || keyLower.includes("tel"));
     });
+  };
+
+  // Email helper functions
+  const getLeadEmail = () => {
+    if (!lead?.data) return "";
+    for (const [key, value] of Object.entries(lead.data)) {
+      if (key.toLowerCase().includes("email") && typeof value === "string" && value.trim()) {
+        return value;
+      }
+    }
+    return "";
+  };
+
+  const getLeadFirstName = () => {
+    if (!lead?.data) return "";
+    const nameFields = ["first_name", "firstname", "name", "vardas"];
+    for (const [key, value] of Object.entries(lead.data)) {
+      if (nameFields.includes(key.toLowerCase()) && typeof value === "string" && value.trim()) {
+        return value;
+      }
+    }
+    return "";
+  };
+
+  const getLeadLastName = () => {
+    if (!lead?.data) return "";
+    const nameFields = ["last_name", "lastname", "surname", "pavardė"];
+    for (const [key, value] of Object.entries(lead.data)) {
+      if (nameFields.includes(key.toLowerCase()) && typeof value === "string" && value.trim()) {
+        return value;
+      }
+    }
+    return "";
+  };
+
+  const getLeadCompany = () => {
+    if (!lead?.data) return "";
+    const companyFields = ["company", "company_name", "pavadinimas", "įmonė", "firma"];
+    for (const [key, value] of Object.entries(lead.data)) {
+      if (companyFields.includes(key.toLowerCase()) && typeof value === "string" && value.trim()) {
+        return value;
+      }
+    }
+    return "";
+  };
+
+  const personalizeText = (text: string) => {
+    return text
+      .replace(/\{\{first_name\}\}/g, getLeadFirstName())
+      .replace(/\{\{last_name\}\}/g, getLeadLastName())
+      .replace(/\{\{company\}\}/g, getLeadCompany())
+      .replace(/\{\{email\}\}/g, getLeadEmail());
+  };
+
+  const handleTemplateSelect = (templateId: string) => {
+    const template = emailTemplates.find(t => t.id === templateId);
+    if (template) {
+      setEmailSubject(personalizeText(template.subject));
+      setEmailBody(personalizeText(template.body));
+    }
+  };
+
+  const handleSendEmail = async () => {
+    const email = getLeadEmail();
+    if (!email || !user || !lead) return;
+
+    setEmailSending(true);
+    try {
+      const { error } = await supabase.functions.invoke("send-email", {
+        body: {
+          to: email,
+          subject: emailSubject,
+          body: emailBody,
+          leadId: lead.id,
+        },
+      });
+
+      if (error) throw error;
+
+      // Log the email
+      await supabase.from("email_logs").insert({
+        lead_id: lead.id,
+        user_id: user.id,
+        subject: emailSubject,
+        body: emailBody,
+        status: "sent",
+      });
+
+      toast({ title: "Email sent successfully" });
+      setEmailSubject("");
+      setEmailBody("");
+      fetchEmailCount();
+      fetchActivity();
+    } catch (error: any) {
+      console.error("Error sending email:", error);
+      toast({
+        title: "Failed to send email",
+        description: error.message || "Please check your SMTP settings",
+        variant: "destructive",
+      });
+    } finally {
+      setEmailSending(false);
+    }
   };
 
   if (loading) {
@@ -749,8 +874,79 @@ export function LeadDetailView({ leadId, onClose }: LeadDetailViewProps) {
             </TabsContent>
             
             <TabsContent value="email" className="mt-4">
-              <div className="text-muted-foreground text-sm p-4 border rounded-md">
-                Email composer coming soon...
+              <div className="border rounded-md p-4 space-y-4">
+                {/* Template Selector Dropdown */}
+                <div className="flex items-center justify-between">
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="outline" size="sm" className="gap-2">
+                        <Settings className="w-4 h-4" />
+                        Manage templates
+                        <ChevronDown className="w-3 h-3" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="start" className="w-56 max-h-80 overflow-y-auto">
+                      {templatesLoading ? (
+                        <div className="p-2 text-sm text-muted-foreground">Loading...</div>
+                      ) : emailTemplates.length === 0 ? (
+                        <div className="p-2 text-sm text-muted-foreground">No templates available</div>
+                      ) : (
+                        emailTemplates.map((template) => (
+                          <DropdownMenuItem
+                            key={template.id}
+                            onClick={() => handleTemplateSelect(template.id)}
+                          >
+                            {template.name}
+                          </DropdownMenuItem>
+                        ))
+                      )}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                  <div className="text-sm text-muted-foreground">
+                    To: <span className="font-medium text-foreground">{getLeadEmail() || "No email"}</span>
+                  </div>
+                </div>
+
+                {/* Subject */}
+                <Input
+                  placeholder="Subject"
+                  value={emailSubject}
+                  onChange={(e) => setEmailSubject(e.target.value)}
+                />
+
+                {/* Email Body with Rich Text Toolbar */}
+                <div className="border rounded-md">
+                  <div className="flex items-center gap-1 p-2 border-b bg-muted/30">
+                    <Button variant="ghost" size="sm" className="h-7 w-7 p-0">
+                      <span className="font-bold text-xs">B</span>
+                    </Button>
+                    <Button variant="ghost" size="sm" className="h-7 w-7 p-0">
+                      <span className="italic text-xs">I</span>
+                    </Button>
+                    <div className="h-4 w-px bg-border mx-1" />
+                    <Button variant="ghost" size="sm" className="h-7 px-2 text-xs">
+                      {"</>"}
+                    </Button>
+                  </div>
+                  <Textarea
+                    placeholder="Write your message..."
+                    value={emailBody}
+                    onChange={(e) => setEmailBody(e.target.value)}
+                    className="min-h-[200px] border-0 focus-visible:ring-0 resize-none"
+                  />
+                </div>
+
+                {/* Send Button */}
+                <div className="flex justify-center">
+                  <Button
+                    onClick={handleSendEmail}
+                    disabled={!emailSubject || !emailBody || emailSending || !getLeadEmail()}
+                    className="gap-2 bg-primary hover:bg-primary/90"
+                  >
+                    <Send className="w-4 h-4" />
+                    {emailSending ? "Sending..." : `Send via ${list?.email_config?.from_email || "SMTP"}`}
+                  </Button>
+                </div>
               </div>
             </TabsContent>
             
