@@ -124,6 +124,17 @@ export function EmailTemplateEditor({
   const [linkUrl, setLinkUrl] = useState("");
   const [imageUrl, setImageUrl] = useState("");
 
+  // Handle pasted images from clipboard
+  const handlePastedImage = useCallback((file: File): Promise<string> => {
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        resolve(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    });
+  }, []);
+
   const editor = useEditor({
     extensions: [
       StarterKit.configure({
@@ -134,12 +145,14 @@ export function EmailTemplateEditor({
       UnderlineExtension,
       ImageExtension.configure({
         allowBase64: true,
+        inline: true,
         HTMLAttributes: {
           class: "max-w-full h-auto",
         },
       }),
       LinkExtension.configure({
         openOnClick: false,
+        autolink: true,
         HTMLAttributes: {
           class: "text-primary underline",
         },
@@ -150,7 +163,7 @@ export function EmailTemplateEditor({
       TextStyle,
       Color,
       Placeholder.configure({
-        placeholder: "Write your professional email here...",
+        placeholder: "Write your professional email here... You can paste text and images from Word, web pages, or other sources.",
       }),
     ],
     content: templateBody || "",
@@ -160,6 +173,54 @@ export function EmailTemplateEditor({
     editorProps: {
       attributes: {
         class: "prose prose-sm max-w-none min-h-[400px] p-4 focus:outline-none",
+      },
+      // Handle pasting images from clipboard (Word, screenshots, etc.)
+      handlePaste: (view, event) => {
+        const items = event.clipboardData?.items;
+        if (!items) return false;
+
+        for (const item of items) {
+          if (item.type.startsWith("image/")) {
+            event.preventDefault();
+            const file = item.getAsFile();
+            if (file) {
+              handlePastedImage(file).then((base64) => {
+                view.dispatch(
+                  view.state.tr.replaceSelectionWith(
+                    view.state.schema.nodes.image.create({ src: base64 })
+                  )
+                );
+              });
+            }
+            return true;
+          }
+        }
+
+        // Let TipTap handle HTML/text paste normally (preserves formatting from Word)
+        return false;
+      },
+      // Handle drag and drop images
+      handleDrop: (view, event) => {
+        const files = event.dataTransfer?.files;
+        if (!files || files.length === 0) return false;
+
+        for (const file of files) {
+          if (file.type.startsWith("image/")) {
+            event.preventDefault();
+            handlePastedImage(file).then((base64) => {
+              const { tr } = view.state;
+              const pos = view.posAtCoords({ left: event.clientX, top: event.clientY });
+              if (pos) {
+                view.dispatch(
+                  tr.insert(pos.pos, view.state.schema.nodes.image.create({ src: base64 }))
+                );
+              }
+            });
+            return true;
+          }
+        }
+
+        return false;
       },
     },
   });
