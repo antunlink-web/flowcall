@@ -1,7 +1,7 @@
 import { NavLink, useLocation, Link } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
-import callstackLogo from "@/assets/callstack-logo.png";
+import flowcallLogo from "@/assets/flowcall-logo.png";
 import { useUserRole } from "@/hooks/useUserRole";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -342,8 +342,8 @@ export function TopNavbar() {
         <div className="flex items-center gap-4">
           {/* Logo and Brand Name */}
           <Link to="/" className="flex items-center gap-2">
-            <img src={callstackLogo} alt="CallStack" className="h-7 w-7" />
-            <span className="text-lg font-semibold tracking-tight hidden sm:inline">CallStack</span>
+            <img src={flowcallLogo} alt="FlowCall" className="h-7 w-7" />
+            <span className="text-lg font-semibold tracking-tight hidden sm:inline">FlowCall</span>
           </Link>
 
           {/* Search Field with Dropdown */}
