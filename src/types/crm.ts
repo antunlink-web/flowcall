@@ -5,6 +5,7 @@ export interface Lead {
   id: string;
   data: Record<string, unknown>;
   status: LeadStatus;
+  list_id: string | null;
   campaign_id: string | null;
   assigned_to: string | null;
   claimed_by: string | null;

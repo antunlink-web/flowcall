@@ -14,13 +14,15 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
-import { Lead, Campaign, CallOutcome, LeadStatus, EmailTemplate } from "@/types/crm";
+import { Lead, CallOutcome, LeadStatus, EmailTemplate } from "@/types/crm";
 import { Phone, Star, MoreHorizontal, Loader2, ArrowRight } from "lucide-react";
-import { Json } from "@/integrations/supabase/types";
 
 type WorkTab = "queues" | "scheduled" | "claimed" | "worklog";
 
-interface CampaignWithStats extends Campaign {
+interface ListWithStats {
+  id: string;
+  name: string;
+  status: string;
   totalLeads: number;
   donePercentage: number;
   queuedNow: number;
@@ -31,13 +33,13 @@ interface CampaignWithStats extends Campaign {
 
 export default function Work() {
   const [leads, setLeads] = useState<Lead[]>([]);
-  const [campaigns, setCampaigns] = useState<CampaignWithStats[]>([]);
+  const [lists, setLists] = useState<ListWithStats[]>([]);
   const [emailTemplates, setEmailTemplates] = useState<EmailTemplate[]>([]);
-  const [scripts, setScripts] = useState<{ id: string; name: string; content: string; campaign_id: string | null }[]>([]);
+  const [scripts, setScripts] = useState<{ id: string; name: string; content: string; list_id: string | null }[]>([]);
   const [activeTab, setActiveTab] = useState<WorkTab>("queues");
   const [loading, setLoading] = useState(true);
   const [emailLead, setEmailLead] = useState<Lead | null>(null);
-  const [selectedCampaign, setSelectedCampaign] = useState<string | null>(null);
+  const [selectedList, setSelectedList] = useState<string | null>(null);
   const [currentIndex, setCurrentIndex] = useState(0);
   const { user } = useAuth();
   const { toast } = useToast();
@@ -46,63 +48,80 @@ export default function Work() {
     if (!user) return;
     setLoading(true);
 
-    // Fetch campaigns
-    const { data: campaignData } = await supabase
-      .from("campaigns")
-      .select("*")
-      .eq("status", "active");
+    // Fetch lists assigned to current user via list_users table
+    const { data: listUserData } = await supabase
+      .from("list_users")
+      .select("list_id")
+      .eq("user_id", user.id);
 
-    // Fetch all leads
-    const { data: leadData } = await supabase
-      .from("leads")
-      .select("*")
-      .or(`claimed_by.is.null,claimed_by.eq.${user.id}`);
+    const userListIds = (listUserData || []).map((lu) => lu.list_id);
 
-    const allLeads = (leadData || []).map((l) => ({
-      ...l,
-      data: (l.data as Record<string, unknown>) || {},
-    })) as Lead[];
-    setLeads(allLeads);
+    // Fetch list details for assigned lists
+    let listsData: { id: string; name: string; status: string }[] = [];
+    if (userListIds.length > 0) {
+      const { data } = await supabase
+        .from("lists")
+        .select("id, name, status")
+        .in("id", userListIds)
+        .eq("status", "active");
+      listsData = data || [];
+    }
 
-    // Calculate stats per campaign
+    // Fetch leads for assigned lists
+    let leadData: Lead[] = [];
+    if (userListIds.length > 0) {
+      const { data } = await supabase
+        .from("leads")
+        .select("*")
+        .in("list_id", userListIds)
+        .or(`claimed_by.is.null,claimed_by.eq.${user.id}`);
+      
+      leadData = (data || []).map((l) => ({
+        ...l,
+        data: (l.data as Record<string, unknown>) || {},
+      })) as Lead[];
+    }
+    setLeads(leadData);
+
+    // Calculate stats per list
     const now = new Date();
     const todayEnd = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59);
 
-    const campaignsWithStats: CampaignWithStats[] = (campaignData || []).map((c) => {
-      const campaignLeads = allLeads.filter((l) => l.campaign_id === c.id);
-      const totalLeads = campaignLeads.length;
-      const doneLeads = campaignLeads.filter((l) => ["won", "lost", "archived"].includes(l.status)).length;
+    const listsWithStats: ListWithStats[] = listsData.map((list) => {
+      const listLeads = leadData.filter((l) => l.list_id === list.id);
+      const totalLeads = listLeads.length;
+      const doneLeads = listLeads.filter((l) => ["won", "lost", "archived"].includes(l.status)).length;
       const donePercentage = totalLeads > 0 ? (doneLeads / totalLeads) * 100 : 0;
-      const queuedNow = campaignLeads.filter((l) => !["won", "lost", "archived"].includes(l.status)).length;
+      const queuedNow = listLeads.filter((l) => !["won", "lost", "archived"].includes(l.status)).length;
       
-      const followupsNow = campaignLeads.filter((l) => {
+      const followupsNow = listLeads.filter((l) => {
         if (!l.callback_scheduled_at) return false;
         return new Date(l.callback_scheduled_at) <= now;
       }).length;
 
-      const followupsLater = campaignLeads.filter((l) => {
+      const followupsLater = listLeads.filter((l) => {
         if (!l.callback_scheduled_at) return false;
         const callbackDate = new Date(l.callback_scheduled_at);
         return callbackDate > now && callbackDate <= todayEnd;
       }).length;
 
-      const dueCount = campaignLeads.filter((l) => {
+      const dueCount = listLeads.filter((l) => {
         if (!l.callback_scheduled_at) return false;
         return new Date(l.callback_scheduled_at) <= now;
       }).length;
 
       return {
-        ...c,
+        ...list,
         totalLeads,
         donePercentage,
         queuedNow,
         followupsNow,
         followupsLater,
         dueCount,
-      } as CampaignWithStats;
+      };
     });
 
-    setCampaigns(campaignsWithStats);
+    setLists(listsWithStats);
 
     // Fetch email templates
     const { data: templateData } = await supabase.from("email_templates").select("*");
@@ -122,9 +141,9 @@ export default function Work() {
   }, [user, fetchData]);
 
   const getFilteredLeads = () => {
-    if (!selectedCampaign) return [];
+    if (!selectedList) return [];
     return leads
-      .filter((l) => l.campaign_id === selectedCampaign)
+      .filter((l) => l.list_id === selectedList)
       .filter((l) => !["won", "lost", "archived"].includes(l.status));
   };
 
@@ -220,13 +239,13 @@ export default function Work() {
     }
   };
 
-  const handleStartCalling = (campaignId: string) => {
-    setSelectedCampaign(campaignId);
+  const handleStartCalling = (listId: string) => {
+    setSelectedList(listId);
     setCurrentIndex(0);
   };
 
   const handleBackToQueues = () => {
-    setSelectedCampaign(null);
+    setSelectedList(null);
     setCurrentIndex(0);
     fetchData();
   };
@@ -234,7 +253,7 @@ export default function Work() {
   const filteredLeads = getFilteredLeads();
   const currentLead = filteredLeads[currentIndex];
   const currentScript = scripts.find(
-    (s) => s.campaign_id === currentLead?.campaign_id
+    (s) => s.list_id === currentLead?.list_id
   ) || scripts[0];
 
   const tabs = [
@@ -267,9 +286,9 @@ export default function Work() {
     );
   }
 
-  // If a campaign is selected, show the lead calling view
-  if (selectedCampaign) {
-    const campaign = campaigns.find((c) => c.id === selectedCampaign);
+  // If a list is selected, show the lead calling view
+  if (selectedList) {
+    const list = lists.find((l) => l.id === selectedList);
     
     return (
       <DashboardLayout>
@@ -281,7 +300,7 @@ export default function Work() {
                 ← Back to Queues
               </Button>
               <h1 className="text-2xl font-display font-bold text-foreground">
-                {campaign?.name || "Work Queue"}
+                {list?.name || "Work Queue"}
               </h1>
               <p className="text-muted-foreground">
                 {filteredLeads.length} leads to call • {currentIndex + 1} of {filteredLeads.length}
@@ -390,24 +409,24 @@ export default function Work() {
               <div className="w-16 h-0.5 bg-primary mt-2" />
             </div>
 
-            {/* Campaign Cards */}
+            {/* List Cards */}
             <div className="space-y-4">
-              {campaigns.length === 0 ? (
+              {lists.length === 0 ? (
                 <Card>
                   <CardContent className="py-12 text-center">
-                    <p className="text-muted-foreground">No active campaigns. Create one in Manage to get started.</p>
+                    <p className="text-muted-foreground">No lists assigned to you. Ask an admin to assign you to a list.</p>
                   </CardContent>
                 </Card>
               ) : (
-                campaigns.map((campaign) => (
-                  <Card key={campaign.id} className="hover:shadow-md transition-shadow">
+                lists.map((list) => (
+                  <Card key={list.id} className="hover:shadow-md transition-shadow">
                     <CardContent className="p-6">
                       <div className="flex items-start justify-between">
                         <div className="flex-1">
-                          {/* Campaign Name */}
+                          {/* List Name */}
                           <div className="flex items-center gap-3 mb-1">
                             <h3 className="text-sm font-semibold text-primary uppercase tracking-wide">
-                              {campaign.name}
+                              {list.name}
                             </h3>
                             <button className="text-muted-foreground hover:text-warning transition-colors">
                               <Star className="w-5 h-5" />
@@ -416,19 +435,19 @@ export default function Work() {
 
                           {/* Stats Row */}
                           <div className="flex items-center gap-2 text-xs text-muted-foreground mb-4">
-                            <span>{campaign.totalLeads.toLocaleString()} TOTAL</span>
+                            <span>{list.totalLeads.toLocaleString()} TOTAL</span>
                             <ArrowRight className="w-3 h-3" />
-                            <span>{campaign.donePercentage.toFixed(2)}% DONE</span>
+                            <span>{list.donePercentage.toFixed(2)}% DONE</span>
                             <ArrowRight className="w-3 h-3" />
-                            <span>{campaign.queuedNow}+ QUEUED NOW</span>
+                            <span>{list.queuedNow}+ QUEUED NOW</span>
                           </div>
 
                           {/* Followups */}
                           <div className="flex items-center gap-4">
                             <div className="flex items-baseline gap-2">
-                              <span className="text-3xl font-light">{campaign.followupsNow}</span>
+                              <span className="text-3xl font-light">{list.followupsNow}</span>
                               <span className="text-sm text-muted-foreground">
-                                Followups now, {campaign.followupsLater} later today
+                                Followups now, {list.followupsLater} later today
                               </span>
                             </div>
                           </div>
@@ -439,14 +458,14 @@ export default function Work() {
                               variant="secondary" 
                               className="bg-primary/10 text-primary border-0"
                             >
-                              {campaign.dueCount} due
+                              {list.dueCount} due
                             </Badge>
 
                             <div className="flex items-center gap-2">
                               <Button
                                 variant="outline"
                                 size="icon"
-                                onClick={() => handleStartCalling(campaign.id)}
+                                onClick={() => handleStartCalling(list.id)}
                                 className="h-10 w-10"
                               >
                                 <Phone className="w-4 h-4" />
@@ -458,11 +477,10 @@ export default function Work() {
                                   </Button>
                                 </DropdownMenuTrigger>
                                 <DropdownMenuContent align="end">
-                                  <DropdownMenuItem onClick={() => handleStartCalling(campaign.id)}>
+                                  <DropdownMenuItem onClick={() => handleStartCalling(list.id)}>
                                     Start Calling
                                   </DropdownMenuItem>
                                   <DropdownMenuItem>View Details</DropdownMenuItem>
-                                  <DropdownMenuItem>Edit Campaign</DropdownMenuItem>
                                 </DropdownMenuContent>
                               </DropdownMenu>
                             </div>
