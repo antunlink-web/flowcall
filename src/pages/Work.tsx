@@ -1,7 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { DashboardLayout } from "@/components/DashboardLayout";
-import { LeadCard } from "@/components/leads/LeadCard";
-import { EmailComposer } from "@/components/leads/EmailComposer";
+import { LeadDetailView } from "@/components/leads/LeadDetailView";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -13,9 +12,8 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { useToast } from "@/hooks/use-toast";
-import { Lead, CallOutcome, LeadStatus, EmailTemplate } from "@/types/crm";
-import { Phone, Star, MoreHorizontal, Loader2, ArrowRight } from "lucide-react";
+import { Lead } from "@/types/crm";
+import { Phone, Star, MoreHorizontal, Loader2, ArrowRight, ArrowLeft } from "lucide-react";
 
 type WorkTab = "queues" | "scheduled" | "claimed" | "worklog";
 
@@ -34,15 +32,13 @@ interface ListWithStats {
 export default function Work() {
   const [leads, setLeads] = useState<Lead[]>([]);
   const [lists, setLists] = useState<ListWithStats[]>([]);
-  const [emailTemplates, setEmailTemplates] = useState<EmailTemplate[]>([]);
-  const [scripts, setScripts] = useState<{ id: string; name: string; content: string; list_id: string | null }[]>([]);
+  
   const [activeTab, setActiveTab] = useState<WorkTab>("queues");
   const [loading, setLoading] = useState(true);
-  const [emailLead, setEmailLead] = useState<Lead | null>(null);
   const [selectedList, setSelectedList] = useState<string | null>(null);
   const [currentIndex, setCurrentIndex] = useState(0);
   const { user } = useAuth();
-  const { toast } = useToast();
+  
 
   const fetchData = useCallback(async () => {
     if (!user) return;
@@ -123,14 +119,6 @@ export default function Work() {
 
     setLists(listsWithStats);
 
-    // Fetch email templates
-    const { data: templateData } = await supabase.from("email_templates").select("*");
-    setEmailTemplates((templateData as EmailTemplate[]) || []);
-
-    // Fetch scripts
-    const { data: scriptData } = await supabase.from("call_scripts").select("*");
-    setScripts(scriptData || []);
-
     setLoading(false);
   }, [user]);
 
@@ -147,95 +135,16 @@ export default function Work() {
       .filter((l) => !["won", "lost", "archived"].includes(l.status));
   };
 
-  const claimLead = async (lead: Lead) => {
-    if (!user || lead.claimed_by === user.id) return;
-
-    await supabase
-      .from("leads")
-      .update({
-        claimed_by: user.id,
-        claimed_at: new Date().toISOString(),
-      })
-      .eq("id", lead.id);
-  };
-
-  const handleCall = async (lead: Lead) => {
-    await claimLead(lead);
-    
-    await supabase
-      .from("leads")
-      .update({
-        call_attempts: lead.call_attempts + 1,
-        last_contacted_at: new Date().toISOString(),
-      })
-      .eq("id", lead.id);
-
-    setLeads((prev) =>
-      prev.map((l) =>
-        l.id === lead.id
-          ? {
-              ...l,
-              call_attempts: l.call_attempts + 1,
-              last_contacted_at: new Date().toISOString(),
-              claimed_by: user?.id || null,
-            }
-          : l
-      )
-    );
-  };
-
-  const handleLogCall = async (leadId: string, outcome: CallOutcome, notes: string) => {
-    if (!user) return;
-
-    await supabase.from("call_logs").insert({
-      lead_id: leadId,
-      user_id: user.id,
-      outcome,
-      notes: notes || null,
-    });
-
-    toast({ title: "Call logged" });
-  };
-
-  const handleUpdateStatus = async (leadId: string, status: LeadStatus) => {
-    await supabase.from("leads").update({ status }).eq("id", leadId);
-
-    const filteredLeads = getFilteredLeads();
-    if (["won", "lost", "archived"].includes(status)) {
-      setLeads((prev) => prev.filter((l) => l.id !== leadId));
-      if (currentIndex >= filteredLeads.length - 1) {
-        setCurrentIndex(Math.max(0, currentIndex - 1));
-      }
-    } else {
-      setLeads((prev) =>
-        prev.map((l) => (l.id === leadId ? { ...l, status } : l))
-      );
-    }
-
-    toast({ title: `Lead marked as ${status}` });
-  };
-
-  const handleScheduleCallback = async (leadId: string, date: Date) => {
-    await supabase
-      .from("leads")
-      .update({ callback_scheduled_at: date.toISOString() })
-      .eq("id", leadId);
-
-    setLeads((prev) =>
-      prev.map((l) =>
-        l.id === leadId
-          ? { ...l, callback_scheduled_at: date.toISOString() }
-          : l
-      )
-    );
-
-    toast({ title: "Callback scheduled" });
-  };
-
   const handleNext = () => {
     const filteredLeads = getFilteredLeads();
     if (currentIndex < filteredLeads.length - 1) {
       setCurrentIndex(currentIndex + 1);
+    }
+  };
+
+  const handlePrevious = () => {
+    if (currentIndex > 0) {
+      setCurrentIndex(currentIndex - 1);
     }
   };
 
@@ -250,11 +159,19 @@ export default function Work() {
     fetchData();
   };
 
+  const handleLeadClose = () => {
+    // When lead detail view closes, move to next lead or go back to queues
+    const filteredLeads = getFilteredLeads();
+    if (currentIndex < filteredLeads.length - 1) {
+      setCurrentIndex(currentIndex + 1);
+    } else {
+      handleBackToQueues();
+    }
+    fetchData();
+  };
+
   const filteredLeads = getFilteredLeads();
   const currentLead = filteredLeads[currentIndex];
-  const currentScript = scripts.find(
-    (s) => s.list_id === currentLead?.list_id
-  ) || scripts[0];
 
   const tabs = [
     { id: "queues" as WorkTab, label: "Queues" },
@@ -290,87 +207,70 @@ export default function Work() {
   if (selectedList) {
     const list = lists.find((l) => l.id === selectedList);
     
+    if (!currentLead) {
+      return (
+        <DashboardLayout>
+          <div className="max-w-7xl mx-auto px-4 py-6 space-y-6">
+            <Button variant="ghost" onClick={handleBackToQueues} className="mb-2 -ml-2 text-muted-foreground">
+              <ArrowLeft className="w-4 h-4 mr-2" />
+              Back to Queues
+            </Button>
+            <Card className="text-center py-16">
+              <CardContent>
+                <div className="w-16 h-16 mx-auto rounded-full bg-green-100 flex items-center justify-center mb-4">
+                  <Phone className="w-8 h-8 text-green-600" />
+                </div>
+                <h3 className="text-xl font-semibold mb-2">Queue Complete!</h3>
+                <p className="text-muted-foreground mb-4">
+                  No more leads to call in this queue.
+                </p>
+                <Button onClick={handleBackToQueues}>Back to Queues</Button>
+              </CardContent>
+            </Card>
+          </div>
+        </DashboardLayout>
+      );
+    }
+    
     return (
       <DashboardLayout>
-        <div className="max-w-7xl mx-auto px-4 py-6 space-y-6">
-          {/* Header */}
-          <div className="flex items-center justify-between">
-            <div>
-              <Button variant="ghost" onClick={handleBackToQueues} className="mb-2 -ml-2 text-muted-foreground">
-                ← Back to Queues
-              </Button>
-              <h1 className="text-2xl font-display font-bold text-foreground">
-                {list?.name || "Work Queue"}
-              </h1>
-              <p className="text-muted-foreground">
-                {filteredLeads.length} leads to call • {currentIndex + 1} of {filteredLeads.length}
-              </p>
-            </div>
-          </div>
-
-          {/* Main Content */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {/* Lead Card */}
-            <div className="lg:col-span-2">
-              {currentLead ? (
-                <LeadCard
-                  lead={currentLead}
-                  onCall={handleCall}
-                  onLogCall={handleLogCall}
-                  onUpdateStatus={handleUpdateStatus}
-                  onScheduleCallback={handleScheduleCallback}
-                  onSendEmail={(lead) => setEmailLead(lead)}
-                  onNext={handleNext}
-                  hasNext={currentIndex < filteredLeads.length - 1}
-                />
-              ) : (
-                <Card className="text-center py-16">
-                  <CardContent>
-                    <div className="w-16 h-16 mx-auto rounded-full bg-success/10 flex items-center justify-center mb-4">
-                      <Phone className="w-8 h-8 text-success" />
-                    </div>
-                    <h3 className="text-xl font-semibold mb-2">Queue Complete!</h3>
-                    <p className="text-muted-foreground mb-4">
-                      No more leads to call in this queue.
-                    </p>
-                    <Button onClick={handleBackToQueues}>Back to Queues</Button>
-                  </CardContent>
-                </Card>
-              )}
-            </div>
-
-            {/* Script Panel */}
-            <div className="lg:col-span-1">
-              <Card className="h-fit sticky top-20">
-                <CardContent className="p-4">
-                  <h3 className="font-semibold mb-3">Call Script</h3>
-                  {currentScript ? (
-                    <div className="prose prose-sm max-w-none">
-                      <p className="text-sm font-medium text-muted-foreground mb-2">
-                        {currentScript.name}
-                      </p>
-                      <div className="whitespace-pre-wrap text-sm">
-                        {currentScript.content}
-                      </div>
-                    </div>
-                  ) : (
-                    <p className="text-sm text-muted-foreground">
-                      No script available for this campaign.
-                    </p>
-                  )}
-                </CardContent>
-              </Card>
+        <div className="max-w-7xl mx-auto px-4 py-2">
+          {/* Navigation Header */}
+          <div className="flex items-center justify-between mb-2">
+            <Button variant="ghost" onClick={handleBackToQueues} className="-ml-2 text-muted-foreground">
+              <ArrowLeft className="w-4 h-4 mr-2" />
+              Back to Queues
+            </Button>
+            <div className="flex items-center gap-4">
+              <span className="text-sm text-muted-foreground">
+                {list?.name}: {currentIndex + 1} of {filteredLeads.length}
+              </span>
+              <div className="flex gap-2">
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={handlePrevious}
+                  disabled={currentIndex === 0}
+                >
+                  Previous
+                </Button>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={handleNext}
+                  disabled={currentIndex >= filteredLeads.length - 1}
+                >
+                  Next
+                </Button>
+              </div>
             </div>
           </div>
         </div>
-
-        {/* Email Composer */}
-        <EmailComposer
-          lead={emailLead}
-          open={!!emailLead}
-          onOpenChange={(open) => !open && setEmailLead(null)}
-          templates={emailTemplates}
-          onSent={fetchData}
+        
+        {/* Lead Detail View - Same as search */}
+        <LeadDetailView 
+          leadId={currentLead.id} 
+          onClose={handleLeadClose}
         />
       </DashboardLayout>
     );
