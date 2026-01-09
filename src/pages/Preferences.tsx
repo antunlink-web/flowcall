@@ -391,7 +391,7 @@ export default function Preferences() {
               <div className="grid gap-4 max-w-lg">
                 <div className="grid grid-cols-[150px_1fr] items-center gap-4">
                   <Label className="text-right">Current password</Label>
-                  <Input type="password" />
+                  <Input type="password" autoComplete="off" />
                 </div>
                 <div className="grid grid-cols-[150px_1fr] items-center gap-4">
                   <Label className="text-right">New password</Label>
