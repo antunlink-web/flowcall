@@ -30,17 +30,19 @@ interface ListWithStats {
 }
 
 export default function Work() {
-  const [leads, setLeads] = useState<Lead[]>([]);
+  const [currentLead, setCurrentLead] = useState<Lead | null>(null);
   const [lists, setLists] = useState<ListWithStats[]>([]);
-  
+  const [scheduledLeads, setScheduledLeads] = useState<Lead[]>([]);
+  const [claimedLeads, setClaimedLeads] = useState<Lead[]>([]);
   const [activeTab, setActiveTab] = useState<WorkTab>("queues");
   const [loading, setLoading] = useState(true);
   const [selectedList, setSelectedList] = useState<string | null>(null);
   const [currentIndex, setCurrentIndex] = useState(0);
+  const [totalLeadsInQueue, setTotalLeadsInQueue] = useState(0);
   const { user } = useAuth();
-  
 
-  const fetchData = useCallback(async () => {
+  // Fetch list statistics (uses counts, not full data)
+  const fetchListStats = useCallback(async () => {
     if (!user) return;
     setLoading(true);
 
@@ -63,82 +65,130 @@ export default function Work() {
       listsData = data || [];
     }
 
-    // Fetch leads for assigned lists (no limit to get all leads)
-    let leadData: Lead[] = [];
-    if (userListIds.length > 0) {
-      const { data, count } = await supabase
-        .from("leads")
-        .select("*", { count: "exact" })
-        .in("list_id", userListIds)
-        .or(`claimed_by.is.null,claimed_by.eq.${user.id}`)
-        .range(0, 49999); // Fetch up to 50,000 leads
-      
-      leadData = (data || []).map((l) => ({
-        ...l,
-        data: (l.data as Record<string, unknown>) || {},
-      })) as Lead[];
-    }
-    setLeads(leadData);
-
-    // Calculate stats per list
+    // Fetch stats per list using counts
     const now = new Date();
-    const todayEnd = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59);
+    const listsWithStats: ListWithStats[] = await Promise.all(
+      listsData.map(async (list) => {
+        // Get total leads count
+        const { count: totalLeads } = await supabase
+          .from("leads")
+          .select("*", { count: "exact", head: true })
+          .eq("list_id", list.id);
 
-    const listsWithStats: ListWithStats[] = listsData.map((list) => {
-      const listLeads = leadData.filter((l) => l.list_id === list.id);
-      const totalLeads = listLeads.length;
-      const doneLeads = listLeads.filter((l) => ["won", "lost", "archived"].includes(l.status)).length;
-      const donePercentage = totalLeads > 0 ? (doneLeads / totalLeads) * 100 : 0;
-      const queuedNow = listLeads.filter((l) => !["won", "lost", "archived"].includes(l.status)).length;
-      
-      const followupsNow = listLeads.filter((l) => {
-        if (!l.callback_scheduled_at) return false;
-        return new Date(l.callback_scheduled_at) <= now;
-      }).length;
+        // Get done leads count
+        const { count: doneLeads } = await supabase
+          .from("leads")
+          .select("*", { count: "exact", head: true })
+          .eq("list_id", list.id)
+          .in("status", ["won", "lost", "archived"]);
 
-      const followupsLater = listLeads.filter((l) => {
-        if (!l.callback_scheduled_at) return false;
-        const callbackDate = new Date(l.callback_scheduled_at);
-        return callbackDate > now && callbackDate <= todayEnd;
-      }).length;
+        // Get queued now count (not done, unclaimed or claimed by me)
+        const { count: queuedNow } = await supabase
+          .from("leads")
+          .select("*", { count: "exact", head: true })
+          .eq("list_id", list.id)
+          .not("status", "in", '("won","lost","archived")')
+          .or(`claimed_by.is.null,claimed_by.eq.${user.id}`);
 
-      const dueCount = listLeads.filter((l) => {
-        if (!l.callback_scheduled_at) return false;
-        return new Date(l.callback_scheduled_at) <= now;
-      }).length;
+        // Get followups now (callback due)
+        const { count: followupsNow } = await supabase
+          .from("leads")
+          .select("*", { count: "exact", head: true })
+          .eq("list_id", list.id)
+          .not("callback_scheduled_at", "is", null)
+          .lte("callback_scheduled_at", now.toISOString());
 
-      return {
-        ...list,
-        totalLeads,
-        donePercentage,
-        queuedNow,
-        followupsNow,
-        followupsLater,
-        dueCount,
-      };
-    });
+        const total = totalLeads || 0;
+        const done = doneLeads || 0;
+        const donePercentage = total > 0 ? (done / total) * 100 : 0;
+
+        return {
+          ...list,
+          totalLeads: total,
+          donePercentage,
+          queuedNow: queuedNow || 0,
+          followupsNow: followupsNow || 0,
+          followupsLater: 0,
+          dueCount: followupsNow || 0,
+        };
+      })
+    );
 
     setLists(listsWithStats);
+
+    // Fetch scheduled callbacks (leads with callback_scheduled_at in the future, claimed by user)
+    const { data: scheduledData } = await supabase
+      .from("leads")
+      .select("*")
+      .eq("claimed_by", user.id)
+      .not("callback_scheduled_at", "is", null)
+      .gt("callback_scheduled_at", now.toISOString())
+      .order("callback_scheduled_at", { ascending: true })
+      .limit(100);
+    
+    setScheduledLeads((scheduledData || []).map((l) => ({
+      ...l,
+      data: (l.data as Record<string, unknown>) || {},
+    })) as Lead[]);
+
+    // Fetch claimed leads
+    const { data: claimedData } = await supabase
+      .from("leads")
+      .select("*")
+      .eq("claimed_by", user.id)
+      .not("status", "in", '("won","lost","archived")')
+      .order("claimed_at", { ascending: false })
+      .limit(100);
+    
+    setClaimedLeads((claimedData || []).map((l) => ({
+      ...l,
+      data: (l.data as Record<string, unknown>) || {},
+    })) as Lead[]);
 
     setLoading(false);
   }, [user]);
 
+  // Fetch a single lead at the given index for the selected list
+  const fetchLeadAtIndex = useCallback(async (listId: string, index: number) => {
+    if (!user) return;
+
+    const { data, count } = await supabase
+      .from("leads")
+      .select("*", { count: "exact" })
+      .eq("list_id", listId)
+      .not("status", "in", '("won","lost","archived")')
+      .or(`claimed_by.is.null,claimed_by.eq.${user.id}`)
+      .order("created_at", { ascending: true })
+      .range(index, index);
+
+    setTotalLeadsInQueue(count || 0);
+
+    if (data && data.length > 0) {
+      const lead = {
+        ...data[0],
+        data: (data[0].data as Record<string, unknown>) || {},
+      } as Lead;
+      setCurrentLead(lead);
+    } else {
+      setCurrentLead(null);
+    }
+  }, [user]);
+
   useEffect(() => {
     if (user) {
-      fetchData();
+      fetchListStats();
     }
-  }, [user, fetchData]);
+  }, [user, fetchListStats]);
 
-  const getFilteredLeads = () => {
-    if (!selectedList) return [];
-    return leads
-      .filter((l) => l.list_id === selectedList)
-      .filter((l) => !["won", "lost", "archived"].includes(l.status));
-  };
+  // When selectedList or currentIndex changes, fetch the lead
+  useEffect(() => {
+    if (selectedList) {
+      fetchLeadAtIndex(selectedList, currentIndex);
+    }
+  }, [selectedList, currentIndex, fetchLeadAtIndex]);
 
   const handleNext = () => {
-    const filteredLeads = getFilteredLeads();
-    if (currentIndex < filteredLeads.length - 1) {
+    if (currentIndex < totalLeadsInQueue - 1) {
       setCurrentIndex(currentIndex + 1);
     }
   };
@@ -157,22 +207,18 @@ export default function Work() {
   const handleBackToQueues = () => {
     setSelectedList(null);
     setCurrentIndex(0);
-    fetchData();
+    setCurrentLead(null);
+    fetchListStats();
   };
 
   const handleLeadClose = () => {
-    // When lead detail view closes, move to next lead or go back to queues
-    const filteredLeads = getFilteredLeads();
-    if (currentIndex < filteredLeads.length - 1) {
-      setCurrentIndex(currentIndex + 1);
-    } else {
-      handleBackToQueues();
+    // When lead detail view closes, refetch current position (lead may have been completed)
+    if (selectedList) {
+      fetchLeadAtIndex(selectedList, currentIndex);
     }
-    fetchData();
   };
 
-  const filteredLeads = getFilteredLeads();
-  const currentLead = filteredLeads[currentIndex];
+  const filteredLeads = currentLead ? [currentLead] : [];
 
   const tabs = [
     { id: "queues" as WorkTab, label: "Queues" },
@@ -180,19 +226,6 @@ export default function Work() {
     { id: "claimed" as WorkTab, label: "Claimed" },
     { id: "worklog" as WorkTab, label: "Work log" },
   ];
-
-  // Get leads based on active tab
-  const getTabLeads = () => {
-    const now = new Date();
-    switch (activeTab) {
-      case "scheduled":
-        return leads.filter((l) => l.callback_scheduled_at && new Date(l.callback_scheduled_at) > now);
-      case "claimed":
-        return leads.filter((l) => l.claimed_by === user?.id);
-      default:
-        return [];
-    }
-  };
 
   if (loading) {
     return (
@@ -403,7 +436,7 @@ export default function Work() {
               <div className="w-16 h-0.5 bg-primary mt-2" />
             </div>
             
-            {getTabLeads().length === 0 ? (
+            {scheduledLeads.length === 0 ? (
               <Card>
                 <CardContent className="py-12 text-center">
                   <p className="text-muted-foreground">No scheduled callbacks.</p>
@@ -411,7 +444,7 @@ export default function Work() {
               </Card>
             ) : (
               <div className="space-y-2">
-                {getTabLeads().map((lead) => (
+                {scheduledLeads.map((lead) => (
                   <Card key={lead.id}>
                     <CardContent className="p-4 flex items-center justify-between">
                       <div>
@@ -441,7 +474,7 @@ export default function Work() {
               <div className="w-16 h-0.5 bg-primary mt-2" />
             </div>
             
-            {getTabLeads().length === 0 ? (
+            {claimedLeads.length === 0 ? (
               <Card>
                 <CardContent className="py-12 text-center">
                   <p className="text-muted-foreground">No claimed leads.</p>
@@ -449,7 +482,7 @@ export default function Work() {
               </Card>
             ) : (
               <div className="space-y-2">
-                {getTabLeads().map((lead) => (
+                {claimedLeads.map((lead) => (
                   <Card key={lead.id}>
                     <CardContent className="p-4 flex items-center justify-between">
                       <div>
