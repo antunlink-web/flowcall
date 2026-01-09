@@ -8,7 +8,7 @@ export function useDialRequest() {
   const { toast } = useToast();
 
   const getDiallerPreference = useCallback(() => {
-    return localStorage.getItem("flowcall_dialler") || "default";
+    return localStorage.getItem("flowcall_dialler") || "flowcall-smart";
   }, []);
 
   const sendDialRequest = useCallback(async (phoneNumber: string, leadId?: string) => {
