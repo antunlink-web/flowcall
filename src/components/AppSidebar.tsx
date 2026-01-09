@@ -2,6 +2,7 @@ import { NavLink, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
 import { useUserRole } from "@/hooks/useUserRole";
+import { useBranding } from "@/hooks/useBranding";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
@@ -23,6 +24,7 @@ import {
   Briefcase,
 } from "lucide-react";
 import { useState } from "react";
+import callstackLogo from "@/assets/callstack-logo.png";
 
 const navItems = [
   { to: "/", icon: Phone, label: "Work", roles: ["owner", "account_manager", "agent"] },
@@ -36,8 +38,12 @@ const navItems = [
 export function AppSidebar() {
   const { user, signOut } = useAuth();
   const { roles, primaryRole } = useUserRole();
+  const { branding } = useBranding();
   const location = useLocation();
   const [mobileOpen, setMobileOpen] = useState(false);
+
+  const appName = branding?.app_name || "CallStack";
+  const logoUrl = branding?.logo_url || callstackLogo;
 
   const visibleItems = navItems.filter(
     (item) => roles.some(r => item.roles.includes(r)) || (roles.length === 0 && item.roles.includes("agent"))
@@ -59,10 +65,8 @@ export function AppSidebar() {
       {/* Mobile Header */}
       <div className="lg:hidden fixed top-0 left-0 right-0 h-16 bg-sidebar border-b border-sidebar-border z-50 flex items-center justify-between px-4">
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-lg bg-sidebar-primary flex items-center justify-center">
-            <Phone className="w-4 h-4 text-sidebar-primary-foreground" />
-          </div>
-          <span className="font-display font-semibold text-sidebar-foreground">CallFlow</span>
+          <img src={logoUrl} alt={appName} className="w-8 h-8 object-contain" />
+          <span className="font-display font-semibold text-sidebar-foreground">{appName}</span>
         </div>
         <Button
           variant="ghost"
@@ -108,10 +112,8 @@ export function AppSidebar() {
       <aside className="hidden lg:flex fixed left-0 top-0 bottom-0 w-64 bg-sidebar border-r border-sidebar-border flex-col z-40">
         {/* Logo */}
         <div className="h-16 flex items-center gap-3 px-6 border-b border-sidebar-border">
-          <div className="w-9 h-9 rounded-xl bg-sidebar-primary flex items-center justify-center">
-            <Phone className="w-5 h-5 text-sidebar-primary-foreground" />
-          </div>
-          <span className="font-display font-bold text-lg text-sidebar-foreground">CallFlow</span>
+          <img src={logoUrl} alt={appName} className="w-9 h-9 object-contain" />
+          <span className="font-display font-bold text-lg text-sidebar-foreground">{appName}</span>
         </div>
 
         {/* Navigation */}
