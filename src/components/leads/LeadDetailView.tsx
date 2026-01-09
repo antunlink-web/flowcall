@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   DropdownMenu,
@@ -36,6 +37,9 @@ import {
   Users,
   ChevronDown,
   UserRoundCog,
+  Pencil,
+  RotateCw,
+  Save,
 } from "lucide-react";
 import {
   Popover,
@@ -104,6 +108,9 @@ export function LeadDetailView({ leadId, onClose }: LeadDetailViewProps) {
   const [delegateOpen, setDelegateOpen] = useState(false);
   const [activityItems, setActivityItems] = useState<ActivityItem[]>([]);
   const [activityLoading, setActivityLoading] = useState(false);
+  const [rightTab, setRightTab] = useState("activity");
+  const [editData, setEditData] = useState<Record<string, any>>({});
+  const [editSaving, setEditSaving] = useState(false);
   const { toast } = useToast();
   const { user } = useAuth();
   const { sendDialRequest } = useDialRequest();
@@ -130,6 +137,7 @@ export function LeadDetailView({ leadId, onClose }: LeadDetailViewProps) {
     }
 
     setLead(data as Lead);
+    setEditData((data.data as Record<string, any>) || {}); // Initialize edit data
     if (data.lists) {
       setList(data.lists as unknown as List);
     }
@@ -145,6 +153,32 @@ export function LeadDetailView({ leadId, onClose }: LeadDetailViewProps) {
     }
     
     setLoading(false);
+  };
+
+  const handleSaveEditData = async () => {
+    if (!lead) return;
+    
+    setEditSaving(true);
+    const { error } = await supabase
+      .from("leads")
+      .update({ 
+        data: editData,
+        updated_at: new Date().toISOString()
+      })
+      .eq("id", lead.id);
+
+    setEditSaving(false);
+    
+    if (error) {
+      toast({ title: "Failed to save changes", variant: "destructive" });
+    } else {
+      toast({ title: "Lead updated successfully" });
+      fetchLead();
+    }
+  };
+
+  const handleEditFieldChange = (key: string, value: string) => {
+    setEditData(prev => ({ ...prev, [key]: value }));
   };
 
   const fetchAgents = async () => {
@@ -732,7 +766,7 @@ export function LeadDetailView({ leadId, onClose }: LeadDetailViewProps) {
         <div className="w-[400px] border-l bg-muted/10">
           {/* Tabs Header */}
           <div className="border-b px-4 py-2">
-            <Tabs defaultValue="activity">
+            <Tabs value={rightTab} onValueChange={setRightTab}>
               <div className="flex items-center justify-between">
                 <TabsList className="bg-transparent h-auto p-0 gap-4">
                   <TabsTrigger 
@@ -747,120 +781,217 @@ export function LeadDetailView({ leadId, onClose }: LeadDetailViewProps) {
                   >
                     Colleagues <Badge variant="secondary" className="ml-1 text-xs">0</Badge>
                   </TabsTrigger>
+                  <TabsTrigger 
+                    value="edit" 
+                    className="px-0 py-1 text-sm rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent"
+                  >
+                    <Pencil className="w-4 h-4" />
+                  </TabsTrigger>
                 </TabsList>
                 <Button variant="ghost" size="icon" className="h-6 w-6">
                   <ExternalLink className="w-4 h-4" />
                 </Button>
               </div>
-            </Tabs>
-          </div>
 
-          {/* Stats Cards */}
-          <div className="grid grid-cols-3 gap-2 p-4">
-            <div className="border rounded-lg p-3 bg-background text-center">
-              <div className="flex items-center justify-center gap-2">
-                <span className="text-2xl font-bold">{lead.call_attempts}</span>
-                <Phone className="w-5 h-5 text-red-500" />
-              </div>
-              <p className="text-xs text-muted-foreground mt-1">Call attempts</p>
-            </div>
-            <div className="border rounded-lg p-3 bg-background text-center">
-              <div className="flex items-center justify-center gap-2">
-                <span className="text-2xl font-bold">{emailCount}</span>
-                <Mail className="w-5 h-5 text-red-500" />
-              </div>
-              <p className="text-xs text-muted-foreground mt-1">E-mails</p>
-            </div>
-            <div className="border rounded-lg p-3 bg-background text-center">
-              <div className="flex items-center justify-center gap-2">
-                <span className="text-2xl font-bold">{currentTime}</span>
-                <Clock className="w-5 h-5 text-primary" />
-              </div>
-              <p className="text-xs text-muted-foreground mt-1">Local time</p>
-            </div>
-          </div>
-
-          {/* Activity Feed */}
-          <div className="px-4 pb-4 space-y-3 max-h-[400px] overflow-y-auto">
-            {activityLoading ? (
-              <div className="flex items-center justify-center py-8">
-                <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
-              </div>
-            ) : activityItems.length === 0 ? (
-              <p className="text-sm text-muted-foreground text-center py-4">
-                No activity recorded yet
-              </p>
-            ) : (
-              activityItems.map((item) => (
-                <div key={item.id} className="flex gap-3 p-3 border rounded-lg bg-background">
-                  <div className={`w-10 h-10 rounded flex items-center justify-center flex-shrink-0 ${
-                    item.type === "call" 
-                      ? item.outcome?.toLowerCase().includes("won") || item.outcome?.toLowerCase().includes("winner")
-                        ? "bg-green-100"
-                        : item.outcome?.toLowerCase().includes("lost") || item.outcome?.toLowerCase().includes("loser")
-                        ? "bg-red-100"
-                        : "bg-orange-100"
-                      : item.type === "email"
-                      ? "bg-blue-100"
-                      : "bg-purple-100"
-                  }`}>
-                    {item.type === "call" ? (
-                      item.outcome?.toLowerCase().includes("won") || item.outcome?.toLowerCase().includes("winner") ? (
-                        <ThumbsUp className="w-5 h-5 text-green-600" />
-                      ) : item.outcome?.toLowerCase().includes("lost") || item.outcome?.toLowerCase().includes("loser") ? (
-                        <ThumbsDown className="w-5 h-5 text-red-600" />
-                      ) : (
-                        <Phone className="w-5 h-5 text-orange-600" />
-                      )
-                    ) : item.type === "email" ? (
-                      <Mail className="w-5 h-5 text-blue-600" />
-                    ) : (
-                      <MessageSquare className="w-5 h-5 text-purple-600" />
-                    )}
+              {/* Activity Tab Content */}
+              <TabsContent value="activity" className="mt-0">
+                {/* Stats Cards */}
+                <div className="grid grid-cols-3 gap-2 p-4">
+                  <div className="border rounded-lg p-3 bg-background text-center">
+                    <div className="flex items-center justify-center gap-2">
+                      <span className="text-2xl font-bold">{lead.call_attempts}</span>
+                      <Phone className="w-5 h-5 text-red-500" />
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-1">Call attempts</p>
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="font-medium text-sm">
-                      {item.type === "call" && (
-                        <>
-                          <span className="capitalize">{item.outcome}</span>
-                          <span className="text-muted-foreground font-normal"> by {item.user_name}</span>
-                        </>
-                      )}
-                      {item.type === "email" && (
-                        <>
-                          Email sent
-                          <span className="text-muted-foreground font-normal"> by {item.user_name}</span>
-                        </>
-                      )}
-                      {item.type === "sms" && (
-                        <>
-                          SMS sent
-                          <span className="text-muted-foreground font-normal"> by {item.user_name}</span>
-                        </>
-                      )}
-                    </p>
-                    {item.notes && (
-                      <p className="text-sm text-muted-foreground mt-1 break-words">
-                        "{item.notes}"
-                      </p>
-                    )}
-                    {item.subject && (
-                      <p className="text-sm text-muted-foreground mt-1 truncate">
-                        Subject: {item.subject}
-                      </p>
-                    )}
-                    {item.message && (
-                      <p className="text-sm text-muted-foreground mt-1 truncate">
-                        "{item.message}"
-                      </p>
-                    )}
-                    <p className="text-xs text-muted-foreground mt-1">
-                      {format(new Date(item.created_at), "dd-MM-yyyy HH:mm")} ({formatDistanceToNow(new Date(item.created_at))} ago)
-                    </p>
+                  <div className="border rounded-lg p-3 bg-background text-center">
+                    <div className="flex items-center justify-center gap-2">
+                      <span className="text-2xl font-bold">{emailCount}</span>
+                      <Mail className="w-5 h-5 text-red-500" />
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-1">E-mails</p>
+                  </div>
+                  <div className="border rounded-lg p-3 bg-background text-center">
+                    <div className="flex items-center justify-center gap-2">
+                      <span className="text-2xl font-bold">{currentTime}</span>
+                      <Clock className="w-5 h-5 text-primary" />
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-1">Local time</p>
                   </div>
                 </div>
-              ))
-            )}
+
+                {/* Activity Feed */}
+                <div className="px-4 pb-4 space-y-3 max-h-[400px] overflow-y-auto">
+                  {activityLoading ? (
+                    <div className="flex items-center justify-center py-8">
+                      <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
+                    </div>
+                  ) : activityItems.length === 0 ? (
+                    <p className="text-sm text-muted-foreground text-center py-4">
+                      No activity recorded yet
+                    </p>
+                  ) : (
+                    activityItems.map((item) => (
+                      <div key={item.id} className="flex gap-3 p-3 border rounded-lg bg-background">
+                        <div className={`w-10 h-10 rounded flex items-center justify-center flex-shrink-0 ${
+                          item.type === "call" 
+                            ? item.outcome?.toLowerCase().includes("won") || item.outcome?.toLowerCase().includes("winner")
+                              ? "bg-green-100"
+                              : item.outcome?.toLowerCase().includes("lost") || item.outcome?.toLowerCase().includes("loser")
+                              ? "bg-red-100"
+                              : "bg-orange-100"
+                            : item.type === "email"
+                            ? "bg-blue-100"
+                            : "bg-purple-100"
+                        }`}>
+                          {item.type === "call" ? (
+                            item.outcome?.toLowerCase().includes("won") || item.outcome?.toLowerCase().includes("winner") ? (
+                              <ThumbsUp className="w-5 h-5 text-green-600" />
+                            ) : item.outcome?.toLowerCase().includes("lost") || item.outcome?.toLowerCase().includes("loser") ? (
+                              <ThumbsDown className="w-5 h-5 text-red-600" />
+                            ) : (
+                              <Phone className="w-5 h-5 text-orange-600" />
+                            )
+                          ) : item.type === "email" ? (
+                            <Mail className="w-5 h-5 text-blue-600" />
+                          ) : (
+                            <MessageSquare className="w-5 h-5 text-purple-600" />
+                          )}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium text-sm">
+                            {item.type === "call" && (
+                              <>
+                                <span className="capitalize">{item.outcome}</span>
+                                <span className="text-muted-foreground font-normal"> by {item.user_name}</span>
+                              </>
+                            )}
+                            {item.type === "email" && (
+                              <>
+                                Email sent
+                                <span className="text-muted-foreground font-normal"> by {item.user_name}</span>
+                              </>
+                            )}
+                            {item.type === "sms" && (
+                              <>
+                                SMS sent
+                                <span className="text-muted-foreground font-normal"> by {item.user_name}</span>
+                              </>
+                            )}
+                          </p>
+                          {item.notes && (
+                            <p className="text-sm text-muted-foreground mt-1 break-words">
+                              "{item.notes}"
+                            </p>
+                          )}
+                          {item.subject && (
+                            <p className="text-sm text-muted-foreground mt-1 truncate">
+                              Subject: {item.subject}
+                            </p>
+                          )}
+                          {item.message && (
+                            <p className="text-sm text-muted-foreground mt-1 truncate">
+                              "{item.message}"
+                            </p>
+                          )}
+                          <p className="text-xs text-muted-foreground mt-1">
+                            {format(new Date(item.created_at), "dd-MM-yyyy HH:mm")} ({formatDistanceToNow(new Date(item.created_at))} ago)
+                          </p>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </TabsContent>
+
+              {/* Colleagues Tab Content */}
+              <TabsContent value="colleagues" className="mt-0">
+                <div className="p-4">
+                  <p className="text-sm text-muted-foreground text-center py-8">
+                    No colleagues found for this lead
+                  </p>
+                </div>
+              </TabsContent>
+
+              {/* Edit Tab Content */}
+              <TabsContent value="edit" className="mt-0">
+                <div className="p-4 space-y-4 max-h-[500px] overflow-y-auto">
+                  {/* Save Button Top */}
+                  <div className="flex items-center justify-between">
+                    <Button 
+                      size="sm" 
+                      className="bg-red-500 hover:bg-red-600"
+                      onClick={handleSaveEditData}
+                      disabled={editSaving}
+                    >
+                      {editSaving ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : <Save className="w-4 h-4 mr-1" />}
+                      Save
+                    </Button>
+                    <Button 
+                      variant="ghost" 
+                      size="icon" 
+                      className="h-8 w-8"
+                      onClick={() => setEditData(lead?.data || {})}
+                      title="Reset changes"
+                    >
+                      <RotateCw className="w-4 h-4" />
+                    </Button>
+                  </div>
+
+                  {/* Edit Fields */}
+                  <div className="space-y-3">
+                    {list?.fields?.filter(f => f.show !== false).map((field) => (
+                      <div key={field.id} className="grid grid-cols-[100px_1fr] items-center gap-2">
+                        <label className="text-sm text-right text-muted-foreground truncate" title={field.name}>
+                          {field.name}
+                        </label>
+                        <Input
+                          value={editData[field.name] || ""}
+                          onChange={(e) => handleEditFieldChange(field.name, e.target.value)}
+                          className="h-9"
+                        />
+                      </div>
+                    ))}
+                    
+                    {/* If no list fields defined, show all data keys */}
+                    {(!list?.fields || list.fields.length === 0) && Object.keys(editData).filter(k => !k.startsWith("_")).map((key) => (
+                      <div key={key} className="grid grid-cols-[100px_1fr] items-center gap-2">
+                        <label className="text-sm text-right text-muted-foreground truncate" title={key}>
+                          {key}
+                        </label>
+                        <Input
+                          value={editData[key] || ""}
+                          onChange={(e) => handleEditFieldChange(key, e.target.value)}
+                          className="h-9"
+                        />
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Save Button Bottom */}
+                  <div className="flex items-center justify-between pt-2 border-t">
+                    <Button 
+                      size="sm" 
+                      className="bg-red-500 hover:bg-red-600"
+                      onClick={handleSaveEditData}
+                      disabled={editSaving}
+                    >
+                      {editSaving ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : <Save className="w-4 h-4 mr-1" />}
+                      Save
+                    </Button>
+                    <Button 
+                      variant="ghost" 
+                      size="icon" 
+                      className="h-8 w-8"
+                      onClick={() => setEditData(lead?.data || {})}
+                      title="Reset changes"
+                    >
+                      <RotateCw className="w-4 h-4" />
+                    </Button>
+                  </div>
+                </div>
+              </TabsContent>
+            </Tabs>
           </div>
         </div>
       </div>
