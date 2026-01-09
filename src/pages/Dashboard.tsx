@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { DashboardLayout } from "@/components/DashboardLayout";
+import { WelcomeContent } from "@/components/WelcomeContent";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -274,21 +275,7 @@ export default function Dashboard() {
             </div>
           </div>
         ) : (
-          // Welcome Tab Content
-          <div className="text-center py-12">
-            <h1 className="text-2xl font-semibold mb-4">Welcome to CallFlow</h1>
-            <p className="text-muted-foreground mb-6">
-              Get started by importing leads or creating a campaign.
-            </p>
-            <div className="flex gap-4 justify-center">
-              <Button onClick={() => navigate("/leads")}>
-                Manage Leads
-              </Button>
-              <Button variant="outline" onClick={() => navigate("/campaigns")}>
-                View Campaigns
-              </Button>
-            </div>
-          </div>
+          <WelcomeContent />
         )}
       </div>
     </DashboardLayout>
