@@ -337,7 +337,7 @@ export function LeadDetailView({ leadId, onClose }: LeadDetailViewProps) {
         </div>
       </div>
 
-      <div className="flex">
+      <div className="flex max-w-7xl mx-auto">
         {/* Left Column - Lead Info & Actions */}
         <div className="flex-1 p-6 space-y-6 max-w-2xl">
           {/* Lead Data Fields */}
