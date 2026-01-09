@@ -460,8 +460,12 @@ export function LeadDetailView({ leadId, onClose }: LeadDetailViewProps) {
   const getLeadEmails = (): string[] => {
     if (!lead?.data) return [];
     const emails: string[] = [];
+    const emailPatterns = ["email", "e-mail", "el. paštas", "paštas", "correo", "e-posta", "メール"];
     for (const [key, value] of Object.entries(lead.data)) {
-      if (key.toLowerCase().includes("email") && typeof value === "string" && value.trim()) {
+      const keyLower = key.toLowerCase();
+      const isEmailField = emailPatterns.some(pattern => keyLower.includes(pattern));
+      const looksLikeEmail = typeof value === "string" && value.includes("@") && value.includes(".");
+      if ((isEmailField || looksLikeEmail) && typeof value === "string" && value.trim()) {
         emails.push(value);
       }
     }
