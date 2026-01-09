@@ -132,8 +132,13 @@ export default function Preferences() {
 
   // Dialling state - load from localStorage
   const [dialler, setDialler] = useState(() => {
-    return localStorage.getItem("flowcall_dialler") || "default";
+    return localStorage.getItem("flowcall_dialler") || "flowcall-smart";
   });
+
+  // Password state
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [repeatPassword, setRepeatPassword] = useState("");
 
   // Working state
   const [alwaysShowTimer, setAlwaysShowTimer] = useState(true);
@@ -391,18 +396,33 @@ export default function Preferences() {
               <div className="grid gap-4 max-w-lg">
                 <div className="grid grid-cols-[150px_1fr] items-center gap-4">
                   <Label className="text-right">Current password</Label>
-                  <Input type="password" autoComplete="off" />
+                  <Input 
+                    type="password" 
+                    autoComplete="new-password"
+                    value={currentPassword}
+                    onChange={(e) => setCurrentPassword(e.target.value)}
+                  />
                 </div>
                 <div className="grid grid-cols-[150px_1fr] items-center gap-4">
                   <Label className="text-right">New password</Label>
-                  <Input type="password" />
+                  <Input 
+                    type="password" 
+                    autoComplete="new-password"
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                  />
                 </div>
                 <p className="text-sm text-muted-foreground ml-[166px]">
                   must have at least 12 characters, one lower-case letter, one upper-case letter and one number
                 </p>
                 <div className="grid grid-cols-[150px_1fr] items-center gap-4">
                   <Label className="text-right">Repeat new password</Label>
-                  <Input type="password" />
+                  <Input 
+                    type="password" 
+                    autoComplete="new-password"
+                    value={repeatPassword}
+                    onChange={(e) => setRepeatPassword(e.target.value)}
+                  />
                 </div>
               </div>
               <Button className="mt-4 bg-[hsl(200,50%,45%)] hover:bg-[hsl(200,50%,40%)]">
