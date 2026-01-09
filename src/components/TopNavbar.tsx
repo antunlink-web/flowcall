@@ -1,6 +1,7 @@
 import { NavLink, useLocation, Link } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
+import callstackLogo from "@/assets/callstack-logo.png";
 import { useUserRole } from "@/hooks/useUserRole";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -336,9 +337,15 @@ export function TopNavbar() {
   return (
     <>
       {/* Main Top Navbar */}
-      <header className="fixed top-0 left-0 right-0 h-14 bg-secondary z-50 flex items-center px-4 text-secondary-foreground shadow-md">
-        {/* Left Section - Search & Home */}
-        <div className="flex items-center gap-1">
+      <header className="fixed top-0 left-0 right-0 h-14 bg-sidebar z-50 flex items-center px-4 text-sidebar-foreground shadow-md">
+        {/* Left Section - Logo, Name, Search & Home */}
+        <div className="flex items-center gap-4">
+          {/* Logo and Brand Name */}
+          <Link to="/" className="flex items-center gap-2">
+            <img src={callstackLogo} alt="CallStack" className="h-7 w-7" />
+            <span className="text-lg font-semibold tracking-tight hidden sm:inline">CallStack</span>
+          </Link>
+
           {/* Search Field with Dropdown */}
           <div className="relative">
             <input
@@ -346,7 +353,7 @@ export function TopNavbar() {
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search..."
-              className="w-40 md:w-48 h-7 px-2 text-sm bg-white border border-white/20 rounded text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-white/40"
+              className="w-40 md:w-48 h-7 px-2 text-sm bg-sidebar-accent border border-sidebar-border rounded text-sidebar-foreground placeholder:text-sidebar-muted focus:outline-none focus:ring-2 focus:ring-sidebar-primary"
             />
             {searchQuery.length >= 2 && (
               <div className="absolute top-full left-0 mt-1 w-[500px] bg-popover text-popover-foreground border rounded-md shadow-md outline-none z-[60] animate-in fade-in-0 zoom-in-95">
@@ -402,7 +409,7 @@ export function TopNavbar() {
 
           {/* Home Icon */}
           <NavLink to="/">
-            <Button variant="ghost" size="icon" className="text-secondary-foreground/90 hover:text-secondary-foreground hover:bg-secondary-foreground/10 h-9 w-9">
+            <Button variant="ghost" size="icon" className="text-sidebar-foreground/90 hover:text-sidebar-foreground hover:bg-sidebar-accent h-9 w-9">
               <Home className="w-5 h-5" />
             </Button>
           </NavLink>
@@ -416,8 +423,8 @@ export function TopNavbar() {
                 className={cn(
                   "px-4 py-2 text-sm font-medium transition-colors rounded-md",
                   location.pathname === item.to || location.pathname.startsWith(item.to + "/") || (item.to === "/work" && location.pathname === "/")
-                    ? "text-secondary-foreground bg-secondary-foreground/10"
-                    : "text-secondary-foreground/70 hover:text-secondary-foreground hover:bg-secondary-foreground/5"
+                    ? "text-sidebar-foreground bg-sidebar-accent"
+                    : "text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent"
                 )}
               >
                 {item.label}
@@ -435,7 +442,7 @@ export function TopNavbar() {
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="text-secondary-foreground/70 hover:text-secondary-foreground hover:bg-secondary-foreground/10 h-9 w-9"
+                  className="text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent h-9 w-9"
                   title="History"
                 >
                   <History className="w-5 h-5" />
@@ -494,7 +501,7 @@ export function TopNavbar() {
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="text-secondary-foreground/70 hover:text-secondary-foreground hover:bg-secondary-foreground/10 h-9 w-9"
+                  className="text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent h-9 w-9"
                   title="Scheduled leads"
                 >
                   <Calendar className="w-5 h-5" />
@@ -543,7 +550,7 @@ export function TopNavbar() {
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="text-secondary-foreground/70 hover:text-secondary-foreground hover:bg-secondary-foreground/10 h-9 w-9"
+                  className="text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent h-9 w-9"
                   title="Currently working/locked by you"
                 >
                   <Lock className="w-5 h-5" />
@@ -599,7 +606,7 @@ export function TopNavbar() {
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="text-secondary-foreground/70 hover:text-secondary-foreground hover:bg-secondary-foreground/10 h-9 w-9"
+                  className="text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent h-9 w-9"
                   title="Timers"
                 >
                   <Clock className="w-5 h-5" />
@@ -630,7 +637,7 @@ export function TopNavbar() {
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="text-secondary-foreground/70 hover:text-secondary-foreground hover:bg-secondary-foreground/10 h-9 w-9"
+                  className="text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent h-9 w-9"
                   title="Alerts"
                 >
                   <AlertTriangle className="w-5 h-5" />
@@ -651,7 +658,7 @@ export function TopNavbar() {
           </div>
 
           {/* Help */}
-          <Button variant="ghost" size="sm" className="text-secondary-foreground/70 hover:text-secondary-foreground hover:bg-secondary-foreground/10 gap-1 h-9 hidden md:flex">
+          <Button variant="ghost" size="sm" className="text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent gap-1 h-9 hidden md:flex">
             <HelpCircle className="w-5 h-5" />
             Help
           </Button>
@@ -659,12 +666,12 @@ export function TopNavbar() {
           {/* User Menu */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="sm" className="text-secondary-foreground/90 hover:text-secondary-foreground hover:bg-secondary-foreground/10 gap-1 h-11 ml-2">
-                <Avatar className="w-9 h-9 rounded-lg ring-2 ring-secondary-foreground/20">
+              <Button variant="ghost" size="sm" className="text-sidebar-foreground/90 hover:text-sidebar-foreground hover:bg-sidebar-accent gap-1 h-11 ml-2">
+                <Avatar className="w-9 h-9 rounded-lg ring-2 ring-sidebar-foreground/20">
                   {avatarUrl ? (
                     <AvatarImage src={avatarUrl} className="object-cover rounded-lg" />
                   ) : (
-                    <AvatarFallback className="bg-primary text-primary-foreground text-sm rounded-lg">
+                    <AvatarFallback className="bg-sidebar-primary text-sidebar-primary-foreground text-sm rounded-lg">
                       {userInitials}
                     </AvatarFallback>
                   )}
@@ -705,7 +712,7 @@ export function TopNavbar() {
             variant="ghost"
             size="icon"
             onClick={() => setMobileOpen(!mobileOpen)}
-            className="md:hidden text-secondary-foreground/90 hover:text-secondary-foreground hover:bg-secondary-foreground/10 h-9 w-9"
+            className="md:hidden text-sidebar-foreground/90 hover:text-sidebar-foreground hover:bg-sidebar-accent h-9 w-9"
           >
             {mobileOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
           </Button>
