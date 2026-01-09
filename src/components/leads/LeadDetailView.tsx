@@ -548,6 +548,7 @@ export function LeadDetailView({ leadId, onClose }: LeadDetailViewProps) {
           subject: emailSubject,
           body: emailBody,
           leadId: lead.id,
+          listId: lead.list_id,
         },
       });
 
