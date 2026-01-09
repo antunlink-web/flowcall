@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { SMTPClient } from "https://deno.land/x/denomailer@1.6.0/mod.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -58,64 +59,31 @@ serve(async (req: Request) => {
 
     console.log(`Sending email to ${to} via ${smtpSettings.host}:${smtpSettings.port}`);
 
-    // Build email content
-    const emailContent = `From: ${smtpSettings.from_name ? `"${smtpSettings.from_name}" <${smtpSettings.from_email}>` : smtpSettings.from_email}
-To: ${to}
-Subject: ${subject}
-MIME-Version: 1.0
-Content-Type: text/html; charset=UTF-8
-
-${body.replace(/\n/g, "<br>")}`;
-
-    // Connect to SMTP server using Deno's built-in TLS
-    const conn = smtpSettings.use_tls
-      ? await Deno.connectTls({
-          hostname: smtpSettings.host,
-          port: smtpSettings.port,
-        })
-      : await Deno.connect({
-          hostname: smtpSettings.host,
-          port: smtpSettings.port,
-        });
-
-    const encoder = new TextEncoder();
-    const decoder = new TextDecoder();
-
-    // Helper to send command and read response
-    const sendCommand = async (command: string) => {
-      await conn.write(encoder.encode(command + "\r\n"));
-      const buffer = new Uint8Array(1024);
-      const bytesRead = await conn.read(buffer);
-      const response = decoder.decode(buffer.subarray(0, bytesRead ?? 0));
-      console.log(`SMTP: ${command.startsWith("AUTH") ? "AUTH ***" : command} -> ${response.trim()}`);
-      return response;
-    };
-
-    // Read initial greeting
-    const greeting = new Uint8Array(1024);
-    await conn.read(greeting);
-    console.log("SMTP greeting:", decoder.decode(greeting).trim());
-
-    // SMTP conversation
-    await sendCommand(`EHLO localhost`);
-    
-    // Authenticate
-    const authString = btoa(`\x00${smtpSettings.username}\x00${smtpSettings.password}`);
-    const authResponse = await sendCommand(`AUTH PLAIN ${authString}`);
-    
-    if (!authResponse.startsWith("235")) {
-      conn.close();
-      throw new Error("SMTP authentication failed. Please check your username and password.");
-    }
+    // Create SMTP client using denomailer
+    const client = new SMTPClient({
+      connection: {
+        hostname: smtpSettings.host,
+        port: smtpSettings.port,
+        tls: smtpSettings.use_tls,
+        auth: {
+          username: smtpSettings.username,
+          password: smtpSettings.password,
+        },
+      },
+    });
 
     // Send email
-    await sendCommand(`MAIL FROM:<${smtpSettings.from_email}>`);
-    await sendCommand(`RCPT TO:<${to}>`);
-    await sendCommand("DATA");
-    await sendCommand(emailContent + "\r\n.");
-    await sendCommand("QUIT");
+    await client.send({
+      from: smtpSettings.from_name 
+        ? `${smtpSettings.from_name} <${smtpSettings.from_email}>` 
+        : smtpSettings.from_email,
+      to: to,
+      subject: subject,
+      content: "auto",
+      html: body.replace(/\n/g, "<br>"),
+    });
 
-    conn.close();
+    await client.close();
 
     console.log("Email sent successfully");
 
