@@ -474,18 +474,18 @@ export function LeadDetailView({ leadId, onClose }: LeadDetailViewProps) {
 
   const getLeadEmail = () => {
     const emails = getLeadEmails();
-    return selectedEmailTo || emails[0] || "";
+    // Only return selectedEmailTo if it's actually in current lead's emails
+    if (selectedEmailTo && emails.includes(selectedEmailTo)) {
+      return selectedEmailTo;
+    }
+    return emails[0] || "";
   };
 
-  // Set initial email when lead loads
+  // Reset and set initial email when lead changes
   useEffect(() => {
-    if (lead?.data) {
-      const emails = getLeadEmails();
-      if (emails.length > 0 && !selectedEmailTo) {
-        setSelectedEmailTo(emails[0]);
-      }
-    }
-  }, [lead]);
+    const emails = getLeadEmails();
+    setSelectedEmailTo(emails[0] || "");
+  }, [lead?.id]);
 
   const getLeadFirstName = () => {
     if (!lead?.data) return "";
