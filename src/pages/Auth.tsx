@@ -99,7 +99,7 @@ export default function Auth() {
           <div className="flex items-center justify-center gap-2">
             <img src={callstackLogo} alt="CallStack" className="h-14 w-auto" />
           </div>
-          <h1 className="text-3xl font-display font-bold text-foreground">CallFlow CRM</h1>
+          <h1 className="text-3xl font-display font-bold text-foreground">CallStack CRM</h1>
           <p className="text-muted-foreground">Cold calling made simple for teams</p>
         </div>
 
