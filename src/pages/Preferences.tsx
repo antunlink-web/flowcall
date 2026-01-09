@@ -14,7 +14,8 @@ import {
   Inbox,
   ChevronRight,
   Upload,
-  X
+  X,
+  Smartphone
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -60,8 +61,10 @@ export default function Preferences() {
   const [notifyInvoices, setNotifyInvoices] = useState(true);
   const [notifyBalance, setNotifyBalance] = useState(true);
 
-  // Dialling state
-  const [dialler, setDialler] = useState("default");
+  // Dialling state - load from localStorage
+  const [dialler, setDialler] = useState(() => {
+    return localStorage.getItem("flowcall_dialler") || "default";
+  });
 
   // Working state
   const [alwaysShowTimer, setAlwaysShowTimer] = useState(true);
@@ -163,6 +166,7 @@ export default function Preferences() {
   };
 
   const handleSaveDialling = () => {
+    localStorage.setItem("flowcall_dialler", dialler);
     toast.success("Dialling settings saved");
   };
 
@@ -436,21 +440,41 @@ export default function Preferences() {
         return (
           <div className="space-y-8">
             <div className="grid gap-4 max-w-lg">
-              <div className="grid grid-cols-[120px_1fr] items-center gap-4">
-                <Label className="text-right">Dialler</Label>
-                <Select value={dialler} onValueChange={setDialler}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="default">Default softphone</SelectItem>
-                    <SelectItem value="skype">Skype</SelectItem>
-                    <SelectItem value="zoiper">Zoiper</SelectItem>
-                    <SelectItem value="tel">Other/tel protocol</SelectItem>
-                    <SelectItem value="sip">Other/sip protocol</SelectItem>
-                    <SelectItem value="none">None (Don't turn phone numbers into links)</SelectItem>
-                  </SelectContent>
-                </Select>
+              <div className="grid grid-cols-[120px_1fr] items-start gap-4">
+                <Label className="text-right pt-2">Dialler</Label>
+                <div className="space-y-2">
+                  <Select value={dialler} onValueChange={setDialler}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="flowcall-smart">FlowCall Smart</SelectItem>
+                      <SelectItem value="default">Default softphone</SelectItem>
+                      <SelectItem value="skype">Skype</SelectItem>
+                      <SelectItem value="zoiper">Zoiper</SelectItem>
+                      <SelectItem value="tel">Other/tel protocol</SelectItem>
+                      <SelectItem value="sip">Other/sip protocol</SelectItem>
+                      <SelectItem value="none">None (Don't turn phone numbers into links)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  {dialler === "flowcall-smart" && (
+                    <div className="p-3 bg-primary/5 border border-primary/20 rounded-md">
+                      <p className="text-sm font-medium text-primary mb-1">FlowCall Smart Dialer</p>
+                      <p className="text-sm text-muted-foreground">
+                        Dial numbers from your PC through your Android phone. Install the companion app on your phone and keep it open to receive dial requests.
+                      </p>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="mt-2"
+                        onClick={() => window.open("/install", "_blank")}
+                      >
+                        <Smartphone className="w-4 h-4 mr-2" />
+                        Install Companion App
+                      </Button>
+                    </div>
+                  )}
+                </div>
               </div>
               <div className="grid grid-cols-[120px_1fr] items-center gap-4">
                 <Label className="text-right">Prepend phone</Label>
