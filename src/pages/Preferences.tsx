@@ -1,4 +1,5 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
+import { QRCodeSVG } from "qrcode.react";
 import { useAuth } from "@/hooks/useAuth";
 import { useConnectedDevices } from "@/hooks/useConnectedDevices";
 import { DashboardLayout } from "@/components/DashboardLayout";
@@ -37,12 +38,31 @@ import { formatDistanceToNow } from "date-fns";
 function FlowCallSmartSection() {
   const { devices, onlineDevices, loading, isDeviceOnline } = useConnectedDevices();
   
+  // Generate QR code URL for the dialer page
+  const dialerUrl = useMemo(() => {
+    const baseUrl = window.location.origin;
+    return `${baseUrl}/dialer`;
+  }, []);
+  
   return (
     <div className="p-3 bg-primary/5 border border-primary/20 rounded-md space-y-3">
       <div>
         <p className="text-sm font-medium text-primary mb-1">FlowCall Smart</p>
         <p className="text-sm text-muted-foreground">
-          Dial numbers and send SMS from your PC through your phone. Install the companion app on your phone and keep it open.
+          Dial numbers and send SMS from your PC through your phone. Scan the QR code below with your phone to open the companion app.
+        </p>
+      </div>
+      
+      {/* QR Code */}
+      <div className="flex flex-col items-center py-4 bg-white rounded-md">
+        <QRCodeSVG 
+          value={dialerUrl} 
+          size={160}
+          level="M"
+          includeMargin={false}
+        />
+        <p className="text-xs text-muted-foreground mt-2 text-center">
+          Scan with your phone camera
         </p>
       </div>
       
