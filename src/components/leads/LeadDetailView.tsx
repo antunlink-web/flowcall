@@ -1132,7 +1132,7 @@ export function LeadDetailView({ leadId, onClose }: LeadDetailViewProps) {
                                 {item.subject}
                               </p>
                               {item.body && (
-                                <p className="text-sm text-muted-foreground break-words whitespace-pre-wrap line-clamp-3">
+                                <p className="text-sm text-muted-foreground break-words whitespace-pre-wrap">
                                   {item.body}
                                 </p>
                               )}
