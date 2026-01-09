@@ -408,11 +408,12 @@ export function TopNavbar() {
           </div>
 
           {/* Home Icon */}
-          <NavLink to="/">
-            <Button variant="ghost" size="icon" className="text-sidebar-foreground/90 hover:text-sidebar-foreground hover:bg-sidebar-accent h-9 w-9">
-              <Home className="w-5 h-5" />
-            </Button>
-          </NavLink>
+          <Link 
+            to="/" 
+            className="inline-flex items-center justify-center text-sidebar-foreground/90 hover:text-sidebar-foreground hover:bg-sidebar-accent h-9 w-9 rounded-md transition-colors"
+          >
+            <Home className="w-5 h-5" />
+          </Link>
 
           {/* Main Nav Links */}
           <nav className="hidden md:flex items-center ml-2">
