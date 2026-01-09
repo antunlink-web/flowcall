@@ -73,6 +73,7 @@ import { useListTemplates, EmailTemplate, SmsTemplate, CallScript, ListEmailConf
 import { CreateListDialog } from "@/components/lists/CreateListDialog";
 import { FieldsEditor } from "@/components/lists/FieldsEditor";
 import { ImportLeadsDialog } from "@/components/lists/ImportLeadsDialog";
+import { EmailTemplateEditor } from "@/components/lists/EmailTemplateEditor";
 
 import { format } from "date-fns";
 import {
@@ -1105,6 +1106,28 @@ export default function ManageLists() {
         );
 
       case "emails":
+        // Show full-page editor when creating or editing a template
+        if (showEmailTemplateDialog || editingEmailTemplate) {
+          return (
+            <EmailTemplateEditor
+              templateName={templateName}
+              templateSubject={templateSubject}
+              templateBody={templateBody}
+              onNameChange={setTemplateName}
+              onSubjectChange={setTemplateSubject}
+              onBodyChange={setTemplateBody}
+              fields={editedFields}
+              onSave={handleEmailTemplateSubmit}
+              onCancel={() => {
+                resetTemplateForm();
+                setShowEmailTemplateDialog(false);
+              }}
+              isEditing={!!editingEmailTemplate}
+              previewData={previewLead}
+            />
+          );
+        }
+
         return (
           <div className="space-y-6">
             <div className="bg-muted/50 border border-border rounded p-4 text-sm">
@@ -1603,63 +1626,6 @@ export default function ManageLists() {
           listFields={editedFields}
           onImport={handleImportLeads}
         />
-
-        {/* Email Template Dialog */}
-        <Dialog open={showEmailTemplateDialog} onOpenChange={setShowEmailTemplateDialog}>
-          <DialogContent className="max-w-2xl">
-            <DialogHeader>
-              <DialogTitle>{editingEmailTemplate ? "Edit Email Template" : "New Email Template"}</DialogTitle>
-              <DialogDescription>
-                Create an email template for this list. Use merge tags to personalize emails.
-              </DialogDescription>
-            </DialogHeader>
-            <div className="space-y-4 py-4">
-              <div className="space-y-2">
-                <Label>Template Name</Label>
-                <Input
-                  value={templateName}
-                  onChange={(e) => setTemplateName(e.target.value)}
-                  placeholder="e.g., Follow Up Email"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>Subject</Label>
-                <Input
-                  value={templateSubject}
-                  onChange={(e) => setTemplateSubject(e.target.value)}
-                  placeholder="e.g., Following up on our conversation"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>Body</Label>
-                <Textarea
-                  value={templateBody}
-                  onChange={(e) => setTemplateBody(e.target.value)}
-                  placeholder="Write your email body here..."
-                  className="min-h-[200px]"
-                />
-              </div>
-              <div className="border border-border rounded-lg p-3 bg-muted/30">
-                <p className="text-sm font-medium mb-2">Available merge tags:</p>
-                <div className="flex flex-wrap gap-2">
-                  {editedFields.map((field) => (
-                    <code key={field.id} className="bg-background px-2 py-1 rounded text-xs border">
-                      {"{{" + field.name.toLowerCase().replace(/\s+/g, "_") + "}}"}
-                    </code>
-                  ))}
-                </div>
-              </div>
-            </div>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setShowEmailTemplateDialog(false)}>
-                Cancel
-              </Button>
-              <Button onClick={handleEmailTemplateSubmit} disabled={!templateName}>
-                {editingEmailTemplate ? "Save Changes" : "Create Template"}
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
 
         {/* SMS Template Dialog */}
         <Dialog open={showSmsTemplateDialog} onOpenChange={setShowSmsTemplateDialog}>
