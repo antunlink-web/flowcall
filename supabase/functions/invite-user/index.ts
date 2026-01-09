@@ -48,16 +48,18 @@ serve(async (req: Request) => {
       );
     }
 
-    // Check if the requesting user is an admin
+    // Check if the requesting user is an owner or account_manager
     const { data: roleData } = await supabaseAdmin
       .from("user_roles")
       .select("role")
-      .eq("user_id", requestingUser.id)
-      .single();
+      .eq("user_id", requestingUser.id);
 
-    if (roleData?.role !== "admin") {
+    const userRoles = roleData?.map(r => r.role) || [];
+    const canInvite = userRoles.includes("owner") || userRoles.includes("account_manager");
+
+    if (!canInvite) {
       return new Response(
-        JSON.stringify({ error: "Only admins can invite users" }),
+        JSON.stringify({ error: "Only owners and account managers can invite users" }),
         { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
