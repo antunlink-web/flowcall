@@ -353,72 +353,66 @@ export default function Work() {
                 </Card>
               ) : (
                 lists.map((list) => (
-                  <Card key={list.id} className="hover:shadow-md transition-shadow">
-                    <CardContent className="p-6">
-                      <div className="flex items-start justify-between">
-                        <div className="flex-1">
-                          {/* List Name */}
-                          <div className="flex items-center gap-3 mb-1">
-                            <h3 className="text-sm font-semibold text-primary uppercase tracking-wide">
-                              {list.name}
-                            </h3>
-                            <button className="text-muted-foreground hover:text-warning transition-colors">
-                              <Star className="w-5 h-5" />
-                            </button>
-                          </div>
+                  <Card key={list.id} className="hover:shadow-sm transition-shadow">
+                    <CardContent className="p-4">
+                      {/* Row 1: Name + Star */}
+                      <div className="flex items-center justify-between mb-1">
+                        <h3 className="text-sm font-semibold text-primary uppercase tracking-wide">
+                          {list.name}
+                        </h3>
+                        <button className="text-muted-foreground hover:text-warning transition-colors">
+                          <Star className="w-4 h-4" />
+                        </button>
+                      </div>
 
-                          {/* Stats Row */}
-                          <div className="flex items-center gap-2 text-xs text-muted-foreground mb-4">
-                            <span>{list.totalLeads.toLocaleString()} TOTAL</span>
-                            <ArrowRight className="w-3 h-3" />
-                            <span>{list.donePercentage.toFixed(2)}% DONE</span>
-                            <ArrowRight className="w-3 h-3" />
-                            <span>{list.queuedNow}+ QUEUED NOW</span>
-                          </div>
+                      {/* Row 2: Stats */}
+                      <div className="flex items-center gap-1.5 text-xs text-muted-foreground mb-2">
+                        <span>{list.totalLeads.toLocaleString()} TOTAL</span>
+                        <ArrowRight className="w-3 h-3" />
+                        <span>{list.donePercentage.toFixed(2)}% DONE</span>
+                        <ArrowRight className="w-3 h-3" />
+                        <span>{list.queuedNow > 1000 ? "1000+" : list.queuedNow} QUEUED NOW</span>
+                      </div>
 
-                          {/* Followups */}
-                          <div className="flex items-center gap-4">
-                            <div className="flex items-baseline gap-2">
-                              <span className="text-3xl font-light">{list.followupsNow}</span>
-                              <span className="text-sm text-muted-foreground">
-                                Followups now, {list.followupsLater} later today
-                              </span>
-                            </div>
-                          </div>
+                      {/* Row 3: Followups */}
+                      <div className="flex items-baseline gap-1.5 mb-2">
+                        <span className="text-2xl font-light">{list.followupsNow}</span>
+                        <span className="text-sm text-muted-foreground">
+                          Followups now, {list.followupsLater} later today
+                        </span>
+                      </div>
 
-                          {/* Due Badge & Actions */}
-                          <div className="flex items-center justify-between mt-4">
-                            <Badge 
-                              variant="secondary" 
-                              className="bg-primary/10 text-primary border-0"
-                            >
-                              {list.dueCount} due
-                            </Badge>
+                      {/* Row 4: Badge + Actions */}
+                      <div className="flex items-center justify-between">
+                        <Badge 
+                          variant="secondary" 
+                          className="bg-primary/10 text-primary border-0 text-xs px-2 py-0.5"
+                        >
+                          {list.dueCount} due
+                        </Badge>
 
-                            <div className="flex items-center gap-2">
-                              <Button
-                                variant="outline"
-                                size="icon"
-                                onClick={() => handleStartCalling(list.id)}
-                                className="h-10 w-10"
-                              >
-                                <Phone className="w-4 h-4" />
+                        <div className="flex items-center border rounded">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleStartCalling(list.id)}
+                            className="h-8 w-8 rounded-none border-r"
+                          >
+                            <Phone className="w-4 h-4" />
+                          </Button>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" size="icon" className="h-8 w-8 rounded-none">
+                                <MoreHorizontal className="w-4 h-4" />
                               </Button>
-                              <DropdownMenu>
-                                <DropdownMenuTrigger asChild>
-                                  <Button variant="outline" size="icon" className="h-10 w-10">
-                                    <MoreHorizontal className="w-4 h-4" />
-                                  </Button>
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent align="end">
-                                  <DropdownMenuItem onClick={() => handleStartCalling(list.id)}>
-                                    Start Calling
-                                  </DropdownMenuItem>
-                                  <DropdownMenuItem>View Details</DropdownMenuItem>
-                                </DropdownMenuContent>
-                              </DropdownMenu>
-                            </div>
-                          </div>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem onClick={() => handleStartCalling(list.id)}>
+                                Start Calling
+                              </DropdownMenuItem>
+                              <DropdownMenuItem>View Details</DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
                         </div>
                       </div>
                     </CardContent>
