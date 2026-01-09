@@ -80,6 +80,19 @@ interface List {
   settings?: ListSettings;
 }
 
+interface ActivityItem {
+  id: string;
+  type: "call" | "email" | "sms";
+  created_at: string;
+  user_name: string | null;
+  outcome?: string;
+  notes?: string;
+  subject?: string;
+  body?: string;
+  message?: string;
+  duration_seconds?: number;
+}
+
 export function LeadDetailView({ leadId, onClose }: LeadDetailViewProps) {
   const [lead, setLead] = useState<Lead | null>(null);
   const [list, setList] = useState<List | null>(null);
@@ -89,6 +102,8 @@ export function LeadDetailView({ leadId, onClose }: LeadDetailViewProps) {
   const [claimedByName, setClaimedByName] = useState<string | null>(null);
   const [agents, setAgents] = useState<Array<{ id: string; full_name: string | null; email: string }>>([]);
   const [delegateOpen, setDelegateOpen] = useState(false);
+  const [activityItems, setActivityItems] = useState<ActivityItem[]>([]);
+  const [activityLoading, setActivityLoading] = useState(false);
   const { toast } = useToast();
   const { user } = useAuth();
   const { sendDialRequest } = useDialRequest();
@@ -97,6 +112,7 @@ export function LeadDetailView({ leadId, onClose }: LeadDetailViewProps) {
   useEffect(() => {
     fetchLead();
     fetchEmailCount();
+    fetchActivity();
   }, [leadId]);
 
   const fetchLead = async () => {
@@ -168,16 +184,103 @@ export function LeadDetailView({ leadId, onClose }: LeadDetailViewProps) {
     setEmailCount(count || 0);
   };
 
+  const fetchActivity = async () => {
+    setActivityLoading(true);
+    
+    // Fetch call logs
+    const { data: callLogs } = await supabase
+      .from("call_logs")
+      .select("id, created_at, outcome, notes, duration_seconds, user_id")
+      .eq("lead_id", leadId)
+      .order("created_at", { ascending: false });
+
+    // Fetch email logs
+    const { data: emailLogs } = await supabase
+      .from("email_logs")
+      .select("id, created_at, subject, body, user_id")
+      .eq("lead_id", leadId)
+      .order("created_at", { ascending: false });
+
+    // Fetch sms logs
+    const { data: smsLogs } = await supabase
+      .from("sms_logs")
+      .select("id, created_at, message, user_id")
+      .eq("lead_id", leadId)
+      .order("created_at", { ascending: false });
+
+    // Get unique user IDs
+    const userIds = new Set<string>();
+    callLogs?.forEach(l => userIds.add(l.user_id));
+    emailLogs?.forEach(l => userIds.add(l.user_id));
+    smsLogs?.forEach(l => userIds.add(l.user_id));
+
+    // Fetch user names
+    const userMap: Record<string, string> = {};
+    if (userIds.size > 0) {
+      const { data: profiles } = await supabase
+        .from("profiles")
+        .select("id, full_name, email")
+        .in("id", Array.from(userIds));
+      profiles?.forEach(p => {
+        userMap[p.id] = p.full_name || p.email;
+      });
+    }
+
+    // Combine and sort all activity
+    const items: ActivityItem[] = [];
+
+    callLogs?.forEach(log => {
+      items.push({
+        id: log.id,
+        type: "call",
+        created_at: log.created_at,
+        user_name: userMap[log.user_id] || "Unknown",
+        outcome: log.outcome,
+        notes: log.notes || undefined,
+        duration_seconds: log.duration_seconds || undefined,
+      });
+    });
+
+    emailLogs?.forEach(log => {
+      items.push({
+        id: log.id,
+        type: "email",
+        created_at: log.created_at,
+        user_name: userMap[log.user_id] || "Unknown",
+        subject: log.subject,
+        body: log.body,
+      });
+    });
+
+    smsLogs?.forEach(log => {
+      items.push({
+        id: log.id,
+        type: "sms",
+        created_at: log.created_at,
+        user_name: userMap[log.user_id] || "Unknown",
+        message: log.message,
+      });
+    });
+
+    // Sort by date descending
+    items.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+    
+    setActivityItems(items);
+    setActivityLoading(false);
+  };
+
   const handleStatusChange = async (newStatus: string, subcategory?: string) => {
-    if (!lead) return;
+    if (!lead || !user) return;
 
     const updateData: Record<string, any> = { 
       status: newStatus, 
-      updated_at: new Date().toISOString() 
+      updated_at: new Date().toISOString(),
+      call_attempts: lead.call_attempts + 1,
+      last_contacted_at: new Date().toISOString(),
     };
     
     // Claim the lead on status change if not already claimed
-    if (!lead.claimed_by && user) {
+    if (!lead.claimed_by) {
       updateData.claimed_by = user.id;
       updateData.claimed_at = new Date().toISOString();
     }
@@ -187,17 +290,35 @@ export function LeadDetailView({ leadId, onClose }: LeadDetailViewProps) {
       updateData.data = { ...lead.data, _subcategory: subcategory };
     }
 
-    const { error } = await supabase
+    // Update lead
+    const { error: leadError } = await supabase
       .from("leads")
       .update(updateData)
       .eq("id", lead.id);
 
-    if (error) {
+    if (leadError) {
       toast({ title: "Failed to update status", variant: "destructive" });
-    } else {
-      toast({ title: subcategory || `Status changed to ${newStatus}` });
-      fetchLead();
+      return;
     }
+
+    // Log the call with comment
+    const { error: logError } = await supabase
+      .from("call_logs")
+      .insert({
+        user_id: user.id,
+        lead_id: lead.id,
+        outcome: subcategory || newStatus,
+        notes: comment || null,
+      });
+
+    if (logError) {
+      console.error("Failed to log call:", logError);
+    }
+
+    toast({ title: subcategory || `Status changed to ${newStatus}` });
+    setComment(""); // Clear comment after submission
+    fetchLead();
+    fetchActivity(); // Refresh activity feed
   };
 
   // Parse categories from list settings
@@ -660,31 +781,85 @@ export function LeadDetailView({ leadId, onClose }: LeadDetailViewProps) {
           </div>
 
           {/* Activity Feed */}
-          <div className="px-4 pb-4">
-            {lead.status === "lost" || lead.status === "won" ? (
-              <div className="flex gap-3 p-3 border rounded-lg bg-background">
-                <div className={`w-10 h-10 rounded flex items-center justify-center ${
-                  lead.status === "lost" ? "bg-red-100" : "bg-green-100"
-                }`}>
-                  {lead.status === "lost" ? (
-                    <ThumbsDown className="w-5 h-5 text-red-600" />
-                  ) : (
-                    <ThumbsUp className="w-5 h-5 text-green-600" />
-                  )}
-                </div>
-                <div className="flex-1">
-                  <p className="font-medium text-sm">
-                    {lead.status === "lost" ? "Loser" : "Winner"} <span className="text-muted-foreground font-normal">by {claimedByName || "Unknown"}</span>
-                  </p>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    {format(new Date(lead.updated_at), "dd-MM-yyyy HH:mm")} ({formatDistanceToNow(new Date(lead.updated_at))} ago)
-                  </p>
-                </div>
+          <div className="px-4 pb-4 space-y-3 max-h-[400px] overflow-y-auto">
+            {activityLoading ? (
+              <div className="flex items-center justify-center py-8">
+                <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
               </div>
-            ) : (
+            ) : activityItems.length === 0 ? (
               <p className="text-sm text-muted-foreground text-center py-4">
                 No activity recorded yet
               </p>
+            ) : (
+              activityItems.map((item) => (
+                <div key={item.id} className="flex gap-3 p-3 border rounded-lg bg-background">
+                  <div className={`w-10 h-10 rounded flex items-center justify-center flex-shrink-0 ${
+                    item.type === "call" 
+                      ? item.outcome?.toLowerCase().includes("won") || item.outcome?.toLowerCase().includes("winner")
+                        ? "bg-green-100"
+                        : item.outcome?.toLowerCase().includes("lost") || item.outcome?.toLowerCase().includes("loser")
+                        ? "bg-red-100"
+                        : "bg-orange-100"
+                      : item.type === "email"
+                      ? "bg-blue-100"
+                      : "bg-purple-100"
+                  }`}>
+                    {item.type === "call" ? (
+                      item.outcome?.toLowerCase().includes("won") || item.outcome?.toLowerCase().includes("winner") ? (
+                        <ThumbsUp className="w-5 h-5 text-green-600" />
+                      ) : item.outcome?.toLowerCase().includes("lost") || item.outcome?.toLowerCase().includes("loser") ? (
+                        <ThumbsDown className="w-5 h-5 text-red-600" />
+                      ) : (
+                        <Phone className="w-5 h-5 text-orange-600" />
+                      )
+                    ) : item.type === "email" ? (
+                      <Mail className="w-5 h-5 text-blue-600" />
+                    ) : (
+                      <MessageSquare className="w-5 h-5 text-purple-600" />
+                    )}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-medium text-sm">
+                      {item.type === "call" && (
+                        <>
+                          <span className="capitalize">{item.outcome}</span>
+                          <span className="text-muted-foreground font-normal"> by {item.user_name}</span>
+                        </>
+                      )}
+                      {item.type === "email" && (
+                        <>
+                          Email sent
+                          <span className="text-muted-foreground font-normal"> by {item.user_name}</span>
+                        </>
+                      )}
+                      {item.type === "sms" && (
+                        <>
+                          SMS sent
+                          <span className="text-muted-foreground font-normal"> by {item.user_name}</span>
+                        </>
+                      )}
+                    </p>
+                    {item.notes && (
+                      <p className="text-sm text-muted-foreground mt-1 break-words">
+                        "{item.notes}"
+                      </p>
+                    )}
+                    {item.subject && (
+                      <p className="text-sm text-muted-foreground mt-1 truncate">
+                        Subject: {item.subject}
+                      </p>
+                    )}
+                    {item.message && (
+                      <p className="text-sm text-muted-foreground mt-1 truncate">
+                        "{item.message}"
+                      </p>
+                    )}
+                    <p className="text-xs text-muted-foreground mt-1">
+                      {format(new Date(item.created_at), "dd-MM-yyyy HH:mm")} ({formatDistanceToNow(new Date(item.created_at))} ago)
+                    </p>
+                  </div>
+                </div>
+              ))
             )}
           </div>
         </div>
