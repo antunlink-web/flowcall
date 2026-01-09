@@ -337,17 +337,15 @@ export function TopNavbar() {
   return (
     <>
       {/* Main Top Navbar */}
-      <header className="fixed top-0 left-0 right-0 h-14 bg-sidebar z-50 flex items-center justify-between px-4 text-sidebar-foreground shadow-md">
-        {/* Left Section - Logo & Name */}
-        <div className="flex items-center gap-2 flex-shrink-0 w-40">
+      <header className="fixed top-0 left-0 right-0 h-14 bg-sidebar z-50 flex items-center px-4 text-sidebar-foreground shadow-md">
+        {/* Left Section - Logo, Name, Search & Home */}
+        <div className="flex items-center gap-4">
+          {/* Logo and Brand Name */}
           <Link to="/" className="flex items-center gap-2">
             <img src={callstackLogo} alt="CallStack" className="h-7 w-7" />
             <span className="text-lg font-semibold tracking-tight hidden sm:inline">CallStack</span>
           </Link>
-        </div>
 
-        {/* Center Section - Search, Home & Nav */}
-        <div className="flex items-center gap-4 justify-center flex-1">
           {/* Search Field with Dropdown */}
           <div className="relative">
             <input
@@ -358,7 +356,7 @@ export function TopNavbar() {
               className="w-40 md:w-48 h-7 px-2 text-sm bg-sidebar-accent border border-sidebar-border rounded text-sidebar-foreground placeholder:text-sidebar-muted focus:outline-none focus:ring-2 focus:ring-sidebar-primary"
             />
             {searchQuery.length >= 2 && (
-              <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 w-[500px] bg-popover text-popover-foreground border rounded-md shadow-md outline-none z-[60] animate-in fade-in-0 zoom-in-95">
+              <div className="absolute top-full left-0 mt-1 w-[500px] bg-popover text-popover-foreground border rounded-md shadow-md outline-none z-[60] animate-in fade-in-0 zoom-in-95">
                 {searchLoading ? (
                   <div className="flex items-center justify-center py-6">
                     <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
@@ -417,7 +415,7 @@ export function TopNavbar() {
           </NavLink>
 
           {/* Main Nav Links */}
-          <nav className="hidden md:flex items-center">
+          <nav className="hidden md:flex items-center ml-2">
             {mainNavItems.map((item) => (
               <NavLink
                 key={item.to}
@@ -436,7 +434,7 @@ export function TopNavbar() {
         </div>
 
         {/* Right Section - Icons & User */}
-        <div className="flex items-center gap-1 flex-shrink-0">
+        <div className="flex items-center ml-auto gap-1">
           {/* History Popover */}
           <div className="hidden md:flex items-center gap-1">
             <Popover open={historyOpen} onOpenChange={setHistoryOpen}>
