@@ -63,14 +63,15 @@ export default function Work() {
       listsData = data || [];
     }
 
-    // Fetch leads for assigned lists
+    // Fetch leads for assigned lists (no limit to get all leads)
     let leadData: Lead[] = [];
     if (userListIds.length > 0) {
-      const { data } = await supabase
+      const { data, count } = await supabase
         .from("leads")
-        .select("*")
+        .select("*", { count: "exact" })
         .in("list_id", userListIds)
-        .or(`claimed_by.is.null,claimed_by.eq.${user.id}`);
+        .or(`claimed_by.is.null,claimed_by.eq.${user.id}`)
+        .range(0, 49999); // Fetch up to 50,000 leads
       
       leadData = (data || []).map((l) => ({
         ...l,
