@@ -500,6 +500,36 @@ export type Database = {
           },
         ]
       }
+      sms_requests: {
+        Row: {
+          created_at: string
+          id: string
+          lead_id: string | null
+          message: string
+          phone_number: string
+          status: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          lead_id?: string | null
+          message: string
+          phone_number: string
+          status?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          lead_id?: string | null
+          message?: string
+          phone_number?: string
+          status?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       sms_templates: {
         Row: {
           content: string
