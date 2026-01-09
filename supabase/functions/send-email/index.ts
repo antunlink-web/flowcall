@@ -12,6 +12,17 @@ interface EmailRequest {
   subject: string;
   body: string;
   leadId?: string;
+  listId?: string;
+}
+
+interface EmailConfig {
+  smtp_host: string;
+  smtp_port: number;
+  smtp_username: string;
+  smtp_password: string;
+  from_email: string;
+  from_name?: string;
+  use_tls?: boolean;
 }
 
 serve(async (req: Request) => {
@@ -40,43 +51,78 @@ serve(async (req: Request) => {
       throw new Error("Unauthorized");
     }
 
-    // Get user's SMTP settings
-    const { data: smtpSettings, error: smtpError } = await supabase
-      .from("smtp_settings")
-      .select("*")
-      .eq("user_id", user.id)
-      .maybeSingle();
-
-    if (smtpError || !smtpSettings) {
-      throw new Error("SMTP settings not configured. Please configure your SMTP settings in Settings.");
-    }
-
-    const { to, subject, body }: EmailRequest = await req.json();
+    const { to, subject, body, listId }: EmailRequest = await req.json();
 
     if (!to || !subject || !body) {
       throw new Error("Missing required fields: to, subject, body");
     }
 
-    console.log(`Sending email to ${to} via ${smtpSettings.host}:${smtpSettings.port}`);
+    let smtpConfig: EmailConfig | null = null;
+
+    // First try to get SMTP settings from list's email_config
+    if (listId) {
+      const { data: list, error: listError } = await supabase
+        .from("lists")
+        .select("email_config")
+        .eq("id", listId)
+        .maybeSingle();
+
+      if (!listError && list?.email_config) {
+        const config = list.email_config as EmailConfig;
+        if (config.smtp_host && config.smtp_username && config.smtp_password && config.from_email) {
+          smtpConfig = config;
+        }
+      }
+    }
+
+    // Fall back to user's SMTP settings if list doesn't have config
+    if (!smtpConfig) {
+      const { data: smtpSettings, error: smtpError } = await supabase
+        .from("smtp_settings")
+        .select("*")
+        .eq("user_id", user.id)
+        .maybeSingle();
+
+      if (!smtpError && smtpSettings) {
+        smtpConfig = {
+          smtp_host: smtpSettings.host,
+          smtp_port: smtpSettings.port,
+          smtp_username: smtpSettings.username,
+          smtp_password: smtpSettings.password,
+          from_email: smtpSettings.from_email,
+          from_name: smtpSettings.from_name,
+          use_tls: smtpSettings.use_tls,
+        };
+      }
+    }
+
+    if (!smtpConfig) {
+      throw new Error("SMTP settings not configured. Please configure email settings in the list or your personal SMTP settings.");
+    }
+
+    // Determine TLS setting - default to true for port 465, otherwise check config
+    const useTls = smtpConfig.use_tls !== undefined ? smtpConfig.use_tls : (smtpConfig.smtp_port === 465);
+
+    console.log(`Sending email to ${to} via ${smtpConfig.smtp_host}:${smtpConfig.smtp_port}`);
 
     // Create SMTP client using denomailer
     const client = new SMTPClient({
       connection: {
-        hostname: smtpSettings.host,
-        port: smtpSettings.port,
-        tls: smtpSettings.use_tls,
+        hostname: smtpConfig.smtp_host,
+        port: smtpConfig.smtp_port,
+        tls: useTls,
         auth: {
-          username: smtpSettings.username,
-          password: smtpSettings.password,
+          username: smtpConfig.smtp_username,
+          password: smtpConfig.smtp_password,
         },
       },
     });
 
     // Send email
     await client.send({
-      from: smtpSettings.from_name 
-        ? `${smtpSettings.from_name} <${smtpSettings.from_email}>` 
-        : smtpSettings.from_email,
+      from: smtpConfig.from_name 
+        ? `${smtpConfig.from_name} <${smtpConfig.from_email}>` 
+        : smtpConfig.from_email,
       to: to,
       subject: subject,
       content: "auto",
