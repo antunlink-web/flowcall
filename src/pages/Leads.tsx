@@ -274,8 +274,8 @@ export default function Leads() {
     setFormData(rest);
   };
 
-  // Determine which fields to show in table (first 4 + status)
-  const displayFields = allFields.slice(0, 4);
+  // Determine which fields to show in table
+  const displayFields = ["Pavadinimas", "Vadovas"];
 
   if (loading) {
     return (
