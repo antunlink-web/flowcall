@@ -42,17 +42,18 @@ export default function Dialer() {
     if (!user) return;
 
     try {
+      const deviceName = navigator.userAgent.includes("Android") ? "Android" : "Mobile";
       const deviceInfo = {
         user_id: user.id,
-        device_type: "mobile",
-        device_name: `${navigator.userAgent.includes("Android") ? "Android" : "Mobile"} Browser`,
+        device_type: "mobile" as const,
+        device_name: deviceName,
         is_active: true,
         last_seen_at: new Date().toISOString(),
       };
 
       const { error } = await supabase
         .from("user_devices")
-        .upsert(deviceInfo, { onConflict: "user_id,device_type" });
+        .upsert(deviceInfo, { onConflict: "user_id,device_type,device_name" });
 
       if (error) throw error;
       setDeviceRegistered(true);
