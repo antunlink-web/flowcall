@@ -1,8 +1,7 @@
-import { useState, useRef, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
   SelectContent,
@@ -19,20 +18,41 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import {
   Bold,
   Italic,
   Underline,
   Strikethrough,
   Link2,
   Quote,
-  Code,
   List,
   ListOrdered,
   AlignLeft,
   AlignCenter,
   AlignRight,
+  Image,
+  Heading1,
+  Heading2,
+  Heading3,
+  Undo,
+  Redo,
+  Type,
+  Palette,
 } from "lucide-react";
 import { ListField } from "@/hooks/useLists";
+import { useEditor, EditorContent } from "@tiptap/react";
+import StarterKit from "@tiptap/starter-kit";
+import ImageExtension from "@tiptap/extension-image";
+import LinkExtension from "@tiptap/extension-link";
+import TextAlign from "@tiptap/extension-text-align";
+import UnderlineExtension from "@tiptap/extension-underline";
+import { TextStyle } from "@tiptap/extension-text-style";
+import Color from "@tiptap/extension-color";
+import Placeholder from "@tiptap/extension-placeholder";
 
 interface EmailTemplateEditorProps {
   templateName: string;
@@ -74,6 +94,19 @@ const systemMergeTags = [
   { fieldName: "Agent Custom 2", mergeTag: "{{ agent_custom_2 | defa... }}" },
 ];
 
+const TEXT_COLORS = [
+  { name: "Default", value: "" },
+  { name: "Black", value: "#000000" },
+  { name: "Dark Gray", value: "#4a4a4a" },
+  { name: "Gray", value: "#9b9b9b" },
+  { name: "Red", value: "#e74c3c" },
+  { name: "Orange", value: "#e67e22" },
+  { name: "Yellow", value: "#f1c40f" },
+  { name: "Green", value: "#27ae60" },
+  { name: "Blue", value: "#3498db" },
+  { name: "Purple", value: "#9b59b6" },
+];
+
 export function EmailTemplateEditor({
   templateName,
   templateSubject,
@@ -88,7 +121,55 @@ export function EmailTemplateEditor({
   previewData,
 }: EmailTemplateEditorProps) {
   const [selectedMergeTag, setSelectedMergeTag] = useState<string>("");
-  const bodyTextareaRef = useRef<HTMLTextAreaElement>(null);
+  const [linkUrl, setLinkUrl] = useState("");
+  const [imageUrl, setImageUrl] = useState("");
+
+  const editor = useEditor({
+    extensions: [
+      StarterKit.configure({
+        heading: {
+          levels: [1, 2, 3],
+        },
+      }),
+      UnderlineExtension,
+      ImageExtension.configure({
+        allowBase64: true,
+        HTMLAttributes: {
+          class: "max-w-full h-auto",
+        },
+      }),
+      LinkExtension.configure({
+        openOnClick: false,
+        HTMLAttributes: {
+          class: "text-primary underline",
+        },
+      }),
+      TextAlign.configure({
+        types: ["heading", "paragraph"],
+      }),
+      TextStyle,
+      Color,
+      Placeholder.configure({
+        placeholder: "Write your professional email here...",
+      }),
+    ],
+    content: templateBody || "",
+    onUpdate: ({ editor }) => {
+      onBodyChange(editor.getHTML());
+    },
+    editorProps: {
+      attributes: {
+        class: "prose prose-sm max-w-none min-h-[400px] p-4 focus:outline-none",
+      },
+    },
+  });
+
+  // Update editor content when templateBody prop changes externally
+  useEffect(() => {
+    if (editor && templateBody !== editor.getHTML()) {
+      editor.commands.setContent(templateBody || "");
+    }
+  }, [templateBody, editor]);
 
   // Generate merge tags from fields
   const fieldMergeTags = fields.map((field) => ({
@@ -101,20 +182,10 @@ export function EmailTemplateEditor({
   )];
 
   const insertMergeTag = useCallback((tag: string) => {
-    if (!bodyTextareaRef.current) return;
-    
-    const textarea = bodyTextareaRef.current;
-    const start = textarea.selectionStart;
-    const end = textarea.selectionEnd;
-    const newValue = templateBody.substring(0, start) + tag + templateBody.substring(end);
-    onBodyChange(newValue);
-    
-    // Set cursor position after the inserted tag
-    setTimeout(() => {
-      textarea.focus();
-      textarea.setSelectionRange(start + tag.length, start + tag.length);
-    }, 0);
-  }, [templateBody, onBodyChange]);
+    if (editor) {
+      editor.chain().focus().insertContent(tag).run();
+    }
+  }, [editor]);
 
   const handleMergeTagSelect = (value: string) => {
     if (value) {
@@ -123,54 +194,31 @@ export function EmailTemplateEditor({
     }
   };
 
-  const applyFormatting = (format: string) => {
-    if (!bodyTextareaRef.current) return;
-    
-    const textarea = bodyTextareaRef.current;
-    const start = textarea.selectionStart;
-    const end = textarea.selectionEnd;
-    const selectedText = templateBody.substring(start, end);
-    
-    let formattedText = "";
-    switch (format) {
-      case "bold":
-        formattedText = `<strong>${selectedText}</strong>`;
-        break;
-      case "italic":
-        formattedText = `<em>${selectedText}</em>`;
-        break;
-      case "underline":
-        formattedText = `<u>${selectedText}</u>`;
-        break;
-      case "strikethrough":
-        formattedText = `<s>${selectedText}</s>`;
-        break;
-      case "link":
-        formattedText = `<a href="">${selectedText}</a>`;
-        break;
-      case "quote":
-        formattedText = `<blockquote>${selectedText}</blockquote>`;
-        break;
-      case "code":
-        formattedText = `<code>${selectedText}</code>`;
-        break;
-      case "ul":
-        formattedText = `<ul>\n<li>${selectedText}</li>\n</ul>`;
-        break;
-      case "ol":
-        formattedText = `<ol>\n<li>${selectedText}</li>\n</ol>`;
-        break;
-      default:
-        formattedText = selectedText;
+  const addLink = useCallback(() => {
+    if (linkUrl && editor) {
+      editor.chain().focus().extendMarkRange("link").setLink({ href: linkUrl }).run();
+      setLinkUrl("");
     }
-    
-    const newValue = templateBody.substring(0, start) + formattedText + templateBody.substring(end);
-    onBodyChange(newValue);
-    
-    setTimeout(() => {
-      textarea.focus();
-    }, 0);
-  };
+  }, [editor, linkUrl]);
+
+  const addImage = useCallback(() => {
+    if (imageUrl && editor) {
+      editor.chain().focus().setImage({ src: imageUrl }).run();
+      setImageUrl("");
+    }
+  }, [editor, imageUrl]);
+
+  const handleImageUpload = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file && editor) {
+      const reader = new FileReader();
+      reader.onload = () => {
+        const base64 = reader.result as string;
+        editor.chain().focus().setImage({ src: base64 }).run();
+      };
+      reader.readAsDataURL(file);
+    }
+  }, [editor]);
 
   // Replace merge tags with preview data for preview
   const getPreviewContent = (content: string): string => {
@@ -186,6 +234,10 @@ export function EmailTemplateEditor({
     
     return previewContent;
   };
+
+  if (!editor) {
+    return null;
+  }
 
   return (
     <div className="space-y-6">
@@ -220,150 +272,294 @@ export function EmailTemplateEditor({
         />
       </div>
 
-      {/* Email Body */}
+      {/* Email Body with TipTap Editor */}
       <div className="space-y-2">
         <Label className="text-sm font-medium">Email body</Label>
         
         {/* Toolbar */}
         <div className="flex items-center gap-1 border border-border rounded-t bg-muted/50 p-1.5 flex-wrap">
+          {/* Undo/Redo */}
           <Button
             type="button"
             variant="ghost"
             size="sm"
             className="h-8 w-8 p-0"
-            onClick={() => applyFormatting("bold")}
+            onClick={() => editor.chain().focus().undo().run()}
+            disabled={!editor.can().undo()}
+          >
+            <Undo className="h-4 w-4" />
+          </Button>
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            className="h-8 w-8 p-0"
+            onClick={() => editor.chain().focus().redo().run()}
+            disabled={!editor.can().redo()}
+          >
+            <Redo className="h-4 w-4" />
+          </Button>
+
+          <div className="w-px h-6 bg-border mx-1" />
+
+          {/* Text formatting */}
+          <Button
+            type="button"
+            variant={editor.isActive("bold") ? "secondary" : "ghost"}
+            size="sm"
+            className="h-8 w-8 p-0"
+            onClick={() => editor.chain().focus().toggleBold().run()}
           >
             <Bold className="h-4 w-4" />
           </Button>
           <Button
             type="button"
-            variant="ghost"
+            variant={editor.isActive("italic") ? "secondary" : "ghost"}
             size="sm"
             className="h-8 w-8 p-0"
-            onClick={() => applyFormatting("italic")}
+            onClick={() => editor.chain().focus().toggleItalic().run()}
           >
             <Italic className="h-4 w-4" />
           </Button>
           <Button
             type="button"
-            variant="ghost"
+            variant={editor.isActive("underline") ? "secondary" : "ghost"}
             size="sm"
             className="h-8 w-8 p-0"
-            onClick={() => applyFormatting("underline")}
+            onClick={() => editor.chain().focus().toggleUnderline().run()}
           >
             <Underline className="h-4 w-4" />
           </Button>
           <Button
             type="button"
-            variant="ghost"
+            variant={editor.isActive("strike") ? "secondary" : "ghost"}
             size="sm"
             className="h-8 w-8 p-0"
-            onClick={() => applyFormatting("strikethrough")}
+            onClick={() => editor.chain().focus().toggleStrike().run()}
           >
             <Strikethrough className="h-4 w-4" />
           </Button>
           
           <div className="w-px h-6 bg-border mx-1" />
-          
-          <Select defaultValue="normal">
-            <SelectTrigger className="h-8 w-auto min-w-[100px] text-xs">
-              <SelectValue placeholder="Normal" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="normal">Normal</SelectItem>
-              <SelectItem value="h1">Heading 1</SelectItem>
-              <SelectItem value="h2">Heading 2</SelectItem>
-              <SelectItem value="h3">Heading 3</SelectItem>
-            </SelectContent>
-          </Select>
-          
-          <div className="w-px h-6 bg-border mx-1" />
-          
+
+          {/* Headings */}
           <Button
             type="button"
-            variant="ghost"
+            variant={editor.isActive("heading", { level: 1 }) ? "secondary" : "ghost"}
             size="sm"
             className="h-8 w-8 p-0"
-            onClick={() => applyFormatting("link")}
+            onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}
           >
-            <Link2 className="h-4 w-4" />
+            <Heading1 className="h-4 w-4" />
           </Button>
           <Button
             type="button"
-            variant="ghost"
+            variant={editor.isActive("heading", { level: 2 }) ? "secondary" : "ghost"}
             size="sm"
             className="h-8 w-8 p-0"
-            onClick={() => applyFormatting("quote")}
+            onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
           >
-            <Quote className="h-4 w-4" />
+            <Heading2 className="h-4 w-4" />
           </Button>
           <Button
             type="button"
-            variant="ghost"
+            variant={editor.isActive("heading", { level: 3 }) ? "secondary" : "ghost"}
             size="sm"
             className="h-8 w-8 p-0"
-            onClick={() => applyFormatting("code")}
+            onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()}
           >
-            <Code className="h-4 w-4" />
+            <Heading3 className="h-4 w-4" />
+          </Button>
+          <Button
+            type="button"
+            variant={editor.isActive("paragraph") ? "secondary" : "ghost"}
+            size="sm"
+            className="h-8 w-8 p-0"
+            onClick={() => editor.chain().focus().setParagraph().run()}
+          >
+            <Type className="h-4 w-4" />
           </Button>
           
           <div className="w-px h-6 bg-border mx-1" />
+
+          {/* Color picker */}
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button type="button" variant="ghost" size="sm" className="h-8 w-8 p-0">
+                <Palette className="h-4 w-4" />
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-2">
+              <div className="grid grid-cols-5 gap-1">
+                {TEXT_COLORS.map((color) => (
+                  <button
+                    key={color.name}
+                    className="w-6 h-6 rounded border border-border hover:scale-110 transition-transform"
+                    style={{ backgroundColor: color.value || "#ffffff" }}
+                    onClick={() => {
+                      if (color.value) {
+                        editor.chain().focus().setColor(color.value).run();
+                      } else {
+                        editor.chain().focus().unsetColor().run();
+                      }
+                    }}
+                    title={color.name}
+                  />
+                ))}
+              </div>
+            </PopoverContent>
+          </Popover>
           
+          <div className="w-px h-6 bg-border mx-1" />
+
+          {/* Lists */}
           <Button
             type="button"
-            variant="ghost"
+            variant={editor.isActive("bulletList") ? "secondary" : "ghost"}
             size="sm"
             className="h-8 w-8 p-0"
-            onClick={() => applyFormatting("ul")}
+            onClick={() => editor.chain().focus().toggleBulletList().run()}
           >
             <List className="h-4 w-4" />
           </Button>
           <Button
             type="button"
-            variant="ghost"
+            variant={editor.isActive("orderedList") ? "secondary" : "ghost"}
             size="sm"
             className="h-8 w-8 p-0"
-            onClick={() => applyFormatting("ol")}
+            onClick={() => editor.chain().focus().toggleOrderedList().run()}
           >
             <ListOrdered className="h-4 w-4" />
+          </Button>
+          <Button
+            type="button"
+            variant={editor.isActive("blockquote") ? "secondary" : "ghost"}
+            size="sm"
+            className="h-8 w-8 p-0"
+            onClick={() => editor.chain().focus().toggleBlockquote().run()}
+          >
+            <Quote className="h-4 w-4" />
           </Button>
           
           <div className="w-px h-6 bg-border mx-1" />
           
+          {/* Alignment */}
           <Button
             type="button"
-            variant="ghost"
+            variant={editor.isActive({ textAlign: "left" }) ? "secondary" : "ghost"}
             size="sm"
             className="h-8 w-8 p-0"
+            onClick={() => editor.chain().focus().setTextAlign("left").run()}
           >
             <AlignLeft className="h-4 w-4" />
           </Button>
           <Button
             type="button"
-            variant="ghost"
+            variant={editor.isActive({ textAlign: "center" }) ? "secondary" : "ghost"}
             size="sm"
             className="h-8 w-8 p-0"
+            onClick={() => editor.chain().focus().setTextAlign("center").run()}
           >
             <AlignCenter className="h-4 w-4" />
           </Button>
           <Button
             type="button"
-            variant="ghost"
+            variant={editor.isActive({ textAlign: "right" }) ? "secondary" : "ghost"}
             size="sm"
             className="h-8 w-8 p-0"
+            onClick={() => editor.chain().focus().setTextAlign("right").run()}
           >
             <AlignRight className="h-4 w-4" />
           </Button>
+          
+          <div className="w-px h-6 bg-border mx-1" />
+
+          {/* Link */}
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button
+                type="button"
+                variant={editor.isActive("link") ? "secondary" : "ghost"}
+                size="sm"
+                className="h-8 w-8 p-0"
+              >
+                <Link2 className="h-4 w-4" />
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-80">
+              <div className="space-y-3">
+                <Label className="text-sm font-medium">Insert Link</Label>
+                <Input
+                  value={linkUrl}
+                  onChange={(e) => setLinkUrl(e.target.value)}
+                  placeholder="https://example.com"
+                />
+                <div className="flex gap-2">
+                  <Button size="sm" onClick={addLink}>
+                    Add Link
+                  </Button>
+                  {editor.isActive("link") && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => editor.chain().focus().unsetLink().run()}
+                    >
+                      Remove Link
+                    </Button>
+                  )}
+                </div>
+              </div>
+            </PopoverContent>
+          </Popover>
+
+          {/* Image */}
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button type="button" variant="ghost" size="sm" className="h-8 w-8 p-0">
+                <Image className="h-4 w-4" />
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-80">
+              <div className="space-y-3">
+                <Label className="text-sm font-medium">Insert Image</Label>
+                <div className="space-y-2">
+                  <Input
+                    value={imageUrl}
+                    onChange={(e) => setImageUrl(e.target.value)}
+                    placeholder="https://example.com/image.jpg"
+                  />
+                  <Button size="sm" onClick={addImage} className="w-full">
+                    Add from URL
+                  </Button>
+                </div>
+                <div className="relative">
+                  <div className="absolute inset-0 flex items-center">
+                    <span className="w-full border-t" />
+                  </div>
+                  <div className="relative flex justify-center text-xs uppercase">
+                    <span className="bg-popover px-2 text-muted-foreground">Or</span>
+                  </div>
+                </div>
+                <div>
+                  <Input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleImageUpload}
+                    className="cursor-pointer"
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Upload from your computer
+                  </p>
+                </div>
+              </div>
+            </PopoverContent>
+          </Popover>
         </div>
         
-        {/* Textarea */}
-        <Textarea
-          ref={bodyTextareaRef}
-          value={templateBody}
-          onChange={(e) => onBodyChange(e.target.value)}
-          placeholder="Write your email body here..."
-          className="min-h-[400px] rounded-t-none border-t-0 font-mono text-sm"
-        />
+        {/* TipTap Editor */}
+        <div className="border border-t-0 border-border rounded-b bg-background">
+          <EditorContent editor={editor} />
+        </div>
       </div>
 
       {/* Insert Merge Tag */}
@@ -400,14 +596,14 @@ export function EmailTemplateEditor({
           <h3 className="font-medium">Preview</h3>
           <p className="text-xs text-muted-foreground">Refresh page to see a different sample</p>
           
-          <div className="border border-border rounded bg-muted/30 p-4 min-h-[200px]">
-            <div className="mb-2">
+          <div className="border border-border rounded bg-white p-4 min-h-[200px]">
+            <div className="mb-2 pb-2 border-b">
               <span className="font-medium">Subject:</span>{" "}
               <span className="text-muted-foreground">{getPreviewContent(templateSubject) || "(no subject)"}</span>
             </div>
             <div 
               className="prose prose-sm max-w-none text-sm"
-              dangerouslySetInnerHTML={{ __html: getPreviewContent(templateBody) || "<p class='text-muted-foreground'>(no content)</p>" }}
+              dangerouslySetInnerHTML={{ __html: getPreviewContent(editor.getHTML()) || "<p class='text-muted-foreground'>(no content)</p>" }}
             />
           </div>
         </div>
