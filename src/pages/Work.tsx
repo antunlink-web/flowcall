@@ -344,7 +344,7 @@ export default function Work() {
             </div>
 
             {/* List Cards */}
-            <div className="space-y-4">
+            <div className="space-y-4 max-w-xl">
               {lists.length === 0 ? (
                 <Card>
                   <CardContent className="py-12 text-center">
