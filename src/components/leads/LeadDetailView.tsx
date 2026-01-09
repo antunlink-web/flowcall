@@ -125,32 +125,6 @@ export function LeadDetailView({ leadId, onClose }: LeadDetailViewProps) {
       setClaimedByName(profile?.full_name || null);
     }
     
-    // Auto-claim the lead if not already claimed
-    if (!data.claimed_by) {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        await supabase
-          .from("leads")
-          .update({ 
-            claimed_by: user.id, 
-            claimed_at: new Date().toISOString() 
-          })
-          .eq("id", leadId);
-        
-        // Refetch to get updated data
-        const { data: updatedLead } = await supabase
-          .from("leads")
-          .select("*, lists(id, name, fields, settings)")
-          .eq("id", leadId)
-          .single();
-        
-        if (updatedLead) {
-          setLead(updatedLead as Lead);
-          toast({ title: "Lead claimed automatically" });
-        }
-      }
-    }
-    
     setLoading(false);
   };
 
@@ -198,6 +172,12 @@ export function LeadDetailView({ leadId, onClose }: LeadDetailViewProps) {
       status: newStatus, 
       updated_at: new Date().toISOString() 
     };
+    
+    // Claim the lead on status change if not already claimed
+    if (!lead.claimed_by && user) {
+      updateData.claimed_by = user.id;
+      updateData.claimed_at = new Date().toISOString();
+    }
     
     // Store subcategory in lead data if provided
     if (subcategory) {
