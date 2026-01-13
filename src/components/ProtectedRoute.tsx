@@ -40,8 +40,13 @@ export function ProtectedRoute({ children, requiredRoles }: ProtectedRouteProps)
     route => location.pathname === route || location.pathname.startsWith(route + "/")
   );
 
+  // Allow agents to access /leads with a specific lead ID (from search)
+  // RLS will properly restrict what they can see
+  const isLeadDetailAccess = location.pathname === "/leads" && location.search.includes("id=");
+
   // If agent tries to access manager-only routes, redirect to home
-  if (isManagerOnlyRoute && !isOwnerOrManager) {
+  // Exception: agents can access lead detail view via /leads?id=...
+  if (isManagerOnlyRoute && !isOwnerOrManager && !isLeadDetailAccess) {
     return <Navigate to="/" replace />;
   }
 
