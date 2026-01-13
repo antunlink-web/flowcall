@@ -136,6 +136,7 @@ export default function Team() {
     const { data } = await supabase
       .from("user_invitations")
       .select("*")
+      .is("accepted_at", null)
       .order("created_at", { ascending: false });
     
     if (data) {
