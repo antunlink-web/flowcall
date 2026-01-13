@@ -55,9 +55,9 @@ interface SearchResult {
 }
 
 const mainNavItems = [
-  { to: "/work", label: "Work" },
-  { to: "/manage", label: "Manage" },
-  { to: "/reports", label: "Review" },
+  { to: "/work", label: "Work", roles: ["owner", "account_manager", "agent"] },
+  { to: "/manage", label: "Manage", roles: ["owner", "account_manager"] },
+  { to: "/reports", label: "Review", roles: ["owner", "account_manager"] },
 ];
 
 interface RecentLead {
@@ -88,12 +88,17 @@ interface LockedLead {
 
 export function TopNavbar() {
   const { user, signOut } = useAuth();
-  const { role } = useUserRole();
+  const { roles, isOwnerOrManager } = useUserRole();
   const location = useLocation();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
   const [searchLoading, setSearchLoading] = useState(false);
+
+  // Filter nav items based on user roles
+  const visibleNavItems = mainNavItems.filter(
+    (item) => roles.some(r => item.roles.includes(r)) || (roles.length === 0 && item.roles.includes("agent"))
+  );
 
   const [recentLeads, setRecentLeads] = useState<RecentLead[]>([]);
   const [historyOpen, setHistoryOpen] = useState(false);
@@ -417,7 +422,7 @@ export function TopNavbar() {
 
           {/* Main Nav Links */}
           <nav className="hidden md:flex items-center ml-2">
-            {mainNavItems.map((item) => (
+            {visibleNavItems.map((item) => (
               <NavLink
                 key={item.to}
                 to={item.to}
@@ -686,21 +691,25 @@ export function TopNavbar() {
                   Preferences
                 </NavLink>
               </DropdownMenuItem>
-              <DropdownMenuItem asChild>
-                <NavLink to="/manage/account">
-                  Account Settings
-                </NavLink>
-              </DropdownMenuItem>
-              <DropdownMenuItem asChild>
-                <NavLink to="/manage/account?section=billing">
-                  Billing
-                </NavLink>
-              </DropdownMenuItem>
-              <DropdownMenuItem asChild>
-                <NavLink to="/manage/account?section=referral">
-                  Make Money
-                </NavLink>
-              </DropdownMenuItem>
+              {isOwnerOrManager && (
+                <>
+                  <DropdownMenuItem asChild>
+                    <NavLink to="/manage/account">
+                      Account Settings
+                    </NavLink>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <NavLink to="/manage/account?section=billing">
+                      Billing
+                    </NavLink>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <NavLink to="/manage/account?section=referral">
+                      Make Money
+                    </NavLink>
+                  </DropdownMenuItem>
+                </>
+              )}
               <DropdownMenuSeparator />
               <DropdownMenuItem onClick={signOut} className="text-destructive">
                 Sign out
@@ -730,7 +739,7 @@ export function TopNavbar() {
             className="bg-card w-64 h-full p-4 space-y-1"
             onClick={(e) => e.stopPropagation()}
           >
-            {mainNavItems.map((item) => (
+            {visibleNavItems.map((item) => (
               <NavLink
                 key={item.to}
                 to={item.to}
