@@ -134,10 +134,11 @@ export function TopNavbar() {
     const searchContacts = async () => {
       setSearchLoading(true);
       try {
-        // Use RPC function for searching all leads in the database
+        // Use RPC function for searching leads - filters by list access for agents
         console.log("Searching for:", searchQuery.trim());
-        const { data, error } = await supabase.rpc("search_leads", { 
-          search_term: searchQuery.trim() 
+        const { data, error } = await supabase.rpc("search_leads_with_access", { 
+          search_term: searchQuery.trim(),
+          _user_id: user?.id
         });
 
         console.log("Search results:", data?.length || 0, "leads found", error);
