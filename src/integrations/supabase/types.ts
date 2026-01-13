@@ -734,6 +734,30 @@ export type Database = {
           isSetofReturn: true
         }
       }
+      search_leads_with_access: {
+        Args: { _user_id: string; search_term: string }
+        Returns: {
+          assigned_to: string | null
+          call_attempts: number
+          callback_scheduled_at: string | null
+          campaign_id: string | null
+          claimed_at: string | null
+          claimed_by: string | null
+          created_at: string
+          data: Json | null
+          id: string
+          last_contacted_at: string | null
+          list_id: string | null
+          status: string
+          updated_at: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "leads"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
     }
     Enums: {
       app_role: "admin" | "manager" | "agent" | "owner" | "account_manager"
