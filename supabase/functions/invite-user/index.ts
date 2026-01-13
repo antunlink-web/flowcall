@@ -79,24 +79,35 @@ serve(async (req: Request) => {
     const existingAuthUser = authUsers?.users?.find(u => u.email?.toLowerCase() === email.toLowerCase());
     
     if (existingAuthUser) {
-      return new Response(
-        JSON.stringify({ error: "A user with this email already exists in the system" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
-    // Also check profiles table
-    const { data: existingProfile } = await supabaseAdmin
-      .from("profiles")
-      .select("id")
-      .eq("email", email)
-      .single();
-
-    if (existingProfile) {
-      return new Response(
-        JSON.stringify({ error: "User with this email already exists" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      // Check if user has confirmed their email (is active)
+      const isConfirmed = existingAuthUser.email_confirmed_at !== null;
+      
+      if (isConfirmed) {
+        // Also check if profile is active
+        const { data: existingProfile } = await supabaseAdmin
+          .from("profiles")
+          .select("id, status")
+          .eq("email", email)
+          .single();
+        
+        if (existingProfile && existingProfile.status === 'active') {
+          return new Response(
+            JSON.stringify({ error: "An active user with this email already exists" }),
+            { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+      }
+      
+      // User exists but is not active - delete the old auth user so we can re-invite
+      const { error: deleteError } = await supabaseAdmin.auth.admin.deleteUser(existingAuthUser.id);
+      if (deleteError) {
+        console.error("Error deleting inactive user:", deleteError);
+        return new Response(
+          JSON.stringify({ error: "Failed to replace inactive user. Please try again." }),
+          { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      console.log("Deleted inactive user to allow re-invitation:", email);
     }
 
     // Check for existing pending invitation
