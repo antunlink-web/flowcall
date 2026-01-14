@@ -42,9 +42,9 @@ export default function Work() {
   const { user, loading: authLoading } = useAuth();
 
   // Fetch list statistics (uses counts, not full data)
-  const fetchListStats = useCallback(async () => {
+  const fetchListStats = useCallback(async (showLoading = false) => {
     if (!user) return;
-    setLoading(true);
+    if (showLoading) setLoading(true);
 
     // Fetch lists assigned to current user via list_users table
     const { data: listUserData } = await supabase
@@ -175,10 +175,10 @@ export default function Work() {
   }, [user]);
 
   useEffect(() => {
-    if (user) {
-      fetchListStats();
+    if (user && lists.length === 0) {
+      fetchListStats(true); // Show loading only on initial load
     }
-  }, [user, fetchListStats]);
+  }, [user]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // When selectedList or currentIndex changes, fetch the lead
   useEffect(() => {
@@ -208,7 +208,7 @@ export default function Work() {
     setSelectedList(null);
     setCurrentIndex(0);
     setCurrentLead(null);
-    fetchListStats();
+    fetchListStats(false); // Refresh silently without showing loader
   };
 
   const handleLeadClose = () => {
