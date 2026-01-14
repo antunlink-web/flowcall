@@ -41,8 +41,10 @@ export default function Work() {
   const [selectedList, setSelectedList] = useState<string | null>(null);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [totalLeadsInQueue, setTotalLeadsInQueue] = useState(0);
+  const [leadLoading, setLeadLoading] = useState(false);
   const { user, loading: authLoading } = useAuth();
   const autostartHandled = useRef(false);
+  const isAutostarting = searchParams.get("autostart") === "true";
 
   // Fetch list statistics (uses counts, not full data)
   const fetchListStats = useCallback(async (showLoading = false) => {
@@ -154,6 +156,7 @@ export default function Work() {
   // Fetch a single lead at the given index for the selected list
   const fetchLeadAtIndex = useCallback(async (listId: string, index: number) => {
     if (!user) return;
+    setLeadLoading(true);
 
     const { data, count } = await supabase
       .from("leads")
@@ -175,6 +178,7 @@ export default function Work() {
     } else {
       setCurrentLead(null);
     }
+    setLeadLoading(false);
   }, [user]);
 
   useEffect(() => {
@@ -244,7 +248,8 @@ export default function Work() {
     { id: "worklog" as WorkTab, label: "Work log" },
   ];
 
-  if (authLoading || loading) {
+  // Show loading when auth loading, initial loading, or autostarting
+  if (authLoading || loading || (isAutostarting && !autostartHandled.current)) {
     return (
       <DashboardLayout>
         <div className="flex items-center justify-center h-[60vh]">
@@ -257,6 +262,17 @@ export default function Work() {
   // If a list is selected, show the lead calling view
   if (selectedList) {
     const list = lists.find((l) => l.id === selectedList);
+    
+    // Show loading while fetching lead
+    if (leadLoading) {
+      return (
+        <DashboardLayout>
+          <div className="flex items-center justify-center h-[60vh]">
+            <Loader2 className="w-8 h-8 animate-spin text-primary" />
+          </div>
+        </DashboardLayout>
+      );
+    }
     
     if (!currentLead) {
       return (
