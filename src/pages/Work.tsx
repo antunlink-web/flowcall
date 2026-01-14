@@ -35,11 +35,11 @@ export default function Work() {
   const [scheduledLeads, setScheduledLeads] = useState<Lead[]>([]);
   const [claimedLeads, setClaimedLeads] = useState<Lead[]>([]);
   const [activeTab, setActiveTab] = useState<WorkTab>("queues");
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [selectedList, setSelectedList] = useState<string | null>(null);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [totalLeadsInQueue, setTotalLeadsInQueue] = useState(0);
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
 
   // Fetch list statistics (uses counts, not full data)
   const fetchListStats = useCallback(async () => {
@@ -227,7 +227,7 @@ export default function Work() {
     { id: "worklog" as WorkTab, label: "Work log" },
   ];
 
-  if (loading) {
+  if (authLoading || loading) {
     return (
       <DashboardLayout>
         <div className="flex items-center justify-center h-[60vh]">
