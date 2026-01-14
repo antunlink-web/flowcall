@@ -44,9 +44,20 @@ export function ProtectedRoute({ children, requiredRoles }: ProtectedRouteProps)
   // RLS will properly restrict what they can see
   const isLeadDetailAccess = location.pathname === "/leads" && location.search.includes("id=");
 
+  // Debug logging
+  console.log("ProtectedRoute check:", {
+    pathname: location.pathname,
+    search: location.search,
+    isManagerOnlyRoute,
+    isOwnerOrManager,
+    isLeadDetailAccess,
+    roles
+  });
+
   // If agent tries to access manager-only routes, redirect to home
   // Exception: agents can access lead detail view via /leads?id=...
   if (isManagerOnlyRoute && !isOwnerOrManager && !isLeadDetailAccess) {
+    console.log("Redirecting agent from manager-only route");
     return <Navigate to="/" replace />;
   }
 
