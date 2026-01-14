@@ -42,6 +42,7 @@ import {
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { formatDistanceToNow, format } from "date-fns";
+import { useDueCallbacks } from "@/hooks/useDueCallbacks";
 
 interface SearchResult {
   id: string;
@@ -109,6 +110,7 @@ export function TopNavbar() {
   const [scheduledLeads, setScheduledLeads] = useState<ScheduledLead[]>([]);
   const [lockedLeads, setLockedLeads] = useState<LockedLead[]>([]);
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const { dueCallbacks, dueCount } = useDueCallbacks();
   useEffect(() => {
     const fetchAvatar = async () => {
       if (!user) return;
@@ -638,28 +640,72 @@ export function TopNavbar() {
               </PopoverContent>
             </Popover>
 
-            {/* Alerts Popover */}
+            {/* Due Callbacks / Alerts Popover */}
             <Popover open={alertsOpen} onOpenChange={setAlertsOpen}>
               <PopoverTrigger asChild>
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent h-9 w-9"
-                  title="Alerts"
+                  className="text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent h-9 w-9 relative"
+                  title={dueCount > 0 ? `${dueCount} due callbacks` : "No due callbacks"}
                 >
-                  <AlertTriangle className="w-5 h-5" />
+                  <Bell className="w-5 h-5" />
+                  {dueCount > 0 && (
+                    <span className="absolute -top-0.5 -right-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-destructive text-[10px] font-medium text-destructive-foreground">
+                      {dueCount > 9 ? "9+" : dueCount}
+                    </span>
+                  )}
                 </Button>
               </PopoverTrigger>
-              <PopoverContent align="end" className="w-64 p-0">
-                <div className="p-3 border-b">
-                  <h4 className="font-medium text-sm">Alerts</h4>
+              <PopoverContent align="end" className="w-80 p-0">
+                <div className="p-3 border-b flex items-center justify-between">
+                  <h4 className="font-medium text-sm">Due Callbacks</h4>
+                  {dueCount > 0 && (
+                    <Badge variant="destructive" className="text-xs">{dueCount}</Badge>
+                  )}
                 </div>
-                <div className="p-6 text-center">
-                  <p className="text-primary font-medium">No alerts here</p>
-                  <p className="text-sm text-muted-foreground mt-1">
-                    All clear. Please move along - nothing to view 'ere.
-                  </p>
+                <div className="max-h-80 overflow-y-auto">
+                  {dueCallbacks.length === 0 ? (
+                    <div className="p-6 text-center">
+                      <p className="text-primary font-medium">No due callbacks</p>
+                      <p className="text-sm text-muted-foreground mt-1">
+                        All clear! No callbacks waiting for you.
+                      </p>
+                    </div>
+                  ) : (
+                    dueCallbacks.map((callback) => (
+                      <Link
+                        key={callback.id}
+                        to={`/leads?id=${callback.id}`}
+                        className="block p-3 hover:bg-muted border-b last:border-b-0"
+                        onClick={() => setAlertsOpen(false)}
+                      >
+                        <p className="text-xs text-muted-foreground uppercase tracking-wide">
+                          {callback.list_name}
+                        </p>
+                        <p className="font-medium text-sm">
+                          {callback.company_name}{" "}
+                          {callback.phone && <span className="text-muted-foreground">{callback.phone}</span>}
+                        </p>
+                        <p className="text-xs text-destructive mt-1 font-medium">
+                          Due: {format(new Date(callback.callback_scheduled_at), "dd-MM-yyyy HH:mm")} (
+                          {formatDistanceToNow(new Date(callback.callback_scheduled_at), { addSuffix: true })})
+                        </p>
+                      </Link>
+                    ))
+                  )}
                 </div>
+                {dueCount > 0 && (
+                  <div className="p-2 border-t">
+                    <Link
+                      to="/work"
+                      className="text-primary text-sm hover:underline block text-center"
+                      onClick={() => setAlertsOpen(false)}
+                    >
+                      Start working callbacks
+                    </Link>
+                  </div>
+                )}
               </PopoverContent>
             </Popover>
           </div>
