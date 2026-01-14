@@ -174,7 +174,7 @@ export default function Dashboard() {
                     </Badge>
                   </div>
                   <Button 
-                    onClick={() => navigate("/")}
+                    onClick={() => navigate("/work?autostart=true")}
                     className="bg-[hsl(0,65%,55%)] hover:bg-[hsl(0,65%,50%)] text-white gap-2"
                   >
                     <Phone className="w-4 h-4" />
