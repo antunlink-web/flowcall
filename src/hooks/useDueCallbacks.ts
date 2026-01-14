@@ -16,22 +16,26 @@ export function useDueCallbacks() {
   const [dueCallbacks, setDueCallbacks] = useState<DueCallback[]>([]);
   const [loading, setLoading] = useState(false);
   const notifiedIds = useRef<Set<string>>(new Set());
-  const lastToastTime = useRef<number>(0);
+  const isInitialLoad = useRef(true);
 
   const fetchDueCallbacks = useCallback(async () => {
     if (!user) return;
     
-    setLoading(true);
+    if (isInitialLoad.current) {
+      setLoading(true);
+    }
+    
     try {
       const now = new Date().toISOString();
       
+      // Single optimized query - just get count and basic info
       const { data, error } = await supabase
         .from("leads")
         .select(`
           id,
           callback_scheduled_at,
           data,
-          lists(name)
+          list_id
         `)
         .not("callback_scheduled_at", "is", null)
         .lte("callback_scheduled_at", now)
@@ -47,23 +51,21 @@ export function useDueCallbacks() {
       const callbacks: DueCallback[] = (data || []).map((lead: any) => {
         const leadData = lead.data || {};
         
-        // Get company name
+        // Get company name - quick lookup
         let companyName = "Unknown";
-        const companyFields = ["pavadinimas", "company", "company name", "įmonė", "firma", "name"];
+        const companyFields = ["pavadinimas", "company", "company name", "name", "Pavadinimas", "Company"];
         for (const field of companyFields) {
-          const value = leadData[field] || leadData[field.charAt(0).toUpperCase() + field.slice(1)];
-          if (value && typeof value === "string" && value.trim()) {
-            companyName = value;
+          if (leadData[field] && typeof leadData[field] === "string") {
+            companyName = leadData[field];
             break;
           }
         }
 
-        // Get phone
+        // Get phone - quick lookup
         let phone = "";
-        for (const [key, value] of Object.entries(leadData)) {
-          const keyLower = key.toLowerCase();
-          if ((keyLower.includes("phone") || keyLower.includes("tel")) && typeof value === "string" && value.trim()) {
-            phone = value;
+        for (const key of Object.keys(leadData)) {
+          if (key.toLowerCase().includes("phone") || key.toLowerCase().includes("tel")) {
+            phone = String(leadData[key] || "");
             break;
           }
         }
@@ -73,31 +75,29 @@ export function useDueCallbacks() {
           company_name: companyName,
           phone,
           callback_scheduled_at: lead.callback_scheduled_at,
-          list_name: lead.lists?.name || "Unknown List",
+          list_name: "Queue",
         };
       });
 
-      // Show toast for new due callbacks (max once per minute)
-      const now_ts = Date.now();
-      const newCallbacks = callbacks.filter(cb => !notifiedIds.current.has(cb.id));
-      
-      if (newCallbacks.length > 0 && now_ts - lastToastTime.current > 60000) {
-        lastToastTime.current = now_ts;
-        newCallbacks.forEach(cb => notifiedIds.current.add(cb.id));
+      // Only show toast for NEW callbacks after initial load
+      if (!isInitialLoad.current) {
+        const newCallbacks = callbacks.filter(cb => !notifiedIds.current.has(cb.id));
         
-        if (newCallbacks.length === 1) {
+        if (newCallbacks.length > 0) {
+          newCallbacks.forEach(cb => notifiedIds.current.add(cb.id));
+          
           toast({
             title: "📞 Callback Due",
-            description: `${newCallbacks[0].company_name} is waiting for your call`,
-            duration: 8000,
-          });
-        } else {
-          toast({
-            title: "📞 Callbacks Due",
-            description: `You have ${newCallbacks.length} callbacks that need attention`,
+            description: newCallbacks.length === 1 
+              ? `${newCallbacks[0].company_name} is waiting for your call`
+              : `You have ${newCallbacks.length} callbacks that need attention`,
             duration: 8000,
           });
         }
+      } else {
+        // On initial load, just mark all as notified
+        callbacks.forEach(cb => notifiedIds.current.add(cb.id));
+        isInitialLoad.current = false;
       }
 
       setDueCallbacks(callbacks);
@@ -114,8 +114,8 @@ export function useDueCallbacks() {
 
     fetchDueCallbacks();
 
-    // Check every 60 seconds for due callbacks
-    const interval = setInterval(fetchDueCallbacks, 60000);
+    // Check every 2 minutes for due callbacks (less frequent = faster)
+    const interval = setInterval(fetchDueCallbacks, 120000);
 
     return () => clearInterval(interval);
   }, [user, fetchDueCallbacks]);
