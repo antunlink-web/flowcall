@@ -1,4 +1,5 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
+import { useSearchParams } from "react-router-dom";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { LeadDetailView } from "@/components/leads/LeadDetailView";
 import { Button } from "@/components/ui/button";
@@ -30,6 +31,7 @@ interface ListWithStats {
 }
 
 export default function Work() {
+  const [searchParams, setSearchParams] = useSearchParams();
   const [currentLead, setCurrentLead] = useState<Lead | null>(null);
   const [lists, setLists] = useState<ListWithStats[]>([]);
   const [scheduledLeads, setScheduledLeads] = useState<Lead[]>([]);
@@ -40,6 +42,7 @@ export default function Work() {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [totalLeadsInQueue, setTotalLeadsInQueue] = useState(0);
   const { user, loading: authLoading } = useAuth();
+  const autostartHandled = useRef(false);
 
   // Fetch list statistics (uses counts, not full data)
   const fetchListStats = useCallback(async (showLoading = false) => {
@@ -179,6 +182,20 @@ export default function Work() {
       fetchListStats(true); // Show loading only on initial load
     }
   }, [user]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Auto-start calling when navigated with autostart=true
+  useEffect(() => {
+    if (searchParams.get("autostart") === "true" && lists.length > 0 && !autostartHandled.current) {
+      autostartHandled.current = true;
+      // Find first list with queued leads
+      const listWithLeads = lists.find(l => l.queuedNow > 0) || lists[0];
+      if (listWithLeads) {
+        handleStartCalling(listWithLeads.id);
+        // Clear the autostart param
+        setSearchParams({}, { replace: true });
+      }
+    }
+  }, [lists, searchParams, setSearchParams]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // When selectedList or currentIndex changes, fetch the lead
   useEffect(() => {
