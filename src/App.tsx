@@ -12,6 +12,7 @@ import Auth from "./pages/Auth";
 import ResetPassword from "./pages/ResetPassword";
 import AcceptInvite from "./pages/AcceptInvite";
 import ControlPanel from "./pages/ControlPanel";
+import Dashboard from "./pages/Dashboard";
 import Work from "./pages/Work";
 import Leads from "./pages/Leads";
 import Campaigns from "./pages/Campaigns";
@@ -54,8 +55,9 @@ const App = () => (
                 <Route path="/auth" element={<Auth />} />
                 <Route path="/reset-password" element={<ResetPassword />} />
                 <Route path="/accept-invite" element={<AcceptInvite />} />
-                <Route path="/" element={<ProtectedRoute><ControlPanel /></ProtectedRoute>} />
-                <Route path="/dashboard" element={<ProtectedRoute><ControlPanel /></ProtectedRoute>} />
+                <Route path="/" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+                <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+                <Route path="/control-panel" element={<ProtectedRoute><ControlPanel /></ProtectedRoute>} />
                 <Route path="/work" element={<ProtectedRoute><Work /></ProtectedRoute>} />
                 <Route path="/leads" element={<ProtectedRoute><Leads /></ProtectedRoute>} />
                 <Route path="/campaigns" element={<ProtectedRoute><Campaigns /></ProtectedRoute>} />
