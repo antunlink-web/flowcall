@@ -22,7 +22,8 @@ import {
   ThumbsUp,
   ChevronDown,
   ChevronRight,
-  
+  ChevronLeft,
+  LayoutDashboard,
   Users,
   BarChart3,
   Megaphone,
@@ -267,8 +268,37 @@ export default function ControlPanel() {
     { id: "due" as TabType, name: "Due", icon: Bell, description: "Callbacks due now", badge: dueCallbacks.length },
   ];
 
+  const currentSection = workflowItems.find(item => item.id === activeTab);
+  const isSubSection = activeTab !== "dashboard" && activeTab !== "navigate";
+
   return (
     <DashboardLayout>
+      {/* Section Header - shows when in a sub-section */}
+      {isSubSection && currentSection && (
+        <div className="bg-[hsl(215,25%,27%)] sticky top-14 z-40 shadow-md">
+          <div className="max-w-7xl mx-auto px-4 py-3">
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => setActiveTab("dashboard")}
+                className="flex items-center gap-1 text-slate-300 hover:text-white transition-colors"
+              >
+                <ChevronLeft className="w-5 h-5" />
+                <LayoutDashboard className="w-4 h-4" />
+              </button>
+              <div className="w-px h-6 bg-slate-500" />
+              <div className="flex items-center gap-2 text-white">
+                <currentSection.icon className="w-5 h-5" />
+                <span className="font-medium">{currentSection.name}</span>
+                {currentSection.badge !== undefined && currentSection.badge > 0 && (
+                  <Badge variant="destructive" className="h-5 min-w-5 px-1">
+                    {currentSection.badge}
+                  </Badge>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Main Content */}
       <div className="max-w-7xl mx-auto px-4 py-8">
