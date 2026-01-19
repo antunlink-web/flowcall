@@ -28,7 +28,6 @@ import flowcallLogo from "@/assets/flowcall-logo.png";
 
 const navItems = [
   { to: "/", icon: Phone, label: "Work", roles: ["owner", "account_manager", "agent"] },
-  { to: "/leads", icon: Users, label: "Leads", roles: ["owner", "account_manager", "agent"] },
   { to: "/campaigns", icon: LayoutGrid, label: "Campaigns", roles: ["owner", "account_manager", "agent"] },
   { to: "/reports", icon: BarChart3, label: "Reports", roles: ["owner", "account_manager", "agent"] },
   { to: "/team", icon: Briefcase, label: "Team", roles: ["owner"] },
