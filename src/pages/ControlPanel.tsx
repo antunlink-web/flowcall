@@ -5,7 +5,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { ScrollArea } from "@/components/ui/scroll-area";
+
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useUserRole } from "@/hooks/useUserRole";
@@ -22,7 +22,7 @@ import {
   ThumbsUp,
   ChevronDown,
   ChevronRight,
-  LayoutDashboard,
+  
   Users,
   BarChart3,
   Megaphone,
@@ -30,13 +30,9 @@ import {
   History,
   Lock,
   Bell,
-  ListPlus,
-  UserCircle,
-  CheckCircle2,
-  MessageSquare,
 } from "lucide-react";
 
-type TabType = "dashboard" | "welcome" | "navigate" | "history" | "scheduled" | "locked" | "due";
+type TabType = "dashboard" | "navigate" | "history" | "scheduled" | "locked" | "due";
 
 interface PipelineItem {
   icon: React.ElementType;
@@ -66,13 +62,6 @@ interface LockedLead {
   claimed_at: string;
 }
 
-interface OnboardingStep {
-  icon: React.ElementType;
-  title: string;
-  description: string;
-  link: string;
-  completed?: boolean;
-}
 
 const mainNavItems = [
   { name: "Dialer", href: "/work", icon: Phone, roles: ["agent", "owner", "account_manager"], description: "Start & manage calls" },
@@ -84,7 +73,7 @@ const mainNavItems = [
 
 export default function ControlPanel() {
   const [leads, setLeads] = useState<Lead[]>([]);
-  const [loading, setLoading] = useState(true);
+  
   const [activeTab, setActiveTab] = useState<TabType>("dashboard");
   const [recentLeads, setRecentLeads] = useState<RecentLead[]>([]);
   const [scheduledLeads, setScheduledLeads] = useState<ScheduledLead[]>([]);
@@ -114,7 +103,6 @@ export default function ControlPanel() {
 
   const fetchLeads = async () => {
     if (!user) return;
-    setLoading(false);
 
     const { data } = await supabase
       .from("leads")
@@ -127,7 +115,6 @@ export default function ControlPanel() {
     })) as Lead[];
 
     setLeads(mappedLeads);
-    setLoading(false);
   };
 
   const fetchRecentLeads = async () => {
@@ -271,56 +258,17 @@ export default function ControlPanel() {
     .join("")
     .toUpperCase() || "U";
 
-  const userName = user?.user_metadata?.full_name?.split(" ")[0] || "there";
-  const appName = branding?.app_name || "the CRM";
 
-  const onboardingSteps: OnboardingStep[] = [
-    { icon: Phone, title: "Choose how you want to call", description: "Select from our range of calling options.", link: "/preferences" },
-    { icon: ListPlus, title: "Create a list", description: "Upload and configure a list of leads.", link: "/manage/lists" },
-    { icon: Users, title: "Invite Co-Workers", description: "Give others access to work your lists.", link: "/team" },
-    { icon: UserCircle, title: "Complete your profile", description: "Complete your details and preferences.", link: "/preferences" },
-    { icon: Settings, title: "Manage your account", description: "Subscription, invoices, and settings.", link: "/manage/account" },
-  ];
 
-  const tabs = [
-    { id: "dashboard" as TabType, label: "Dashboard", icon: LayoutDashboard },
-    { id: "navigate" as TabType, label: "Navigate", icon: ChevronRight },
-    { id: "history" as TabType, label: "History", icon: History },
-    { id: "scheduled" as TabType, label: "Scheduled", icon: Calendar },
-    { id: "locked" as TabType, label: "Locked", icon: Lock },
-    { id: "due" as TabType, label: "Due", icon: Bell, badge: dueCallbacks.length },
+  const workflowItems = [
+    { id: "history" as TabType, name: "History", icon: History, description: "Recently worked leads" },
+    { id: "scheduled" as TabType, name: "Scheduled", icon: Calendar, description: "Upcoming callbacks" },
+    { id: "locked" as TabType, name: "Locked", icon: Lock, description: "Your claimed leads" },
+    { id: "due" as TabType, name: "Due", icon: Bell, description: "Callbacks due now", badge: dueCallbacks.length },
   ];
 
   return (
     <DashboardLayout>
-      {/* Tab Navigation */}
-      <div className="bg-[hsl(215,25%,27%)] sticky top-14 z-40 shadow-md">
-        <div className="max-w-7xl mx-auto">
-          <ScrollArea className="w-full">
-            <div className="flex items-center py-2 px-4 gap-1">
-              {tabs.map((tab) => (
-                <button
-                  key={tab.id}
-                  onClick={() => setActiveTab(tab.id)}
-                  className={`flex items-center gap-2 px-5 py-2.5 text-sm font-medium rounded-md transition-all whitespace-nowrap ${
-                    activeTab === tab.id
-                      ? "bg-primary text-primary-foreground shadow-sm"
-                      : "text-slate-300 hover:text-white hover:bg-white/10"
-                  }`}
-                >
-                  <tab.icon className="w-4 h-4" />
-                  {tab.label}
-                  {tab.badge !== undefined && tab.badge > 0 && (
-                    <Badge variant="destructive" className="h-5 min-w-5 px-1 flex items-center justify-center text-xs">
-                      {tab.badge}
-                    </Badge>
-                  )}
-                </button>
-              ))}
-            </div>
-          </ScrollArea>
-        </div>
-      </div>
 
       {/* Main Content */}
       <div className="max-w-7xl mx-auto px-4 py-8">
@@ -401,23 +349,100 @@ export default function ControlPanel() {
           </div>
         )}
 
-        {/* Navigate Tab */}
+        {/* Navigate Section (shown on dashboard) */}
+        {activeTab === "dashboard" && (
+          <div className="py-8 space-y-8">
+            {/* Workflow Cards */}
+            <div>
+              <h3 className="text-sm font-medium text-muted-foreground uppercase tracking-wider mb-4">Your Workflow</h3>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                {workflowItems.map((item) => (
+                  <button
+                    key={item.id}
+                    onClick={() => setActiveTab(item.id)}
+                    className="relative flex flex-col items-center p-6 rounded-xl bg-card border shadow-sm hover:shadow-md hover:border-primary/30 transition-all group"
+                  >
+                    {item.badge !== undefined && item.badge > 0 && (
+                      <Badge variant="destructive" className="absolute top-2 right-2 h-5 min-w-5 px-1">
+                        {item.badge}
+                      </Badge>
+                    )}
+                    <div className="mb-4">
+                      <item.icon className="w-10 h-10 text-primary group-hover:scale-110 transition-transform" strokeWidth={1.5} />
+                    </div>
+                    <h3 className="font-semibold text-foreground text-center mb-1">{item.name}</h3>
+                    <p className="text-xs text-muted-foreground text-center">{item.description}</p>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Navigation Cards */}
+            <div>
+              <h3 className="text-sm font-medium text-muted-foreground uppercase tracking-wider mb-4">Quick Access</h3>
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
+                {filteredNavItems.map((item) => (
+                  <Link
+                    key={item.name}
+                    to={item.href}
+                    className="flex flex-col items-center p-6 rounded-xl bg-card border shadow-sm hover:shadow-md hover:border-primary/30 transition-all group"
+                  >
+                    <div className="mb-4">
+                      <item.icon className="w-10 h-10 text-primary group-hover:scale-110 transition-transform" strokeWidth={1.5} />
+                    </div>
+                    <h3 className="font-semibold text-foreground text-center mb-1">{item.name}</h3>
+                    <p className="text-xs text-muted-foreground text-center">{item.description}</p>
+                  </Link>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Navigate Tab - now shows same content */}
         {activeTab === "navigate" && (
-          <div className="py-8">
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 max-w-4xl mx-auto">
-              {filteredNavItems.map((item) => (
-                <Link
-                  key={item.name}
-                  to={item.href}
-                  className="flex flex-col items-center p-6 rounded-xl bg-card border shadow-sm hover:shadow-md hover:border-primary/30 transition-all group"
-                >
-                  <div className="mb-4">
-                    <item.icon className="w-12 h-12 text-primary group-hover:scale-110 transition-transform" strokeWidth={1.5} />
-                  </div>
-                  <h3 className="font-semibold text-foreground text-center mb-1">{item.name}</h3>
-                  <p className="text-sm text-muted-foreground text-center">{item.description}</p>
-                </Link>
-              ))}
+          <div className="py-8 space-y-8">
+            <div>
+              <h3 className="text-sm font-medium text-muted-foreground uppercase tracking-wider mb-4">Your Workflow</h3>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                {workflowItems.map((item) => (
+                  <button
+                    key={item.id}
+                    onClick={() => setActiveTab(item.id)}
+                    className="relative flex flex-col items-center p-6 rounded-xl bg-card border shadow-sm hover:shadow-md hover:border-primary/30 transition-all group"
+                  >
+                    {item.badge !== undefined && item.badge > 0 && (
+                      <Badge variant="destructive" className="absolute top-2 right-2 h-5 min-w-5 px-1">
+                        {item.badge}
+                      </Badge>
+                    )}
+                    <div className="mb-4">
+                      <item.icon className="w-10 h-10 text-primary group-hover:scale-110 transition-transform" strokeWidth={1.5} />
+                    </div>
+                    <h3 className="font-semibold text-foreground text-center mb-1">{item.name}</h3>
+                    <p className="text-xs text-muted-foreground text-center">{item.description}</p>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <h3 className="text-sm font-medium text-muted-foreground uppercase tracking-wider mb-4">Quick Access</h3>
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
+                {filteredNavItems.map((item) => (
+                  <Link
+                    key={item.name}
+                    to={item.href}
+                    className="flex flex-col items-center p-6 rounded-xl bg-card border shadow-sm hover:shadow-md hover:border-primary/30 transition-all group"
+                  >
+                    <div className="mb-4">
+                      <item.icon className="w-10 h-10 text-primary group-hover:scale-110 transition-transform" strokeWidth={1.5} />
+                    </div>
+                    <h3 className="font-semibold text-foreground text-center mb-1">{item.name}</h3>
+                    <p className="text-xs text-muted-foreground text-center">{item.description}</p>
+                  </Link>
+                ))}
+              </div>
             </div>
           </div>
         )}
@@ -538,51 +563,6 @@ export default function ControlPanel() {
                 <Button onClick={() => navigate("/work")} className="w-full">Start Working Callbacks</Button>
               </div>
             )}
-          </div>
-        )}
-
-        {/* Welcome/Getting Started Tab */}
-        {activeTab === "welcome" && (
-          <div className="max-w-5xl mx-auto">
-            <div className="mb-8">
-              <h1 className="text-3xl text-primary font-light">
-                <span className="italic">Hello, {userName}!</span>
-                <span className="text-muted-foreground text-xl ml-2">Here's a few simple steps to get started with {appName}.</span>
-              </h1>
-              <div className="h-0.5 bg-primary/30 mt-3 max-w-md" />
-            </div>
-
-            <div className="grid lg:grid-cols-3 gap-8">
-              <div className="lg:col-span-2 space-y-4">
-                {onboardingSteps.map((step, index) => (
-                  <Link key={index} to={step.link} className="flex items-start gap-4 group hover:bg-muted/50 p-3 rounded-lg transition-colors -ml-3">
-                    <div className="relative mt-1">
-                      <step.icon className="w-8 h-8 text-muted-foreground/60" />
-                      {step.completed && <CheckCircle2 className="w-4 h-4 text-green-500 absolute -bottom-1 -right-1 bg-background rounded-full" />}
-                    </div>
-                    <div>
-                      <h3 className="text-primary font-medium group-hover:underline">{step.title}</h3>
-                      <p className="text-sm text-muted-foreground">{step.description}</p>
-                    </div>
-                  </Link>
-                ))}
-              </div>
-
-              <div>
-                <Card className="bg-muted/30 border-muted">
-                  <CardContent className="p-5">
-                    <h3 className="font-semibold text-foreground mb-3">Need help?</h3>
-                    <p className="text-sm text-muted-foreground mb-1">Read the <a href="#" className="text-primary hover:underline">Getting Started Guide</a></p>
-                    <p className="text-sm text-muted-foreground mb-4">Find answers in the <a href="#" className="text-primary hover:underline">FAQ</a></p>
-                    <div className="flex items-center gap-2 mb-3">
-                      <span className="text-sm text-muted-foreground">Or simply</span>
-                      <Button variant="outline" size="sm" className="gap-1.5"><MessageSquare className="w-3.5 h-3.5" />Ask a question</Button>
-                    </div>
-                    <p className="text-sm text-muted-foreground">We read and reply to every message.</p>
-                  </CardContent>
-                </Card>
-              </div>
-            </div>
           </div>
         )}
       </div>
