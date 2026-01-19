@@ -75,12 +75,11 @@ interface OnboardingStep {
 }
 
 const mainNavItems = [
-  { name: "Dashboard", href: "/", icon: LayoutDashboard, roles: ["agent", "owner", "account_manager"], description: "View your stats and activity" },
-  { name: "Work", href: "/work", icon: Phone, roles: ["agent", "owner", "account_manager"], description: "Start calling leads" },
-  { name: "Reports", href: "/reports", icon: BarChart3, roles: ["owner", "account_manager"], description: "View performance reports" },
-  { name: "Campaigns", href: "/campaigns", icon: Megaphone, roles: ["owner", "account_manager"], description: "Manage campaigns" },
-  { name: "Team", href: "/team", icon: Users, roles: ["owner"], description: "Manage team members" },
-  { name: "Manage", href: "/manage", icon: Settings, roles: ["owner", "account_manager"], description: "System settings and lists" },
+  { name: "Dialer", href: "/work", icon: Phone, roles: ["agent", "owner", "account_manager"], description: "Start & manage calls" },
+  { name: "Reports", href: "/reports", icon: BarChart3, roles: ["owner", "account_manager"], description: "Performance & stats" },
+  { name: "Campaigns", href: "/campaigns", icon: Megaphone, roles: ["owner", "account_manager"], description: "Cold call campaigns" },
+  { name: "Team", href: "/team", icon: Users, roles: ["owner"], description: "View & manage team" },
+  { name: "Settings", href: "/manage", icon: Settings, roles: ["owner", "account_manager"], description: "System preferences" },
 ];
 
 export default function ControlPanel() {
@@ -404,23 +403,19 @@ export default function ControlPanel() {
 
         {/* Navigate Tab */}
         {activeTab === "navigate" && (
-          <div className="space-y-6">
-            <h2 className="text-2xl font-semibold text-primary">Quick Navigation</h2>
-            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="py-8">
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 max-w-4xl mx-auto">
               {filteredNavItems.map((item) => (
                 <Link
                   key={item.name}
                   to={item.href}
-                  className="flex items-start gap-4 p-4 rounded-lg border bg-card hover:bg-muted transition-colors group"
+                  className="flex flex-col items-center p-6 rounded-xl bg-card border shadow-sm hover:shadow-md hover:border-primary/30 transition-all group"
                 >
-                  <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center group-hover:bg-primary/20 transition-colors">
-                    <item.icon className="w-6 h-6 text-primary" />
+                  <div className="mb-4">
+                    <item.icon className="w-12 h-12 text-primary group-hover:scale-110 transition-transform" strokeWidth={1.5} />
                   </div>
-                  <div className="flex-1">
-                    <h3 className="font-medium text-foreground group-hover:text-primary transition-colors">{item.name}</h3>
-                    <p className="text-sm text-muted-foreground">{item.description}</p>
-                  </div>
-                  <ChevronRight className="w-5 h-5 text-muted-foreground group-hover:text-primary transition-colors mt-1" />
+                  <h3 className="font-semibold text-foreground text-center mb-1">{item.name}</h3>
+                  <p className="text-sm text-muted-foreground text-center">{item.description}</p>
                 </Link>
               ))}
             </div>
