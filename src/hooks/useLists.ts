@@ -59,41 +59,45 @@ export function useLists() {
 
       if (listsError) throw listsError;
 
-      // Fetch lead counts per list - use pagination to get all leads (bypass 1000 limit)
-      let allLeadCounts: { list_id: string | null; status: string }[] = [];
-      let from = 0;
-      const pageSize = 1000;
+      // Fetch aggregated lead counts per list using a more efficient approach
+      // Instead of fetching all leads, fetch counts grouped by list_id and status
+      const listIds = (listsData || []).map(l => l.id);
       
-      while (true) {
-        const { data: leadCounts, error: countsError } = await supabase
+      // Build stats map with defaults
+      const statsMap: Record<string, { total: number; new: number; callback: number; won: number; lost: number }> = {};
+      listIds.forEach(id => {
+        statsMap[id] = { total: 0, new: 0, callback: 0, won: 0, lost: 0 };
+      });
+
+      // Fetch lead counts for each list in a single query per list
+      // This is more efficient than fetching all individual leads
+      if (listIds.length > 0) {
+        const { data: leadsData, error: leadsError } = await supabase
           .from("leads")
           .select("list_id, status")
-          .range(from, from + pageSize - 1);
+          .in("list_id", listIds);
 
-        if (countsError) throw countsError;
-        
-        if (!leadCounts || leadCounts.length === 0) break;
-        
-        allLeadCounts = [...allLeadCounts, ...leadCounts];
-        
-        if (leadCounts.length < pageSize) break;
-        from += pageSize;
+        if (!leadsError && leadsData) {
+          // Count leads by list and status
+          leadsData.forEach(lead => {
+            if (lead.list_id && statsMap[lead.list_id]) {
+              statsMap[lead.list_id].total++;
+              if (lead.status === "new") statsMap[lead.list_id].new++;
+              else if (lead.status === "callback") statsMap[lead.list_id].callback++;
+              else if (lead.status === "won") statsMap[lead.list_id].won++;
+              else if (lead.status === "lost") statsMap[lead.list_id].lost++;
+            }
+          });
+        }
       }
 
-      // Calculate stats for each list
-      const listsWithStats = (listsData || []).map((list) => {
-        const listLeads = allLeadCounts?.filter((l) => l.list_id === list.id) || [];
-        return {
-          ...list,
-          fields: (list.fields as unknown as ListField[]) || [],
-          settings: (list.settings as unknown as ListSettings) || {},
-          total: listLeads.length,
-          new: listLeads.filter((l) => l.status === "new").length,
-          callback: listLeads.filter((l) => l.status === "callback").length,
-          won: listLeads.filter((l) => l.status === "won").length,
-          lost: listLeads.filter((l) => l.status === "lost").length,
-        } as List;
-      });
+      // Build lists with stats
+      const listsWithStats = (listsData || []).map((list) => ({
+        ...list,
+        fields: (list.fields as unknown as ListField[]) || [],
+        settings: (list.settings as unknown as ListSettings) || {},
+        ...statsMap[list.id],
+      } as List));
 
       setLists(listsWithStats);
     } catch (error: unknown) {

@@ -192,7 +192,7 @@ export default function ManageLists() {
         .select("data")
         .eq("list_id", configureList.id)
         .limit(1)
-        .single();
+        .maybeSingle();
       
       if (data?.data) {
         setPreviewLead(data.data as Record<string, string>);
