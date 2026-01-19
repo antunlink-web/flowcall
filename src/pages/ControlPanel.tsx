@@ -22,9 +22,16 @@ import {
   Lock,
   Bell,
   Grip,
+  Briefcase,
+  ClipboardList,
+  Eye,
+  ListChecks,
+  FileText,
+  UserCog,
+  Cog,
 } from "lucide-react";
 
-type TabType = "main" | "history" | "scheduled" | "locked" | "due";
+type TabType = "main" | "work" | "manage" | "review" | "history" | "scheduled" | "locked" | "due";
 
 interface RecentLead {
   id: string;
@@ -45,12 +52,33 @@ interface LockedLead {
   claimed_at: string;
 }
 
-const mainNavItems = [
-  { name: "Dialer", href: "/work?autostart=true", icon: Phone, roles: ["agent", "owner", "account_manager"], description: "Start & manage calls" },
-  { name: "Reports", href: "/reports", icon: BarChart3, roles: ["owner", "account_manager"], description: "Performance & stats" },
-  { name: "Campaigns", href: "/campaigns", icon: Megaphone, roles: ["owner", "account_manager"], description: "Cold call campaigns" },
-  { name: "Team", href: "/team", icon: Users, roles: ["owner"], description: "View & manage team" },
-  { name: "Settings", href: "/manage", icon: Settings, roles: ["owner", "account_manager"], description: "System preferences" },
+// Main category items
+const categoryItems = [
+  { id: "work" as TabType, name: "Work", icon: Briefcase, description: "Dialer & your workflow", roles: ["agent", "owner", "account_manager"] },
+  { id: "manage" as TabType, name: "Manage", icon: Cog, description: "Settings & team", roles: ["owner", "account_manager"] },
+  { id: "review" as TabType, name: "Review", icon: Eye, description: "Reports & campaigns", roles: ["owner", "account_manager"] },
+];
+
+// Work section items
+const workItems = [
+  { id: "dialer", name: "Dialer", href: "/work?autostart=true", icon: Phone, description: "Start & manage calls" },
+  { id: "history" as TabType, name: "History", icon: History, description: "Recently worked leads", isTab: true },
+  { id: "scheduled" as TabType, name: "Scheduled", icon: Calendar, description: "Upcoming callbacks", isTab: true },
+  { id: "locked" as TabType, name: "Locked", icon: Lock, description: "Your claimed leads", isTab: true },
+  { id: "due" as TabType, name: "Due", icon: Bell, description: "Callbacks due now", isTab: true },
+];
+
+// Manage section items
+const manageItems = [
+  { name: "Lists", href: "/manage/lists", icon: ListChecks, description: "Configure lead lists" },
+  { name: "Team", href: "/team", icon: Users, description: "View & manage team" },
+  { name: "Settings", href: "/manage", icon: Settings, description: "System preferences" },
+];
+
+// Review section items
+const reviewItems = [
+  { name: "Reports", href: "/reports", icon: BarChart3, description: "Performance & stats" },
+  { name: "Campaigns", href: "/campaigns", icon: Megaphone, description: "Cold call campaigns" },
 ];
 
 export default function ControlPanel() {
@@ -65,7 +93,7 @@ export default function ControlPanel() {
   const { dueCallbacks } = useDueCallbacks();
   const navigate = useNavigate();
 
-  const filteredNavItems = mainNavItems.filter(item => {
+  const filteredCategories = categoryItems.filter(item => {
     if (!roles || roles.length === 0) return item.roles.includes("agent");
     return item.roles.some(role => roles.includes(role as any));
   });
@@ -165,15 +193,29 @@ export default function ControlPanel() {
     }
   };
 
-  const workflowItems = [
-    { id: "history" as TabType, name: "History", icon: History, description: "Recently worked leads" },
-    { id: "scheduled" as TabType, name: "Scheduled", icon: Calendar, description: "Upcoming callbacks" },
-    { id: "locked" as TabType, name: "Locked", icon: Lock, description: "Your claimed leads" },
-    { id: "due" as TabType, name: "Due", icon: Bell, description: "Callbacks due now", badge: dueCallbacks.length },
-  ];
+  const getSectionInfo = () => {
+    switch (activeTab) {
+      case "work": return { name: "Work", icon: Briefcase };
+      case "manage": return { name: "Manage", icon: Cog };
+      case "review": return { name: "Review", icon: Eye };
+      case "history": return { name: "History", icon: History, parent: "work" };
+      case "scheduled": return { name: "Scheduled", icon: Calendar, parent: "work" };
+      case "locked": return { name: "Locked", icon: Lock, parent: "work" };
+      case "due": return { name: "Due", icon: Bell, parent: "work", badge: dueCallbacks.length };
+      default: return null;
+    }
+  };
 
-  const currentSection = workflowItems.find(item => item.id === activeTab);
+  const currentSection = getSectionInfo();
   const isSubSection = activeTab !== "main";
+
+  const handleBack = () => {
+    if (currentSection?.parent) {
+      setActiveTab(currentSection.parent as TabType);
+    } else {
+      setActiveTab("main");
+    }
+  };
 
   return (
     <DashboardLayout>
@@ -183,7 +225,7 @@ export default function ControlPanel() {
           <div className="max-w-7xl mx-auto px-4 py-3">
             <div className="flex items-center gap-3">
               <button
-                onClick={() => setActiveTab("main")}
+                onClick={handleBack}
                 className="flex items-center gap-1 text-slate-300 hover:text-white transition-colors"
               >
                 <ChevronLeft className="w-5 h-5" />
@@ -206,22 +248,41 @@ export default function ControlPanel() {
 
       {/* Main Content */}
       <div className="max-w-7xl mx-auto px-4 py-8">
-        {/* Main Panel */}
+        {/* Main Panel - Category Selection */}
         {activeTab === "main" && (
-          <div className="space-y-8">
-            {/* Workflow Cards */}
-            <div>
-              <h3 className="text-sm font-medium text-muted-foreground uppercase tracking-wider mb-4">Your Workflow</h3>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-                {workflowItems.map((item) => (
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+            {filteredCategories.map((item) => (
+              <button
+                key={item.id}
+                onClick={() => setActiveTab(item.id)}
+                className="flex flex-col items-center p-8 rounded-xl bg-card border shadow-sm hover:shadow-lg hover:border-primary/30 transition-all group"
+              >
+                <div className="mb-4 p-4 rounded-full bg-primary/10">
+                  <item.icon className="w-12 h-12 text-primary group-hover:scale-110 transition-transform" strokeWidth={1.5} />
+                </div>
+                <h3 className="text-xl font-semibold text-foreground text-center mb-2">{item.name}</h3>
+                <p className="text-sm text-muted-foreground text-center">{item.description}</p>
+              </button>
+            ))}
+          </div>
+        )}
+
+        {/* Work Section */}
+        {activeTab === "work" && (
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
+            {workItems.map((item) => {
+              const badge = item.id === "due" ? dueCallbacks.length : undefined;
+              
+              if (item.isTab) {
+                return (
                   <button
                     key={item.id}
-                    onClick={() => setActiveTab(item.id)}
+                    onClick={() => setActiveTab(item.id as TabType)}
                     className="relative flex flex-col items-center p-6 rounded-xl bg-card border shadow-sm hover:shadow-md hover:border-primary/30 transition-all group"
                   >
-                    {item.badge !== undefined && item.badge > 0 && (
+                    {badge !== undefined && badge > 0 && (
                       <Badge variant="destructive" className="absolute top-2 right-2 h-5 min-w-5 px-1">
-                        {item.badge}
+                        {badge}
                       </Badge>
                     )}
                     <div className="mb-4">
@@ -230,29 +291,61 @@ export default function ControlPanel() {
                     <h3 className="font-semibold text-foreground text-center mb-1">{item.name}</h3>
                     <p className="text-xs text-muted-foreground text-center">{item.description}</p>
                   </button>
-                ))}
-              </div>
-            </div>
+                );
+              }
+              
+              return (
+                <Link
+                  key={item.id}
+                  to={item.href!}
+                  className="flex flex-col items-center p-6 rounded-xl bg-card border shadow-sm hover:shadow-md hover:border-primary/30 transition-all group"
+                >
+                  <div className="mb-4">
+                    <item.icon className="w-10 h-10 text-primary group-hover:scale-110 transition-transform" strokeWidth={1.5} />
+                  </div>
+                  <h3 className="font-semibold text-foreground text-center mb-1">{item.name}</h3>
+                  <p className="text-xs text-muted-foreground text-center">{item.description}</p>
+                </Link>
+              );
+            })}
+          </div>
+        )}
 
-            {/* Navigation Cards */}
-            <div>
-              <h3 className="text-sm font-medium text-muted-foreground uppercase tracking-wider mb-4">Quick Access</h3>
-              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
-                {filteredNavItems.map((item) => (
-                  <Link
-                    key={item.name}
-                    to={item.href}
-                    className="flex flex-col items-center p-6 rounded-xl bg-card border shadow-sm hover:shadow-md hover:border-primary/30 transition-all group"
-                  >
-                    <div className="mb-4">
-                      <item.icon className="w-10 h-10 text-primary group-hover:scale-110 transition-transform" strokeWidth={1.5} />
-                    </div>
-                    <h3 className="font-semibold text-foreground text-center mb-1">{item.name}</h3>
-                    <p className="text-xs text-muted-foreground text-center">{item.description}</p>
-                  </Link>
-                ))}
-              </div>
-            </div>
+        {/* Manage Section */}
+        {activeTab === "manage" && (
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+            {manageItems.map((item) => (
+              <Link
+                key={item.name}
+                to={item.href}
+                className="flex flex-col items-center p-6 rounded-xl bg-card border shadow-sm hover:shadow-md hover:border-primary/30 transition-all group"
+              >
+                <div className="mb-4">
+                  <item.icon className="w-10 h-10 text-primary group-hover:scale-110 transition-transform" strokeWidth={1.5} />
+                </div>
+                <h3 className="font-semibold text-foreground text-center mb-1">{item.name}</h3>
+                <p className="text-xs text-muted-foreground text-center">{item.description}</p>
+              </Link>
+            ))}
+          </div>
+        )}
+
+        {/* Review Section */}
+        {activeTab === "review" && (
+          <div className="grid grid-cols-2 sm:grid-cols-2 gap-4">
+            {reviewItems.map((item) => (
+              <Link
+                key={item.name}
+                to={item.href}
+                className="flex flex-col items-center p-6 rounded-xl bg-card border shadow-sm hover:shadow-md hover:border-primary/30 transition-all group"
+              >
+                <div className="mb-4">
+                  <item.icon className="w-10 h-10 text-primary group-hover:scale-110 transition-transform" strokeWidth={1.5} />
+                </div>
+                <h3 className="font-semibold text-foreground text-center mb-1">{item.name}</h3>
+                <p className="text-xs text-muted-foreground text-center">{item.description}</p>
+              </Link>
+            ))}
           </div>
         )}
 
