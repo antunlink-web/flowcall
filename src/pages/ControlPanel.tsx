@@ -77,7 +77,6 @@ interface OnboardingStep {
 const mainNavItems = [
   { name: "Dashboard", href: "/", icon: LayoutDashboard, roles: ["agent", "owner", "account_manager"], description: "View your stats and activity" },
   { name: "Work", href: "/work", icon: Phone, roles: ["agent", "owner", "account_manager"], description: "Start calling leads" },
-  { name: "Leads", href: "/leads", icon: Users, roles: ["agent", "owner", "account_manager"], description: "Browse and manage leads" },
   { name: "Reports", href: "/reports", icon: BarChart3, roles: ["owner", "account_manager"], description: "View performance reports" },
   { name: "Campaigns", href: "/campaigns", icon: Megaphone, roles: ["owner", "account_manager"], description: "Manage campaigns" },
   { name: "Team", href: "/team", icon: Users, roles: ["owner"], description: "Manage team members" },
