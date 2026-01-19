@@ -46,7 +46,7 @@ interface LockedLead {
 }
 
 const mainNavItems = [
-  { name: "Dialer", href: "/work", icon: Phone, roles: ["agent", "owner", "account_manager"], description: "Start & manage calls" },
+  { name: "Dialer", href: "/work?autostart=true", icon: Phone, roles: ["agent", "owner", "account_manager"], description: "Start & manage calls" },
   { name: "Reports", href: "/reports", icon: BarChart3, roles: ["owner", "account_manager"], description: "Performance & stats" },
   { name: "Campaigns", href: "/campaigns", icon: Megaphone, roles: ["owner", "account_manager"], description: "Cold call campaigns" },
   { name: "Team", href: "/team", icon: Users, roles: ["owner"], description: "View & manage team" },
