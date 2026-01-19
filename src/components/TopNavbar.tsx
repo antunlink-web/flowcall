@@ -1,5 +1,4 @@
-import { NavLink, useLocation, Link } from "react-router-dom";
-import { cn } from "@/lib/utils";
+import { NavLink, useLocation, Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import flowcallLogo from "@/assets/flowcall-logo.png";
 import { useUserRole } from "@/hooks/useUserRole";
@@ -25,7 +24,6 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
 import { useDueCallbacks } from "@/hooks/useDueCallbacks";
-import { ControlPanel } from "./ControlPanel";
 
 interface SearchResult {
   id: string;
@@ -41,11 +39,11 @@ interface SearchResult {
 export function TopNavbar() {
   const { user, signOut } = useAuth();
   const { isOwnerOrManager } = useUserRole();
+  const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
   const [searchLoading, setSearchLoading] = useState(false);
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
-  const [controlPanelOpen, setControlPanelOpen] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const { dueCount } = useDueCallbacks();
 
@@ -228,11 +226,11 @@ export function TopNavbar() {
             )}
           </div>
 
-          {/* Home Icon - Opens Control Panel */}
+          {/* Home Icon - Navigates to Control Panel */}
           <Button 
             variant="ghost"
             size="icon"
-            onClick={() => setControlPanelOpen(true)}
+            onClick={() => navigate("/")}
             className="text-sidebar-foreground/90 hover:text-sidebar-foreground hover:bg-sidebar-accent h-9 w-9 relative"
             title="Control Panel"
           >
@@ -313,7 +311,7 @@ export function TopNavbar() {
         </div>
       </header>
 
-      {/* Mobile Menu - now just opens control panel */}
+      {/* Mobile Menu - navigates to control panel */}
       {mobileOpen && (
         <div
           className="md:hidden fixed inset-0 bg-black/50 z-40 pt-14"
@@ -328,7 +326,7 @@ export function TopNavbar() {
               className="w-full justify-start gap-3"
               onClick={() => {
                 setMobileOpen(false);
-                setControlPanelOpen(true);
+                navigate("/");
               }}
             >
               <Home className="w-4 h-4" />
@@ -340,9 +338,6 @@ export function TopNavbar() {
           </nav>
         </div>
       )}
-
-      {/* Control Panel Dialog */}
-      <ControlPanel open={controlPanelOpen} onOpenChange={setControlPanelOpen} />
     </>
   );
 }
