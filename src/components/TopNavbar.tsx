@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import {
   Home,
+  LayoutDashboard,
   HelpCircle,
   ChevronDown,
   Menu,
@@ -226,13 +227,13 @@ export function TopNavbar() {
             )}
           </div>
 
-          {/* Home Icon - Navigates to Control Panel */}
+          {/* Home Icon - Navigates to Dashboard */}
           <Button 
             variant="ghost"
             size="icon"
             onClick={() => navigate("/")}
             className="text-sidebar-foreground/90 hover:text-sidebar-foreground hover:bg-sidebar-accent h-9 w-9 relative"
-            title="Control Panel"
+            title="Dashboard"
           >
             <Home className="w-5 h-5" />
             {dueCount > 0 && (
@@ -240,6 +241,17 @@ export function TopNavbar() {
                 {dueCount > 9 ? "9+" : dueCount}
               </span>
             )}
+          </Button>
+
+          {/* Control Panel Icon */}
+          <Button 
+            variant="ghost"
+            size="icon"
+            onClick={() => navigate("/control-panel")}
+            className="text-sidebar-foreground/90 hover:text-sidebar-foreground hover:bg-sidebar-accent h-9 w-9"
+            title="Control Panel"
+          >
+            <LayoutDashboard className="w-5 h-5" />
           </Button>
         </div>
 
