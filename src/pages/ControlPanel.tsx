@@ -295,24 +295,24 @@ export default function ControlPanel() {
   return (
     <DashboardLayout>
       {/* Tab Navigation */}
-      <div className="bg-white border-b sticky top-14 z-40">
-        <div className="max-w-7xl mx-auto px-4">
+      <div className="bg-[hsl(215,25%,27%)] sticky top-14 z-40 shadow-md">
+        <div className="max-w-7xl mx-auto">
           <ScrollArea className="w-full">
-            <div className="flex gap-1 py-1">
+            <div className="flex items-center py-2 px-4 gap-1">
               {tabs.map((tab) => (
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
-                  className={`flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-md transition-colors whitespace-nowrap ${
+                  className={`flex items-center gap-2 px-5 py-2.5 text-sm font-medium rounded-md transition-all whitespace-nowrap ${
                     activeTab === tab.id
-                      ? "bg-primary text-primary-foreground"
-                      : "text-muted-foreground hover:text-foreground hover:bg-muted"
+                      ? "bg-primary text-primary-foreground shadow-sm"
+                      : "text-slate-300 hover:text-white hover:bg-white/10"
                   }`}
                 >
                   <tab.icon className="w-4 h-4" />
                   {tab.label}
                   {tab.badge !== undefined && tab.badge > 0 && (
-                    <Badge variant="destructive" className="h-5 w-5 p-0 flex items-center justify-center text-xs">
+                    <Badge variant="destructive" className="h-5 min-w-5 px-1 flex items-center justify-center text-xs">
                       {tab.badge}
                     </Badge>
                   )}
