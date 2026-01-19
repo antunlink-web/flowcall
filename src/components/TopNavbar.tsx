@@ -286,8 +286,8 @@ export function TopNavbar() {
                     </NavLink>
                   </DropdownMenuItem>
                   <DropdownMenuItem asChild>
-                    <NavLink to="/manage/account?section=referral">
-                      Make Money
+                    <NavLink to="/">
+                      Getting Started
                     </NavLink>
                   </DropdownMenuItem>
                 </>
