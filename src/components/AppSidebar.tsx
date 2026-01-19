@@ -22,16 +22,20 @@ import {
   Menu,
   X,
   Briefcase,
+  Home,
+  Grip,
 } from "lucide-react";
 import { useState } from "react";
 import flowcallLogo from "@/assets/flowcall-logo.png";
 
 const navItems = [
-  { to: "/", icon: Phone, label: "Work", roles: ["owner", "account_manager", "agent"] },
-  { to: "/campaigns", icon: LayoutGrid, label: "Campaigns", roles: ["owner", "account_manager", "agent"] },
-  { to: "/reports", icon: BarChart3, label: "Reports", roles: ["owner", "account_manager", "agent"] },
+  { to: "/", icon: Home, label: "Dashboard", roles: ["owner", "account_manager", "agent"] },
+  { to: "/control-panel", icon: Grip, label: "Control Panel", roles: ["owner", "account_manager", "agent"] },
+  { to: "/work", icon: Phone, label: "Dialer", roles: ["owner", "account_manager", "agent"] },
+  { to: "/campaigns", icon: LayoutGrid, label: "Campaigns", roles: ["owner", "account_manager"] },
+  { to: "/reports", icon: BarChart3, label: "Reports", roles: ["owner", "account_manager"] },
   { to: "/team", icon: Briefcase, label: "Team", roles: ["owner"] },
-  { to: "/settings", icon: Settings, label: "Settings", roles: ["owner", "account_manager", "agent"] },
+  { to: "/settings", icon: Settings, label: "Settings", roles: ["owner", "account_manager"] },
 ];
 
 export function AppSidebar() {

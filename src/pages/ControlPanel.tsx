@@ -4,26 +4,16 @@ import { DashboardLayout } from "@/components/DashboardLayout";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useUserRole } from "@/hooks/useUserRole";
-import { useBranding } from "@/hooks/useBranding";
 import { useDueCallbacks } from "@/hooks/useDueCallbacks";
-import { Lead } from "@/types/crm";
 import { format, formatDistanceToNow } from "date-fns";
 import {
   Phone,
   Calendar,
-  CalendarClock,
-  CalendarX,
-  CalendarMinus,
-  ThumbsUp,
-  ChevronDown,
-  ChevronRight,
   ChevronLeft,
-  LayoutDashboard,
+  ChevronRight,
   Users,
   BarChart3,
   Megaphone,
@@ -31,18 +21,10 @@ import {
   History,
   Lock,
   Bell,
+  Grip,
 } from "lucide-react";
 
-type TabType = "dashboard" | "navigate" | "history" | "scheduled" | "locked" | "due";
-
-interface PipelineItem {
-  icon: React.ElementType;
-  label: string;
-  count: number;
-  percentage?: number;
-  color: string;
-  showRelease?: boolean;
-}
+type TabType = "main" | "history" | "scheduled" | "locked" | "due";
 
 interface RecentLead {
   id: string;
@@ -63,7 +45,6 @@ interface LockedLead {
   claimed_at: string;
 }
 
-
 const mainNavItems = [
   { name: "Dialer", href: "/work", icon: Phone, roles: ["agent", "owner", "account_manager"], description: "Start & manage calls" },
   { name: "Reports", href: "/reports", icon: BarChart3, roles: ["owner", "account_manager"], description: "Performance & stats" },
@@ -73,9 +54,7 @@ const mainNavItems = [
 ];
 
 export default function ControlPanel() {
-  const [leads, setLeads] = useState<Lead[]>([]);
-  
-  const [activeTab, setActiveTab] = useState<TabType>("dashboard");
+  const [activeTab, setActiveTab] = useState<TabType>("main");
   const [recentLeads, setRecentLeads] = useState<RecentLead[]>([]);
   const [scheduledLeads, setScheduledLeads] = useState<ScheduledLead[]>([]);
   const [lockedLeads, setLockedLeads] = useState<LockedLead[]>([]);
@@ -83,7 +62,6 @@ export default function ControlPanel() {
 
   const { user } = useAuth();
   const { roles } = useUserRole();
-  const { branding } = useBranding();
   const { dueCallbacks } = useDueCallbacks();
   const navigate = useNavigate();
 
@@ -93,30 +71,10 @@ export default function ControlPanel() {
   });
 
   useEffect(() => {
-    fetchLeads();
-  }, [user]);
-
-  useEffect(() => {
     if (activeTab === "history") fetchRecentLeads();
     else if (activeTab === "scheduled") fetchScheduledLeads();
     else if (activeTab === "locked") fetchLockedLeads();
   }, [activeTab, user]);
-
-  const fetchLeads = async () => {
-    if (!user) return;
-
-    const { data } = await supabase
-      .from("leads")
-      .select("*")
-      .or(`claimed_by.is.null,claimed_by.eq.${user.id}`);
-
-    const mappedLeads = (data || []).map((l) => ({
-      ...l,
-      data: (l.data as Record<string, unknown>) || {},
-    })) as Lead[];
-
-    setLeads(mappedLeads);
-  };
 
   const fetchRecentLeads = async () => {
     if (!user) return;
@@ -207,60 +165,6 @@ export default function ControlPanel() {
     }
   };
 
-  // Calculate stats
-  const now = new Date();
-  const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  
-  const followupsToday = leads.filter((l) => {
-    if (!l.callback_scheduled_at) return false;
-    const callbackDate = new Date(l.callback_scheduled_at);
-    return callbackDate >= todayStart;
-  });
-
-  const dueToday = followupsToday.filter((l) => {
-    const callbackDate = new Date(l.callback_scheduled_at!);
-    return callbackDate <= now;
-  });
-
-  const onSchedule = leads.filter((l) => {
-    if (!l.callback_scheduled_at) return false;
-    return new Date(l.callback_scheduled_at) > now;
-  }).length;
-
-  const due = leads.filter((l) => {
-    if (!l.callback_scheduled_at) return false;
-    const callbackDate = new Date(l.callback_scheduled_at);
-    const hourAgo = new Date(now.getTime() - 60 * 60 * 1000);
-    return callbackDate <= now && callbackDate > hourAgo;
-  }).length;
-
-  const overdue = leads.filter((l) => {
-    if (!l.callback_scheduled_at) return false;
-    const callbackDate = new Date(l.callback_scheduled_at);
-    const hourAgo = new Date(now.getTime() - 60 * 60 * 1000);
-    return callbackDate <= hourAgo;
-  }).length;
-
-  const notScheduled = leads.filter((l) => !l.callback_scheduled_at && l.status !== "won").length;
-  const won = leads.filter((l) => l.status === "won").length;
-  const total = leads.length || 1;
-
-  const pipelineItems: PipelineItem[] = [
-    { icon: Calendar, label: "ON SCHEDULE", count: onSchedule, color: "bg-blue-500" },
-    { icon: CalendarClock, label: "DUE", count: due, color: "bg-amber-500" },
-    { icon: CalendarX, label: "OVERDUE", count: overdue, color: "bg-red-500" },
-    { icon: CalendarMinus, label: "NOT SCHEDULED", count: notScheduled, percentage: Math.round((notScheduled / total) * 100), color: "bg-gray-400", showRelease: notScheduled > 0 },
-    { icon: ThumbsUp, label: "WON", count: won, percentage: Math.round((won / total) * 100), color: "bg-green-500", showRelease: won > 0 },
-  ];
-
-  const userInitials = user?.user_metadata?.full_name
-    ?.split(" ")
-    .map((n: string) => n[0])
-    .join("")
-    .toUpperCase() || "U";
-
-
-
   const workflowItems = [
     { id: "history" as TabType, name: "History", icon: History, description: "Recently worked leads" },
     { id: "scheduled" as TabType, name: "Scheduled", icon: Calendar, description: "Upcoming callbacks" },
@@ -269,7 +173,7 @@ export default function ControlPanel() {
   ];
 
   const currentSection = workflowItems.find(item => item.id === activeTab);
-  const isSubSection = activeTab !== "dashboard" && activeTab !== "navigate";
+  const isSubSection = activeTab !== "main";
 
   return (
     <DashboardLayout>
@@ -279,11 +183,11 @@ export default function ControlPanel() {
           <div className="max-w-7xl mx-auto px-4 py-3">
             <div className="flex items-center gap-3">
               <button
-                onClick={() => setActiveTab("dashboard")}
+                onClick={() => setActiveTab("main")}
                 className="flex items-center gap-1 text-slate-300 hover:text-white transition-colors"
               >
                 <ChevronLeft className="w-5 h-5" />
-                <LayoutDashboard className="w-4 h-4" />
+                <Grip className="w-4 h-4" />
               </button>
               <div className="w-px h-6 bg-slate-500" />
               <div className="flex items-center gap-2 text-white">
@@ -302,86 +206,9 @@ export default function ControlPanel() {
 
       {/* Main Content */}
       <div className="max-w-7xl mx-auto px-4 py-8">
-        {/* Dashboard Tab */}
-        {activeTab === "dashboard" && (
+        {/* Main Panel */}
+        {activeTab === "main" && (
           <div className="space-y-8">
-            <div className="flex justify-center">
-              <Card className="w-full max-w-sm">
-                <CardContent className="p-6 text-center">
-                  <p className="text-xs font-medium text-muted-foreground tracking-wider mb-2">FOLLOWUPS TODAY</p>
-                  <div className="flex items-center justify-center gap-3 mb-4">
-                    <span className="text-4xl font-bold text-foreground">{followupsToday.length}</span>
-                    <Badge variant="secondary" className="bg-primary/10 text-primary">{dueToday.length} due</Badge>
-                  </div>
-                  <Button onClick={() => navigate("/work?autostart=true")} className="bg-[hsl(0,65%,55%)] hover:bg-[hsl(0,65%,50%)] text-white gap-2">
-                    <Phone className="w-4 h-4" />
-                    Call now
-                  </Button>
-                </CardContent>
-              </Card>
-            </div>
-
-            <div className="flex items-center gap-2">
-              <h2 className="text-lg font-semibold text-primary">Your stats Today</h2>
-              <ChevronDown className="w-4 h-4 text-primary" />
-              <div className="flex-1 h-0.5 bg-primary max-w-[80px] ml-2" />
-            </div>
-
-            <div className="grid md:grid-cols-2 gap-6">
-              <Card>
-                <CardContent className="p-6">
-                  <div className="flex items-start justify-between mb-8">
-                    <h3 className="text-lg font-medium text-muted-foreground tracking-wide">YOUR ACTIVITY</h3>
-                    <Avatar className="w-16 h-16">
-                      <AvatarFallback className="bg-muted text-muted-foreground text-xl">{userInitials}</AvatarFallback>
-                    </Avatar>
-                  </div>
-                  <div className="h-24 flex items-end justify-between px-2 mb-4 border-b" />
-                  <div className="flex justify-between text-xs text-muted-foreground mb-8">
-                    <span>00:00</span><span>04:00</span><span>08:00</span><span>12:00</span><span>16:00</span><span>20:00</span>
-                  </div>
-                  <div className="grid grid-cols-2 gap-4 pt-4 border-t">
-                    <div className="text-center">
-                      <p className="text-xs text-muted-foreground mb-1">AVG TIME/LEAD</p>
-                      <p className="text-xl font-semibold text-muted-foreground">N/A</p>
-                    </div>
-                    <div className="text-center">
-                      <p className="text-xs text-muted-foreground mb-1">TOTAL TIME</p>
-                      <p className="text-xl font-semibold">about 0.0 hrs</p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardContent className="p-6">
-                  <h3 className="text-lg font-medium text-muted-foreground tracking-wide mb-6">YOUR PIPELINE</h3>
-                  <div className="space-y-4">
-                    {pipelineItems.map((item) => (
-                      <div key={item.label} className="flex items-center gap-4">
-                        <div className={`w-10 h-10 rounded-lg ${item.color} flex items-center justify-center`}>
-                          <item.icon className="w-5 h-5 text-white" />
-                        </div>
-                        <div className="flex-1 flex items-center gap-2">
-                          <span className="text-sm font-medium text-foreground">{item.label}</span>
-                          {item.showRelease && <button className="text-xs text-primary hover:underline">(RELEASE NOW)</button>}
-                        </div>
-                        <div className="text-right">
-                          {item.percentage !== undefined && <span className="text-sm text-muted-foreground mr-2">({item.percentage}%)</span>}
-                          <span className="text-lg font-semibold">{item.count}</span>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          </div>
-        )}
-
-        {/* Navigate Section (shown on dashboard) */}
-        {activeTab === "dashboard" && (
-          <div className="py-8 space-y-8">
             {/* Workflow Cards */}
             <div>
               <h3 className="text-sm font-medium text-muted-foreground uppercase tracking-wider mb-4">Your Workflow</h3>
@@ -429,54 +256,6 @@ export default function ControlPanel() {
           </div>
         )}
 
-        {/* Navigate Tab - now shows same content */}
-        {activeTab === "navigate" && (
-          <div className="py-8 space-y-8">
-            <div>
-              <h3 className="text-sm font-medium text-muted-foreground uppercase tracking-wider mb-4">Your Workflow</h3>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-                {workflowItems.map((item) => (
-                  <button
-                    key={item.id}
-                    onClick={() => setActiveTab(item.id)}
-                    className="relative flex flex-col items-center p-6 rounded-xl bg-card border shadow-sm hover:shadow-md hover:border-primary/30 transition-all group"
-                  >
-                    {item.badge !== undefined && item.badge > 0 && (
-                      <Badge variant="destructive" className="absolute top-2 right-2 h-5 min-w-5 px-1">
-                        {item.badge}
-                      </Badge>
-                    )}
-                    <div className="mb-4">
-                      <item.icon className="w-10 h-10 text-primary group-hover:scale-110 transition-transform" strokeWidth={1.5} />
-                    </div>
-                    <h3 className="font-semibold text-foreground text-center mb-1">{item.name}</h3>
-                    <p className="text-xs text-muted-foreground text-center">{item.description}</p>
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <div>
-              <h3 className="text-sm font-medium text-muted-foreground uppercase tracking-wider mb-4">Quick Access</h3>
-              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
-                {filteredNavItems.map((item) => (
-                  <Link
-                    key={item.name}
-                    to={item.href}
-                    className="flex flex-col items-center p-6 rounded-xl bg-card border shadow-sm hover:shadow-md hover:border-primary/30 transition-all group"
-                  >
-                    <div className="mb-4">
-                      <item.icon className="w-10 h-10 text-primary group-hover:scale-110 transition-transform" strokeWidth={1.5} />
-                    </div>
-                    <h3 className="font-semibold text-foreground text-center mb-1">{item.name}</h3>
-                    <p className="text-xs text-muted-foreground text-center">{item.description}</p>
-                  </Link>
-                ))}
-              </div>
-            </div>
-          </div>
-        )}
-
         {/* History Tab */}
         {activeTab === "history" && (
           <div className="space-y-6">
@@ -490,7 +269,7 @@ export default function ControlPanel() {
             ) : (
               <div className="grid gap-3">
                 {recentLeads.map((lead) => (
-                  <Link key={lead.id} to={`/leads?id=${lead.id}`} className="flex items-center justify-between p-4 rounded-lg border bg-card hover:bg-muted transition-colors">
+                  <Link key={lead.id} to={`/work?leadId=${lead.id}`} className="flex items-center justify-between p-4 rounded-lg border bg-card hover:bg-muted transition-colors">
                     <div className="flex items-center gap-3">
                       <div className={`w-3 h-3 rounded-full ${getStatusColor(lead.status)}`} />
                       <div>
@@ -519,7 +298,7 @@ export default function ControlPanel() {
             ) : (
               <div className="grid gap-3">
                 {scheduledLeads.map((lead) => (
-                  <Link key={lead.id} to={`/leads?id=${lead.id}`} className="flex items-center justify-between p-4 rounded-lg border bg-card hover:bg-muted transition-colors">
+                  <Link key={lead.id} to={`/work?leadId=${lead.id}`} className="flex items-center justify-between p-4 rounded-lg border bg-card hover:bg-muted transition-colors">
                     <div className="flex items-center gap-3">
                       <Calendar className="w-5 h-5 text-primary" />
                       <div>
@@ -548,7 +327,7 @@ export default function ControlPanel() {
             ) : (
               <div className="grid gap-3">
                 {lockedLeads.map((lead) => (
-                  <Link key={lead.id} to={`/leads?id=${lead.id}`} className="flex items-center justify-between p-4 rounded-lg border bg-card hover:bg-muted transition-colors">
+                  <Link key={lead.id} to={`/work?leadId=${lead.id}`} className="flex items-center justify-between p-4 rounded-lg border bg-card hover:bg-muted transition-colors">
                     <div className="flex items-center gap-3">
                       <Lock className="w-5 h-5 text-yellow-500" />
                       <div>
@@ -577,7 +356,7 @@ export default function ControlPanel() {
               <div className="space-y-4">
                 <div className="grid gap-3">
                   {dueCallbacks.map((callback) => (
-                    <Link key={callback.id} to={`/leads?id=${callback.id}`} className="flex items-center justify-between p-4 rounded-lg border border-l-4 border-l-destructive bg-card hover:bg-muted transition-colors">
+                    <Link key={callback.id} to={`/work?leadId=${callback.id}`} className="flex items-center justify-between p-4 rounded-lg border border-l-4 border-l-destructive bg-card hover:bg-muted transition-colors">
                       <div className="flex items-center gap-3">
                         <Bell className="w-5 h-5 text-destructive" />
                         <div>
