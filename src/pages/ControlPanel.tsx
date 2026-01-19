@@ -290,7 +290,6 @@ export default function ControlPanel() {
     { id: "scheduled" as TabType, label: "Scheduled", icon: Calendar },
     { id: "locked" as TabType, label: "Locked", icon: Lock },
     { id: "due" as TabType, label: "Due", icon: Bell, badge: dueCallbacks.length },
-    { id: "welcome" as TabType, label: "Getting Started", icon: CheckCircle2 },
   ];
 
   return (
