@@ -4,6 +4,7 @@ import {
   Users, 
   Copy, 
   Flag, 
+  Settings,
   CreditCard
 } from "lucide-react";
 import { Link } from "react-router-dom";
@@ -11,27 +12,33 @@ import { Link } from "react-router-dom";
 const menuItems = [
   {
     icon: List,
-    title: "Configure Lists",
-    description: "Manage and Configure lists",
+    title: "Lists",
+    description: "Manage and configure lists",
     href: "/manage/lists",
   },
   {
     icon: Users,
-    title: "Manage Users",
-    description: "Add, Delete and Manage Access for Users",
+    title: "Users",
+    description: "Add, delete and manage access for users",
     href: "/manage/users",
   },
   {
     icon: Copy,
-    title: "Manage Duplicates",
+    title: "Duplicates",
     description: "Review and merge or delete duplicate leads",
     href: "/manage/duplicates",
   },
   {
     icon: Flag,
-    title: "Manage claimed leads",
+    title: "Claims",
     description: "View and give back claimed leads",
     href: "/manage/claims",
+  },
+  {
+    icon: Settings,
+    title: "Settings",
+    description: "Configure your preferences and options",
+    href: "/preferences",
   },
   {
     icon: CreditCard,
