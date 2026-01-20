@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "./useAuth";
 
-export type AppRole = "owner" | "account_manager" | "agent";
+export type AppRole = "owner" | "account_manager" | "agent" | "product_owner";
 
 export function useUserRole() {
   const { user } = useAuth();
@@ -37,15 +37,16 @@ export function useUserRole() {
   const isOwner = roles.includes("owner");
   const isAccountManager = roles.includes("account_manager");
   const isAgent = roles.includes("agent");
-  const isOwnerOrManager = isOwner || isAccountManager;
+  const isProductOwner = roles.includes("product_owner");
+  const isOwnerOrManager = isOwner || isAccountManager || isProductOwner;
   
   // For backwards compatibility
   const isAdmin = isOwner;
   const isManager = isAccountManager;
   const isAdminOrManager = isOwnerOrManager;
   
-  // Primary role for display (owner > account_manager > agent)
-  const primaryRole: AppRole | null = isOwner ? "owner" : isAccountManager ? "account_manager" : isAgent ? "agent" : null;
+  // Primary role for display (product_owner > owner > account_manager > agent)
+  const primaryRole: AppRole | null = isProductOwner ? "product_owner" : isOwner ? "owner" : isAccountManager ? "account_manager" : isAgent ? "agent" : null;
 
   return { 
     roles, 
@@ -53,6 +54,7 @@ export function useUserRole() {
     isOwner, 
     isAccountManager, 
     isAgent,
+    isProductOwner,
     isOwnerOrManager,
     primaryRole,
     // Backwards compatibility
