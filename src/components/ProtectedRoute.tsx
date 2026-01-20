@@ -20,9 +20,10 @@ const managerOnlyRoutes = [
 
 export function ProtectedRoute({ children, requiredRoles }: ProtectedRouteProps) {
   const { user, loading: authLoading } = useAuth();
-  const { roles, loading: rolesLoading, isOwnerOrManager } = useUserRole();
+  const { roles, loading: rolesLoading } = useUserRole();
   const location = useLocation();
 
+  // Show loading while auth or roles are being fetched
   if (authLoading || rolesLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
@@ -34,6 +35,12 @@ export function ProtectedRoute({ children, requiredRoles }: ProtectedRouteProps)
   if (!user) {
     return <Navigate to="/auth" replace />;
   }
+
+  // Compute isOwnerOrManager directly from roles array AFTER loading is complete
+  // This ensures we're using the freshest roles data
+  const isOwnerOrManager = roles.includes("owner") || 
+                           roles.includes("account_manager") || 
+                           roles.includes("product_owner");
 
   // Check if current route requires manager/owner access
   const isManagerOnlyRoute = managerOnlyRoutes.some(
