@@ -53,7 +53,8 @@ export function ProtectedRoute({ children, requiredRoles }: ProtectedRouteProps)
 
   // If agent tries to access manager-only routes, redirect to home
   // Exception: agents can access lead detail view via /leads?id=...
-  if (isManagerOnlyRoute && !isOwnerOrManager && !isLeadDetailAccess) {
+  // Also, if no roles are loaded yet (empty array), don't redirect - wait for roles
+  if (isManagerOnlyRoute && !isOwnerOrManager && !isLeadDetailAccess && roles.length > 0) {
     return <Navigate to="/" replace />;
   }
 
