@@ -19,7 +19,7 @@ import Campaigns from "./pages/Campaigns";
 import Reports from "./pages/Reports";
 import Team from "./pages/Team";
 import Manage from "./pages/Manage";
-import ManageSettings from "./pages/ManageSettings";
+
 import ManageAccount from "./pages/ManageAccount";
 import ManageLists from "./pages/ManageLists";
 import ManageClaims from "./pages/ManageClaims";
@@ -69,12 +69,12 @@ const App = () => (
                 <Route path="/team" element={<ProtectedRoute><Team /></ProtectedRoute>} />
                 <Route path="/manage/users" element={<ProtectedRoute><Team /></ProtectedRoute>} />
                 <Route path="/manage/lists" element={<ProtectedRoute><ManageLists /></ProtectedRoute>} />
-                <Route path="/manage/settings" element={<ProtectedRoute><ManageSettings /></ProtectedRoute>} />
+                <Route path="/manage/settings" element={<Navigate to="/preferences" replace />} />
                 <Route path="/manage/account" element={<ProtectedRoute><ManageAccount /></ProtectedRoute>} />
                 <Route path="/manage/claims" element={<ProtectedRoute><ManageClaims /></ProtectedRoute>} />
                 <Route path="/manage/duplicates" element={<ProtectedRoute><ManageDuplicates /></ProtectedRoute>} />
                 <Route path="/preferences" element={<ProtectedRoute><Preferences /></ProtectedRoute>} />
-                <Route path="/settings" element={<Navigate to="/manage/settings" replace />} />
+                <Route path="/settings" element={<Navigate to="/preferences" replace />} />
                 <Route path="/manage" element={<ProtectedRoute><Manage /></ProtectedRoute>} />
                 <Route path="/dialer" element={<Dialer />} />
                 <Route path="/install" element={<Install />} />
