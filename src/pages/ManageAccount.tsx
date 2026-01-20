@@ -35,7 +35,6 @@ const subNavItems = [
   { label: "Users", href: "/manage/users" },
   { label: "Duplicates", href: "/manage/duplicates" },
   { label: "Claims", href: "/manage/claims" },
-  { label: "Settings", href: "/manage/settings" },
   { label: "Account", href: "/manage/account" },
 ];
 
