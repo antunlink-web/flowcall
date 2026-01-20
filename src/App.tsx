@@ -28,6 +28,8 @@ import Preferences from "./pages/Preferences";
 import NotFound from "./pages/NotFound";
 import Dialer from "./pages/Dialer";
 import Install from "./pages/Install";
+import Register from "./pages/Register";
+import ProductOwnerDashboard from "./pages/ProductOwnerDashboard";
 
 const queryClient = new QueryClient();
 
@@ -52,9 +54,11 @@ const App = () => (
             <Sonner />
             <BrowserRouter>
               <Routes>
-                <Route path="/auth" element={<Auth />} />
+              <Route path="/auth" element={<Auth />} />
+                <Route path="/register" element={<Register />} />
                 <Route path="/reset-password" element={<ResetPassword />} />
                 <Route path="/accept-invite" element={<AcceptInvite />} />
+                <Route path="/admin" element={<ProtectedRoute><ProductOwnerDashboard /></ProtectedRoute>} />
                 <Route path="/" element={<ProtectedRoute><ControlPanel /></ProtectedRoute>} />
                 <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
                 <Route path="/control-panel" element={<Navigate to="/" replace />} />

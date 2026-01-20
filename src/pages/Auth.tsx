@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -186,6 +186,12 @@ export default function Auth() {
                 >
                   Forgot your password?
                 </button>
+                <p className="text-center text-sm text-muted-foreground pt-2">
+                  Don't have an account?{" "}
+                  <Link to="/register" className="text-primary hover:underline">
+                    Register your organization
+                  </Link>
+                </p>
               </form>
             )}
           </CardContent>
