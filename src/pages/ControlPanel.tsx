@@ -104,23 +104,29 @@ export default function ControlPanel() {
     else if (activeTab === "locked") fetchLockedLeads();
   }, [activeTab, user]);
 
+  const getLeadDisplayName = (data: any): string => {
+    if (!data) return "Unknown";
+    return data.Pavadinimas || data.pavadinimas || data.company_name || data.name || data.Company || data.Name || "Unknown";
+  };
+
   const fetchRecentLeads = async () => {
     if (!user) return;
     setDataLoading(true);
     try {
       const { data } = await supabase
         .from("leads")
-        .select("id, data, status, updated_at")
+        .select("id, data, status, last_contacted_at")
         .eq("claimed_by", user.id)
-        .order("updated_at", { ascending: false })
+        .not("last_contacted_at", "is", null)
+        .order("last_contacted_at", { ascending: false })
         .limit(10);
 
       if (data) {
         setRecentLeads(data.map(lead => ({
           id: lead.id,
-          company_name: (lead.data as any)?.company_name || (lead.data as any)?.name || (lead.data as any)?.pavadinimas || "Unknown",
+          company_name: getLeadDisplayName(lead.data),
           status: lead.status,
-          updated_at: lead.updated_at
+          updated_at: lead.last_contacted_at!
         })));
       }
     } catch (error) {
@@ -145,7 +151,7 @@ export default function ControlPanel() {
       if (data) {
         setScheduledLeads(data.map(lead => ({
           id: lead.id,
-          company_name: (lead.data as any)?.company_name || (lead.data as any)?.name || (lead.data as any)?.pavadinimas || "Unknown",
+          company_name: getLeadDisplayName(lead.data),
           callback_scheduled_at: lead.callback_scheduled_at!
         })));
       }
@@ -172,7 +178,7 @@ export default function ControlPanel() {
       if (data) {
         setLockedLeads(data.map(lead => ({
           id: lead.id,
-          company_name: (lead.data as any)?.company_name || (lead.data as any)?.name || (lead.data as any)?.pavadinimas || "Unknown",
+          company_name: getLeadDisplayName(lead.data),
           claimed_at: lead.claimed_at!
         })));
       }
