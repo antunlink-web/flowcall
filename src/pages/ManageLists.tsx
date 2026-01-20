@@ -88,7 +88,6 @@ import { useToast } from "@/hooks/use-toast";
 
 const subNavItems = [
   { label: "Lists", href: "/manage/lists" },
-  { label: "Pipeline", href: "/manage/pipeline" },
   { label: "Users", href: "/manage/users" },
   { label: "Duplicates", href: "/manage/duplicates" },
   { label: "Claims", href: "/manage/claims" },
@@ -547,10 +546,6 @@ export default function ManageLists() {
                         }}>
                           <Upload className="h-4 w-4 mr-2" />
                           Import into list
-                        </DropdownMenuItem>
-                        <DropdownMenuItem className="cursor-pointer">
-                          <Workflow className="h-4 w-4 mr-2" />
-                          New pipeline automation
                         </DropdownMenuItem>
                         <DropdownMenuItem className="cursor-pointer">
                           <Download className="h-4 w-4 mr-2" />

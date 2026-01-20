@@ -65,7 +65,6 @@ interface Invitation {
 
 const subNavItems = [
   { label: "Lists", href: "/manage/lists" },
-  { label: "Pipeline", href: "/manage/pipeline" },
   { label: "Users", href: "/team" },
   { label: "Duplicates", href: "/manage/duplicates" },
   { label: "Claims", href: "/manage/claims" },

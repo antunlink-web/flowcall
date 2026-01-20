@@ -32,7 +32,6 @@ import { useBranding } from "@/hooks/useBranding";
 
 const subNavItems = [
   { label: "Lists", href: "/manage/lists" },
-  { label: "Pipeline", href: "/manage/pipeline" },
   { label: "Users", href: "/manage/users" },
   { label: "Duplicates", href: "/manage/duplicates" },
   { label: "Claims", href: "/manage/claims" },
@@ -1095,7 +1094,7 @@ export default function ManageAccount() {
                       <li className="border-t pt-3">Premium support</li>
                       <li className="border-t pt-3">Duplicate detection</li>
                       <li className="border-t pt-3">Email integration</li>
-                      <li className="border-t pt-3">Pipeline automation</li>
+                      <li className="border-t pt-3">Automation</li>
                       <li className="border-t pt-3">Power Dialer (rates apply)</li>
                       <li className="border-t pt-3">SMS integration</li>
                     </ul>
