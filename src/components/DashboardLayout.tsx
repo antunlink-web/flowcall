@@ -7,9 +7,9 @@ interface DashboardLayoutProps {
 
 export function DashboardLayout({ children }: DashboardLayoutProps) {
   return (
-    <div className="min-h-screen bg-[hsl(210,20%,96%)]">
+    <div className="min-h-screen bg-background">
       <TopNavbar />
-      <main className="pt-12 min-h-screen">
+      <main className="pt-14 min-h-screen">
         {children}
       </main>
     </div>
