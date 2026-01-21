@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { Lead, CallOutcome, LeadStatus, getLeadDisplayName, getLeadPhone, getLeadEmail, getLeadCompany, getLeadNotes } from "@/types/crm";
 import { LeadStatusBadge } from "./LeadStatusBadge";
+import { SmsComposer } from "./SmsComposer";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
@@ -40,6 +41,7 @@ import {
 } from "lucide-react";
 import { format, formatDistanceToNow } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
+import type { SmsTemplate } from "@/hooks/useListTemplates";
 
 interface CallLog {
   id: string;
@@ -68,6 +70,8 @@ interface LeadCardProps {
   callLogs?: CallLog[];
   emailLogs?: EmailLog[];
   onGiveBack?: (leadId: string) => void;
+  smsTemplates?: SmsTemplate[];
+  smsTemplatesLoading?: boolean;
 }
 
 export function LeadCard({
@@ -82,6 +86,8 @@ export function LeadCard({
   callLogs = [],
   emailLogs = [],
   onGiveBack,
+  smsTemplates = [],
+  smsTemplatesLoading = false,
 }: LeadCardProps) {
   const [notes, setNotes] = useState(getLeadNotes(lead));
   const [callNotes, setCallNotes] = useState("");
@@ -100,6 +106,23 @@ export function LeadCard({
   const email = getLeadEmail(lead);
   const company = getLeadCompany(lead);
   const activityCount = callLogs.length + emailLogs.length;
+
+  // Get all phone numbers from lead data
+  const getPhoneNumbers = (): string[] => {
+    if (!lead.data) return phone ? [phone] : [];
+    const phones: string[] = [];
+    for (const [key, value] of Object.entries(lead.data)) {
+      const keyLower = key.toLowerCase();
+      if (
+        (keyLower.includes("phone") || keyLower.includes("tel") || keyLower.includes("mobile")) &&
+        typeof value === "string" &&
+        value.trim()
+      ) {
+        phones.push(value);
+      }
+    }
+    return phones.length > 0 ? phones : (phone ? [phone] : []);
+  };
 
   // Get all custom data fields for display
   const dataFields = Object.entries(lead.data || {}).filter(
@@ -323,19 +346,14 @@ export function LeadCard({
                   </Button>
                 </TabsContent>
                 
-                <TabsContent value="sms" className="mt-0 space-y-4">
-                  <Textarea
-                    placeholder="SMS message..."
-                    className="min-h-[120px] resize-none"
+                <TabsContent value="sms" className="mt-0">
+                  <SmsComposer
+                    leadId={lead.id}
+                    phoneNumbers={getPhoneNumbers()}
+                    templates={smsTemplates}
+                    templatesLoading={smsTemplatesLoading}
+                    leadData={lead.data || {}}
                   />
-                  <Button 
-                    variant="outline"
-                    onClick={handleSms}
-                    disabled={!phone}
-                  >
-                    <MessageSquare className="w-4 h-4 mr-2" />
-                    Send SMS
-                  </Button>
                 </TabsContent>
               </div>
             </Tabs>

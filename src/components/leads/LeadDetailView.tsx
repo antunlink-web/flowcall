@@ -54,6 +54,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useDialRequest } from "@/hooks/useDialRequest";
 import { Smartphone } from "lucide-react";
 import { useListTemplates } from "@/hooks/useListTemplates";
+import { SmsComposer } from "./SmsComposer";
 
 interface LeadDetailViewProps {
   leadId: string;
@@ -138,11 +139,13 @@ export function LeadDetailView({ leadId, onClose }: LeadDetailViewProps) {
   const navigate = useNavigate();
   
   // Get templates for current list
-  const { emailTemplates, loading: templatesLoading } = useListTemplates(list?.id || null);
+  const { emailTemplates, smsTemplates, loading: templatesLoading } = useListTemplates(list?.id || null);
+  const [smsCount, setSmsCount] = useState(0);
 
   useEffect(() => {
     fetchLead();
     fetchEmailCount();
+    fetchSmsCount();
     fetchActivity();
   }, [leadId]);
 
@@ -240,6 +243,14 @@ export function LeadDetailView({ leadId, onClose }: LeadDetailViewProps) {
       .select("*", { count: "exact", head: true })
       .eq("lead_id", leadId);
     setEmailCount(count || 0);
+  };
+
+  const fetchSmsCount = async () => {
+    const { count } = await supabase
+      .from("sms_logs")
+      .select("*", { count: "exact", head: true })
+      .eq("lead_id", leadId);
+    setSmsCount(count || 0);
   };
 
   const fetchActivity = async () => {
@@ -1018,9 +1029,17 @@ export function LeadDetailView({ leadId, onClose }: LeadDetailViewProps) {
             </TabsContent>
             
             <TabsContent value="sms" className="mt-4">
-              <div className="text-muted-foreground text-sm p-4 border rounded-md">
-                SMS composer coming soon...
-              </div>
+              <SmsComposer
+                leadId={leadId}
+                phoneNumbers={getPhones()}
+                templates={smsTemplates}
+                templatesLoading={templatesLoading}
+                leadData={lead?.data || {}}
+                onSent={() => {
+                  fetchSmsCount();
+                  fetchActivity();
+                }}
+              />
             </TabsContent>
           </Tabs>
         </div>
@@ -1059,20 +1078,27 @@ export function LeadDetailView({ leadId, onClose }: LeadDetailViewProps) {
               {/* Activity Tab Content */}
               <TabsContent value="activity" className="mt-0">
                 {/* Stats Cards */}
-                <div className="grid grid-cols-3 gap-2 p-4">
+                <div className="grid grid-cols-4 gap-2 p-4">
                   <div className="border rounded-lg p-3 bg-background text-center">
                     <div className="flex items-center justify-center gap-2">
                       <span className="text-2xl font-bold">{lead.call_attempts}</span>
                       <Phone className="w-5 h-5 text-red-500" />
                     </div>
-                    <p className="text-xs text-muted-foreground mt-1">Call attempts</p>
+                    <p className="text-xs text-muted-foreground mt-1">Calls</p>
                   </div>
                   <div className="border rounded-lg p-3 bg-background text-center">
                     <div className="flex items-center justify-center gap-2">
                       <span className="text-2xl font-bold">{emailCount}</span>
-                      <Mail className="w-5 h-5 text-red-500" />
+                      <Mail className="w-5 h-5 text-blue-500" />
                     </div>
-                    <p className="text-xs text-muted-foreground mt-1">E-mails</p>
+                    <p className="text-xs text-muted-foreground mt-1">Emails</p>
+                  </div>
+                  <div className="border rounded-lg p-3 bg-background text-center">
+                    <div className="flex items-center justify-center gap-2">
+                      <span className="text-2xl font-bold">{smsCount}</span>
+                      <MessageSquare className="w-5 h-5 text-green-500" />
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-1">SMS</p>
                   </div>
                   <div className="border rounded-lg p-3 bg-background text-center">
                     <div className="flex items-center justify-center gap-2">
@@ -1105,9 +1131,11 @@ export function LeadDetailView({ leadId, onClose }: LeadDetailViewProps) {
                               : "bg-orange-100"
                             : item.type === "email"
                             ? "bg-blue-100"
+                            : item.type === "sms"
+                            ? "bg-green-100"
                             : item.type === "claimed"
                             ? "bg-indigo-100"
-                            : "bg-purple-100"
+                            : "bg-gray-100"
                         }`}>
                           {item.type === "call" ? (
                             item.outcome?.toLowerCase().includes("won") || item.outcome?.toLowerCase().includes("winner") ? (
@@ -1119,11 +1147,11 @@ export function LeadDetailView({ leadId, onClose }: LeadDetailViewProps) {
                             )
                           ) : item.type === "email" ? (
                             <Mail className="w-5 h-5 text-blue-600" />
+                          ) : item.type === "sms" ? (
+                            <MessageSquare className="w-5 h-5 text-green-600" />
                           ) : item.type === "claimed" ? (
                             <Flag className="w-5 h-5 text-indigo-600" />
-                          ) : (
-                            <MessageSquare className="w-5 h-5 text-purple-600" />
-                          )}
+                          ) : null}
                         </div>
                         <div className="flex-1 min-w-0">
                           <p className="font-medium text-sm">
