@@ -9,7 +9,6 @@ import { useAuth } from "@/hooks/useAuth";
 import { Lead } from "@/types/crm";
 import {
   Phone,
-  Calendar,
   Clock,
   Trophy,
   TrendingUp,
@@ -20,6 +19,7 @@ import {
   ArrowRight,
   ListTodo,
   CheckCircle,
+  User,
 } from "lucide-react";
 import {
   AreaChart,
@@ -44,7 +44,15 @@ interface RecentActivity {
   title: string;
   subtitle: string;
   time: string;
+  timestamp: Date;
   lead_id?: string;
+}
+
+interface PipelineLead {
+  id: string;
+  name: string;
+  contact: string;
+  status: string;
 }
 
 export default function Dashboard() {
@@ -108,22 +116,36 @@ export default function Dashboard() {
     if (!user) return;
     const activities: RecentActivity[] = [];
 
+    // Fetch leads to get names for activity items
+    const { data: leadsData } = await supabase
+      .from("leads")
+      .select("id, data")
+      .or(`claimed_by.is.null,claimed_by.eq.${user.id}`);
+
+    const leadMap = new Map<string, string>();
+    (leadsData || []).forEach((lead) => {
+      const name = getLeadDisplayName(lead.data as Record<string, unknown>);
+      leadMap.set(lead.id, name);
+    });
+
     // Recent calls
     const { data: calls } = await supabase
       .from("call_logs")
       .select("id, created_at, outcome, lead_id, duration_seconds")
       .eq("user_id", user.id)
       .order("created_at", { ascending: false })
-      .limit(3);
+      .limit(5);
 
     (calls || []).forEach((call) => {
       const mins = call.duration_seconds ? Math.floor(call.duration_seconds / 60) : 0;
+      const leadName = leadMap.get(call.lead_id) || "Unknown";
       activities.push({
         id: call.id,
         type: "call",
-        title: `Call ${call.outcome}`,
-        subtitle: `${mins} min call`,
+        title: `Call to ${leadName}`,
+        subtitle: `${call.outcome} • ${mins} min`,
         time: formatTimeAgo(new Date(call.created_at)),
+        timestamp: new Date(call.created_at),
         lead_id: call.lead_id,
       });
     });
@@ -134,27 +156,98 @@ export default function Dashboard() {
       .select("id, created_at, subject, lead_id")
       .eq("user_id", user.id)
       .order("created_at", { ascending: false })
-      .limit(2);
+      .limit(3);
 
     (emails || []).forEach((email) => {
+      const leadName = leadMap.get(email.lead_id) || "Unknown";
       activities.push({
         id: email.id,
         type: "email",
-        title: email.subject || "Email sent",
-        subtitle: "Quick actions",
+        title: `Email to ${leadName}`,
+        subtitle: email.subject || "No subject",
         time: formatTimeAgo(new Date(email.created_at)),
+        timestamp: new Date(email.created_at),
         lead_id: email.lead_id,
       });
     });
 
-    // Sort by time
-    activities.sort((a, b) => {
-      const aDate = new Date(a.time);
-      const bDate = new Date(b.time);
-      return bDate.getTime() - aDate.getTime();
+    // Recent SMS
+    const { data: sms } = await supabase
+      .from("sms_logs")
+      .select("id, created_at, message, lead_id")
+      .eq("user_id", user.id)
+      .order("created_at", { ascending: false })
+      .limit(2);
+
+    (sms || []).forEach((s) => {
+      const leadName = leadMap.get(s.lead_id) || "Unknown";
+      activities.push({
+        id: s.id,
+        type: "sms",
+        title: `SMS to ${leadName}`,
+        subtitle: s.message?.substring(0, 40) + (s.message?.length > 40 ? "..." : "") || "Message",
+        time: formatTimeAgo(new Date(s.created_at)),
+        timestamp: new Date(s.created_at),
+        lead_id: s.lead_id,
+      });
     });
 
-    setRecentActivities(activities.slice(0, 5));
+    // Sort by timestamp
+    activities.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
+    setRecentActivities(activities.slice(0, 6));
+  };
+
+  const getLeadDisplayName = (data: Record<string, unknown> | null): string => {
+    if (!data) return "Unknown";
+    const entries = Object.entries(data);
+    
+    // Try company name first
+    const companyFields = ["pavadinimas", "company", "company name", "įmonė", "firma", "business"];
+    for (const [key, value] of entries) {
+      if (companyFields.includes(key.toLowerCase()) && typeof value === "string" && value.trim()) {
+        return value;
+      }
+    }
+    
+    // Try name fields
+    const nameFields = ["name", "full_name", "first_name", "vardas", "contact"];
+    for (const [key, value] of entries) {
+      if (nameFields.some(f => key.toLowerCase().includes(f)) && typeof value === "string" && value.trim()) {
+        return value;
+      }
+    }
+    
+    // Return first string value
+    for (const [, value] of entries) {
+      if (typeof value === "string" && value.trim()) {
+        return value;
+      }
+    }
+    
+    return "Unknown";
+  };
+
+  const getLeadContact = (data: Record<string, unknown> | null): string => {
+    if (!data) return "";
+    const entries = Object.entries(data);
+    
+    // Try phone first
+    for (const [key, value] of entries) {
+      const keyLower = key.toLowerCase();
+      if ((keyLower.includes("phone") || keyLower.includes("tel") || keyLower.includes("mobile")) && typeof value === "string" && value.trim()) {
+        return value;
+      }
+    }
+    
+    // Try email
+    for (const [key, value] of entries) {
+      const keyLower = key.toLowerCase();
+      if ((keyLower.includes("email") || keyLower.includes("mail")) && typeof value === "string" && value.trim()) {
+        return value;
+      }
+    }
+    
+    return "";
   };
 
   const formatTimeAgo = (date: Date) => {
@@ -229,20 +322,56 @@ export default function Dashboard() {
     if (!l.callback_scheduled_at) return false;
     return new Date(l.callback_scheduled_at) <= new Date(now.getTime() - 60 * 60 * 1000);
   }).length;
-  const won = leads.filter((l) => l.status === "won").length;
-  const newLeads = leads.filter((l) => l.status === "new").length;
-  const qualified = leads.filter((l) => l.status === "qualified").length;
-  const negotiation = leads.filter((l) => l.status === "callback").length;
 
-  const pipelineStages = [
-    { label: "New Lead", count: newLeads, color: "bg-blue-500", progress: 50 },
-    { label: "Qualified", count: qualified, color: "bg-purple-500", progress: 100 },
-    { label: "Proposal Sent", count: negotiation, color: "bg-teal-500", progress: 100 },
-    { label: "Negotiation", count: due, color: "bg-orange-500", progress: 70 },
-    { label: "Closed Won", count: won, color: "bg-green-500", progress: 100 },
-  ];
+  // Get leads for each pipeline stage
+  const pipelineStages = useMemo(() => {
+    const stages = [
+      { 
+        label: "New Lead", 
+        status: "new",
+        color: "bg-blue-500", 
+        leads: leads.filter((l) => l.status === "new").slice(0, 3)
+      },
+      { 
+        label: "Qualified", 
+        status: "qualified",
+        color: "bg-purple-500", 
+        leads: leads.filter((l) => l.status === "qualified").slice(0, 3)
+      },
+      { 
+        label: "Contacted", 
+        status: "contacted",
+        color: "bg-teal-500", 
+        leads: leads.filter((l) => l.status === "contacted").slice(0, 3)
+      },
+      { 
+        label: "Callback", 
+        status: "callback",
+        color: "bg-orange-500", 
+        leads: leads.filter((l) => l.status === "callback").slice(0, 3)
+      },
+      { 
+        label: "Won", 
+        status: "won",
+        color: "bg-green-500", 
+        leads: leads.filter((l) => l.status === "won").slice(0, 3)
+      },
+    ];
+
+    return stages.map((stage) => ({
+      ...stage,
+      count: leads.filter((l) => l.status === stage.status).length,
+      pipelineLeads: stage.leads.map((lead) => ({
+        id: lead.id,
+        name: getLeadDisplayName(lead.data),
+        contact: getLeadContact(lead.data),
+        status: lead.status,
+      })),
+    }));
+  }, [leads]);
 
   const wonsToday = callLogs.filter((log) => log.outcome === "won").length;
+  const totalWon = leads.filter((l) => l.status === "won").length;
 
   return (
     <DashboardLayout>
@@ -315,7 +444,10 @@ export default function Dashboard() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-white/80 font-medium mb-1">Deals Closed</p>
-                  <p className="text-3xl font-bold text-white">{wonsToday || won}</p>
+                  <p className="text-3xl font-bold text-white">{totalWon}</p>
+                  {wonsToday > 0 && (
+                    <p className="text-xs text-white/80 mt-1">+{wonsToday} today</p>
+                  )}
                 </div>
                 <Button size="icon" variant="ghost" className="text-white/60 hover:text-white hover:bg-white/10">
                   <MoreVertical className="w-4 h-4" />
@@ -329,7 +461,7 @@ export default function Dashboard() {
         <div className="mb-8">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-lg font-semibold text-foreground">Activity Stream & Live Feed</h2>
-            <Button variant="link" className="text-primary gap-1 p-0 h-auto">
+            <Button variant="link" className="text-primary gap-1 p-0 h-auto" onClick={() => navigate("/work")}>
               Quick actions <ChevronRight className="w-4 h-4" />
             </Button>
           </div>
@@ -382,7 +514,7 @@ export default function Dashboard() {
                   recentActivities.map((activity) => (
                     <div
                       key={activity.id}
-                      className="flex-shrink-0 bg-card border border-border rounded-xl p-4 min-w-[200px] hover:border-primary/50 transition-colors cursor-pointer"
+                      className="flex-shrink-0 bg-muted/30 border border-border/50 rounded-xl p-4 min-w-[220px] hover:border-primary/50 transition-colors cursor-pointer"
                       onClick={() => activity.lead_id && navigate(`/leads?id=${activity.lead_id}`)}
                     >
                       <div className="flex items-center gap-2 mb-2">
@@ -398,13 +530,14 @@ export default function Dashboard() {
                         <span className="text-xs text-muted-foreground">{activity.time}</span>
                       </div>
                       <p className="text-sm font-medium text-foreground truncate">{activity.title}</p>
-                      <p className="text-xs text-muted-foreground">{activity.subtitle}</p>
+                      <p className="text-xs text-muted-foreground truncate">{activity.subtitle}</p>
                     </div>
                   ))
                 ) : (
                   <div className="flex-1 text-center py-8 text-muted-foreground">
                     <Clock className="w-8 h-8 mx-auto mb-2 opacity-50" />
-                    <p className="text-sm">No recent activity</p>
+                    <p className="text-sm">No recent activity yet</p>
+                    <p className="text-xs">Start making calls to see your activity here</p>
                   </div>
                 )}
               </div>
@@ -418,48 +551,58 @@ export default function Dashboard() {
           <div className="lg:col-span-2">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-lg font-semibold text-foreground">Pipeline Board</h2>
-              <Button variant="link" className="text-primary gap-1 p-0 h-auto">
+              <Button variant="link" className="text-primary gap-1 p-0 h-auto" onClick={() => navigate("/leads")}>
                 View all <ChevronRight className="w-4 h-4" />
               </Button>
             </div>
 
             <div className="flex gap-4 overflow-x-auto pb-2">
-              {pipelineStages.map((stage, index) => (
+              {pipelineStages.map((stage) => (
                 <Card
                   key={stage.label}
-                  className="flex-shrink-0 w-[180px] border-border/50 bg-card hover:border-primary/30 transition-colors"
+                  className="flex-shrink-0 w-[200px] border-border/50 bg-card hover:border-primary/30 transition-colors"
                 >
                   <CardContent className="p-4">
-                    <div className="flex items-center gap-2 mb-3">
-                      <div className={`w-2 h-2 rounded-full ${stage.color}`} />
-                      <span className="text-xs font-medium text-foreground">{stage.label}</span>
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="flex items-center gap-2">
+                        <div className={`w-2 h-2 rounded-full ${stage.color}`} />
+                        <span className="text-xs font-medium text-foreground">{stage.label}</span>
+                      </div>
+                      <span className="text-xs font-bold text-muted-foreground">{stage.count}</span>
                     </div>
 
-                    <div className="bg-muted/50 rounded-lg p-3 mb-3">
-                      <p className="text-sm font-semibold text-foreground">{stage.label}</p>
-                      <p className="text-xs text-muted-foreground">Rich detail details</p>
-                      <p className="text-xs text-muted-foreground">Contact: @{stage.label.toLowerCase().replace(" ", "")}</p>
-                    </div>
+                    {stage.pipelineLeads.length > 0 ? (
+                      <div className="space-y-2">
+                        {stage.pipelineLeads.map((lead) => (
+                          <div
+                            key={lead.id}
+                            className="bg-muted/50 rounded-lg p-3 cursor-pointer hover:bg-muted transition-colors"
+                            onClick={() => navigate(`/leads?id=${lead.id}`)}
+                          >
+                            <p className="text-sm font-medium text-foreground truncate">{lead.name}</p>
+                            {lead.contact && (
+                              <p className="text-xs text-muted-foreground truncate">{lead.contact}</p>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="bg-muted/30 rounded-lg p-4 text-center">
+                        <User className="w-5 h-5 mx-auto text-muted-foreground/50 mb-1" />
+                        <p className="text-xs text-muted-foreground">No leads</p>
+                      </div>
+                    )}
 
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-xs text-muted-foreground">Progress</span>
-                      <span className="text-xs font-medium text-foreground">{stage.progress}%</span>
-                    </div>
-
-                    <div className="h-1.5 bg-muted rounded-full overflow-hidden mb-3">
-                      <div
-                        className={`h-full ${stage.color} rounded-full transition-all`}
-                        style={{ width: `${stage.progress}%` }}
-                      />
-                    </div>
-
-                    <div className="flex -space-x-2">
-                      <Avatar className="w-6 h-6 border-2 border-card">
-                        <AvatarFallback className="text-xs bg-primary text-primary-foreground">
-                          {stage.count}
-                        </AvatarFallback>
-                      </Avatar>
-                    </div>
+                    {stage.count > 3 && (
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        className="w-full mt-2 text-xs text-muted-foreground hover:text-foreground"
+                        onClick={() => navigate(`/leads?status=${stage.status}`)}
+                      >
+                        +{stage.count - 3} more
+                      </Button>
+                    )}
                   </CardContent>
                 </Card>
               ))}
@@ -491,7 +634,7 @@ export default function Dashboard() {
                       <span className="text-sm text-foreground">{onSchedule} scheduled</span>
                     </div>
                   )}
-                  {followupsToday.length === 0 && overdue === 0 && (
+                  {followupsToday.length === 0 && overdue === 0 && due === 0 && (
                     <p className="text-sm text-muted-foreground">All caught up! 🎉</p>
                   )}
                 </div>
@@ -521,7 +664,7 @@ export default function Dashboard() {
                   >
                     <span className="flex items-center gap-2">
                       <ListTodo className="w-4 h-4 text-blue-400" />
-                      View Leads
+                      View Leads ({leads.length})
                     </span>
                     <ArrowRight className="w-4 h-4 text-muted-foreground" />
                   </Button>
