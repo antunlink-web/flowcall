@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { Card, CardContent } from "@/components/ui/card";
@@ -27,6 +27,13 @@ import {
   Cell,
 } from "recharts";
 
+interface CallLog {
+  id: string;
+  created_at: string;
+  duration_seconds: number | null;
+  outcome: string;
+}
+
 interface PipelineItem {
   icon: React.ElementType;
   label: string;
@@ -39,11 +46,16 @@ interface PipelineItem {
 
 export default function Dashboard() {
   const [leads, setLeads] = useState<Lead[]>([]);
+  const [callLogs, setCallLogs] = useState<CallLog[]>([]);
+  const [yesterdayCallCount, setYesterdayCallCount] = useState(0);
   const { user } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
-    fetchLeads();
+    if (user) {
+      fetchLeads();
+      fetchCallLogs();
+    }
   }, [user]);
 
   const fetchLeads = async () => {
@@ -62,7 +74,96 @@ export default function Dashboard() {
     setLeads(mappedLeads);
   };
 
-  // Calculate stats
+  const fetchCallLogs = async () => {
+    if (!user) return;
+
+    const now = new Date();
+    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const yesterdayStart = new Date(todayStart.getTime() - 24 * 60 * 60 * 1000);
+
+    // Fetch today's calls
+    const { data: todayData } = await supabase
+      .from("call_logs")
+      .select("id, created_at, duration_seconds, outcome")
+      .eq("user_id", user.id)
+      .gte("created_at", todayStart.toISOString());
+
+    setCallLogs(todayData || []);
+
+    // Fetch yesterday's call count for comparison
+    const { count } = await supabase
+      .from("call_logs")
+      .select("*", { count: "exact", head: true })
+      .eq("user_id", user.id)
+      .gte("created_at", yesterdayStart.toISOString())
+      .lt("created_at", todayStart.toISOString());
+
+    setYesterdayCallCount(count || 0);
+  };
+
+  // Calculate call stats from real data
+  const callStats = useMemo(() => {
+    const now = new Date();
+    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
+    // Group calls by hour (9:00 - 17:00)
+    const hourlyData: { [key: string]: number } = {};
+    for (let h = 9; h <= 17; h++) {
+      const hourKey = `${h.toString().padStart(2, "0")}:00`;
+      hourlyData[hourKey] = 0;
+    }
+
+    let totalDurationSeconds = 0;
+
+    callLogs.forEach((log) => {
+      const callDate = new Date(log.created_at);
+      const hour = callDate.getHours();
+      const hourKey = `${hour.toString().padStart(2, "0")}:00`;
+
+      if (hourlyData[hourKey] !== undefined) {
+        hourlyData[hourKey]++;
+      }
+
+      if (log.duration_seconds) {
+        totalDurationSeconds += log.duration_seconds;
+      }
+    });
+
+    const chartData = Object.entries(hourlyData).map(([hour, calls]) => ({
+      hour,
+      calls,
+    }));
+
+    const totalCalls = callLogs.length;
+    const avgSecondsPerLead = totalCalls > 0 ? totalDurationSeconds / totalCalls : 0;
+
+    // Format durations
+    const totalHours = Math.floor(totalDurationSeconds / 3600);
+    const totalMinutes = Math.floor((totalDurationSeconds % 3600) / 60);
+    const totalTimeStr = `${totalHours}h ${totalMinutes}m`;
+
+    const avgMinutes = Math.floor(avgSecondsPerLead / 60);
+    const avgSeconds = Math.floor(avgSecondsPerLead % 60);
+    const avgTimeStr = totalCalls > 0 ? `${avgMinutes}m ${avgSeconds}s` : "N/A";
+
+    // Calculate percentage change from yesterday
+    let percentChange = 0;
+    if (yesterdayCallCount > 0) {
+      percentChange = Math.round(((totalCalls - yesterdayCallCount) / yesterdayCallCount) * 100);
+    } else if (totalCalls > 0) {
+      percentChange = 100;
+    }
+
+    return {
+      chartData,
+      totalCalls,
+      totalTimeStr,
+      avgTimeStr,
+      percentChange,
+    };
+  }, [callLogs, yesterdayCallCount]);
+
+  // Calculate lead stats
   const now = new Date();
   const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
 
@@ -100,20 +201,8 @@ export default function Dashboard() {
   const won = leads.filter((l) => l.status === "won").length;
   const total = leads.length || 1;
 
-  // Mock data for chart (in production, calculate from call_logs)
-  const chartData = [
-    { hour: "09:00", calls: 4 },
-    { hour: "10:00", calls: 6 },
-    { hour: "11:00", calls: 7 },
-    { hour: "12:00", calls: 2 },
-    { hour: "13:00", calls: 2 },
-    { hour: "14:00", calls: 5 },
-    { hour: "15:00", calls: 5 },
-    { hour: "16:00", calls: 0 },
-    { hour: "17:00", calls: 0 },
-  ];
-
-  const totalCalls = chartData.reduce((sum, d) => sum + d.calls, 0);
+  // Count deals won today
+  const wonsToday = callLogs.filter((log) => log.outcome === "won").length;
 
   const pipelineItems: PipelineItem[] = [
     { icon: ThumbsUp, label: "WON", count: won, percentage: 100, color: "bg-green-500", bgColor: "bg-green-100" },
@@ -134,14 +223,18 @@ export default function Dashboard() {
               <CardContent className="p-4">
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-sm font-medium text-foreground">Calls Made</span>
-                  <span className="text-xs text-green-600 bg-green-100 px-2 py-0.5 rounded-full">↑ +12% from yesterday</span>
+                  {callStats.percentChange !== 0 && (
+                    <span className={`text-xs px-2 py-0.5 rounded-full ${callStats.percentChange >= 0 ? "text-green-600 bg-green-100" : "text-red-600 bg-red-100"}`}>
+                      {callStats.percentChange >= 0 ? "↑" : "↓"} {Math.abs(callStats.percentChange)}% from yesterday
+                    </span>
+                  )}
                 </div>
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-full bg-blue-500 flex items-center justify-center">
                     <Phone className="w-5 h-5 text-white" />
                   </div>
                   <div>
-                    <p className="text-3xl font-bold text-foreground">{totalCalls}</p>
+                    <p className="text-3xl font-bold text-foreground">{callStats.totalCalls}</p>
                     <p className="text-sm text-muted-foreground">Calls Today</p>
                   </div>
                 </div>
@@ -182,7 +275,7 @@ export default function Dashboard() {
                     <Clock className="w-5 h-5 text-white" />
                   </div>
                   <div>
-                    <p className="text-3xl font-bold text-foreground">2h 15m</p>
+                    <p className="text-3xl font-bold text-foreground">{callStats.totalTimeStr}</p>
                     <p className="text-sm text-muted-foreground">Total Talk Time</p>
                   </div>
                 </div>
@@ -194,8 +287,8 @@ export default function Dashboard() {
               <CardContent className="p-4">
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-sm font-medium text-foreground">Opportunities Won</span>
-                  {won > 0 && (
-                    <span className="text-xs text-green-600 bg-green-100 px-2 py-0.5 rounded-full">↑ +1</span>
+                  {wonsToday > 0 && (
+                    <span className="text-xs text-green-600 bg-green-100 px-2 py-0.5 rounded-full">↑ +{wonsToday}</span>
                   )}
                 </div>
                 <div className="flex items-center gap-3">
@@ -231,7 +324,7 @@ export default function Dashboard() {
                   <p className="text-sm font-medium text-muted-foreground mb-4">Calls Per Hour</p>
                   <div className="h-48">
                     <ResponsiveContainer width="100%" height="100%">
-                      <BarChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                      <BarChart data={callStats.chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                         <XAxis 
                           dataKey="hour" 
                           axisLine={false} 
@@ -242,10 +335,11 @@ export default function Dashboard() {
                           axisLine={false} 
                           tickLine={false}
                           tick={{ fontSize: 12, fill: 'hsl(var(--muted-foreground))' }}
-                          domain={[0, 10]}
+                          domain={[0, 'auto']}
+                          allowDecimals={false}
                         />
                         <Bar dataKey="calls" radius={[4, 4, 0, 0]}>
-                          {chartData.map((entry, index) => (
+                          {callStats.chartData.map((entry, index) => (
                             <Cell key={`cell-${index}`} fill="hsl(217, 91%, 60%)" />
                           ))}
                         </Bar>
@@ -257,11 +351,11 @@ export default function Dashboard() {
                 <div className="flex items-center justify-center gap-8 pt-4 border-t">
                   <div className="flex items-center gap-2 text-sm text-muted-foreground">
                     <Clock className="w-4 h-4" />
-                    <span>Avg Time/Lead: <strong className="text-foreground">4m 30s</strong></span>
+                    <span>Avg Time/Lead: <strong className="text-foreground">{callStats.avgTimeStr}</strong></span>
                   </div>
                   <div className="flex items-center gap-2 text-sm text-muted-foreground">
                     <Clock className="w-4 h-4" />
-                    <span>Total Time: <strong className="text-foreground">2h 15m</strong></span>
+                    <span>Total Time: <strong className="text-foreground">{callStats.totalTimeStr}</strong></span>
                   </div>
                 </div>
               </CardContent>
