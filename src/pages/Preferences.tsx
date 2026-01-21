@@ -556,14 +556,14 @@ export default function Preferences() {
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>
-                    <SelectContent className="bg-[hsl(215,25%,20%)] border-[hsl(215,25%,30%)]">
-                      <SelectItem value="flowcall-smart" className="text-foreground focus:bg-[hsl(215,25%,30%)] focus:text-foreground">FlowCall Smart</SelectItem>
-                      <SelectItem value="default" className="text-foreground focus:bg-[hsl(215,25%,30%)] focus:text-foreground">Default softphone</SelectItem>
-                      <SelectItem value="skype" className="text-foreground focus:bg-[hsl(215,25%,30%)] focus:text-foreground">Skype</SelectItem>
-                      <SelectItem value="zoiper" className="text-foreground focus:bg-[hsl(215,25%,30%)] focus:text-foreground">Zoiper</SelectItem>
-                      <SelectItem value="tel" className="text-foreground focus:bg-[hsl(215,25%,30%)] focus:text-foreground">Other/tel protocol</SelectItem>
-                      <SelectItem value="sip" className="text-foreground focus:bg-[hsl(215,25%,30%)] focus:text-foreground">Other/sip protocol</SelectItem>
-                      <SelectItem value="none" className="text-foreground focus:bg-[hsl(215,25%,30%)] focus:text-foreground">None (Don't turn phone numbers into links)</SelectItem>
+                    <SelectContent className="bg-popover text-popover-foreground">
+                      <SelectItem value="flowcall-smart">FlowCall Smart</SelectItem>
+                      <SelectItem value="default">Default softphone</SelectItem>
+                      <SelectItem value="skype">Skype</SelectItem>
+                      <SelectItem value="zoiper">Zoiper</SelectItem>
+                      <SelectItem value="tel">Other/tel protocol</SelectItem>
+                      <SelectItem value="sip">Other/sip protocol</SelectItem>
+                      <SelectItem value="none">None (Don't turn phone numbers into links)</SelectItem>
                     </SelectContent>
                   </Select>
                   {dialler === "flowcall-smart" && (
