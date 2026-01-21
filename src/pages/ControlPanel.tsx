@@ -74,7 +74,7 @@ const workItems = [
 // Manage section items
 const manageItems = [
   { name: "Lists", href: "/manage/lists", icon: ListChecks, description: "Configure lead lists" },
-  { name: "Team", href: "/team", icon: Users, description: "View & manage team" },
+  { name: "Users", href: "/team", icon: Users, description: "View & manage team" },
   { name: "Duplicates", href: "/manage/duplicates", icon: Copy, description: "Merge duplicate leads" },
   { name: "Claims", href: "/manage/claims", icon: Flag, description: "Review claimed leads" },
   { name: "Settings", href: "/preferences", icon: Settings, description: "System preferences" },
