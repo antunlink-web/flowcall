@@ -29,6 +29,9 @@ import {
   FileText,
   UserCog,
   Cog,
+  Copy,
+  Flag,
+  CreditCard,
 } from "lucide-react";
 
 type TabType = "main" | "work" | "manage" | "review" | "history" | "scheduled" | "locked" | "due";
@@ -72,7 +75,10 @@ const workItems = [
 const manageItems = [
   { name: "Lists", href: "/manage/lists", icon: ListChecks, description: "Configure lead lists" },
   { name: "Team", href: "/team", icon: Users, description: "View & manage team" },
-  { name: "Settings", href: "/manage", icon: Settings, description: "System preferences" },
+  { name: "Duplicates", href: "/manage/duplicates", icon: Copy, description: "Merge duplicate leads" },
+  { name: "Claims", href: "/manage/claims", icon: Flag, description: "Review claimed leads" },
+  { name: "Settings", href: "/preferences", icon: Settings, description: "System preferences" },
+  { name: "Account", href: "/manage/account", icon: CreditCard, description: "Billing & subscription" },
 ];
 
 // Review section items
