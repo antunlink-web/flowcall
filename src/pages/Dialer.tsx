@@ -133,7 +133,7 @@ export default function Dialer() {
     }, 1000);
   }, [toast]);
 
-  // Handle incoming SMS request
+  // Handle incoming SMS request - auto-open SMS app immediately
   const handleSmsRequest = useCallback(async (request: SmsRequest) => {
     setCurrentSmsRequest(request);
     
@@ -147,9 +147,29 @@ export default function Dialer() {
     }
 
     toast({
-      title: "Incoming SMS request",
+      title: "Opening SMS...",
       description: `To: ${request.phone_number}`,
     });
+
+    // Update status and open SMS app automatically
+    await supabase
+      .from("sms_requests")
+      .update({ status: "sending" })
+      .eq("id", request.id);
+
+    // Open SMS app automatically with pre-filled message
+    window.location.href = `sms:${request.phone_number}?body=${encodeURIComponent(request.message)}`;
+
+    // Mark as completed after a short delay
+    setTimeout(async () => {
+      await supabase
+        .from("sms_requests")
+        .update({ status: "completed" })
+        .eq("id", request.id);
+      
+      setRecentSms(prev => [request, ...prev.slice(0, 9)]);
+      setCurrentSmsRequest(null);
+    }, 1000);
   }, [toast]);
 
   // Dial the number
