@@ -46,110 +46,92 @@ export default function Work() {
   const autostartHandled = useRef(false);
   const isAutostarting = searchParams.get("autostart") === "true";
 
-  // Fetch list statistics (uses counts, not full data)
+  // Fetch list statistics (optimized - parallel queries)
   const fetchListStats = useCallback(async (showLoading = false) => {
     if (!user) return;
     if (showLoading) setLoading(true);
 
-    // Fetch lists assigned to current user via list_users table
-    const { data: listUserData } = await supabase
-      .from("list_users")
-      .select("list_id")
-      .eq("user_id", user.id);
+    const now = new Date().toISOString();
 
-    const userListIds = (listUserData || []).map((lu) => lu.list_id);
+    // Run all initial queries in parallel
+    const [listUserResult, scheduledResult, claimedResult] = await Promise.all([
+      supabase.from("list_users").select("list_id").eq("user_id", user.id),
+      supabase
+        .from("leads")
+        .select("id, list_id, status, data, callback_scheduled_at, claimed_at, claimed_by")
+        .eq("claimed_by", user.id)
+        .not("callback_scheduled_at", "is", null)
+        .gt("callback_scheduled_at", now)
+        .order("callback_scheduled_at", { ascending: true })
+        .limit(100),
+      supabase
+        .from("leads")
+        .select("id, list_id, status, data, callback_scheduled_at, claimed_at, claimed_by")
+        .eq("claimed_by", user.id)
+        .not("status", "in", '("won","lost","archived")')
+        .order("claimed_at", { ascending: false })
+        .limit(100),
+    ]);
 
-    // Fetch list details for assigned lists
-    let listsData: { id: string; name: string; status: string }[] = [];
-    if (userListIds.length > 0) {
-      const { data } = await supabase
-        .from("lists")
-        .select("id, name, status")
-        .in("id", userListIds)
-        .eq("status", "active");
-      listsData = data || [];
+    const userListIds = (listUserResult.data || []).map((lu) => lu.list_id);
+
+    // Set scheduled and claimed leads immediately
+    setScheduledLeads((scheduledResult.data || []).map((l) => ({
+      ...l,
+      data: (l.data as Record<string, unknown>) || {},
+    })) as Lead[]);
+
+    setClaimedLeads((claimedResult.data || []).map((l) => ({
+      ...l,
+      data: (l.data as Record<string, unknown>) || {},
+    })) as Lead[]);
+
+    if (userListIds.length === 0) {
+      setLists([]);
+      setLoading(false);
+      return;
     }
 
-    // Fetch stats per list using counts
-    const now = new Date();
+    // Fetch list details
+    const { data: listsData } = await supabase
+      .from("lists")
+      .select("id, name, status")
+      .in("id", userListIds)
+      .eq("status", "active");
+
+    if (!listsData || listsData.length === 0) {
+      setLists([]);
+      setLoading(false);
+      return;
+    }
+
+    // Fetch all stats for all lists in parallel (all 4 queries per list run simultaneously)
     const listsWithStats: ListWithStats[] = await Promise.all(
       listsData.map(async (list) => {
-        // Get total leads count
-        const { count: totalLeads } = await supabase
-          .from("leads")
-          .select("*", { count: "exact", head: true })
-          .eq("list_id", list.id);
+        const [totalResult, doneResult, queuedResult, followupsResult] = await Promise.all([
+          supabase.from("leads").select("*", { count: "exact", head: true }).eq("list_id", list.id),
+          supabase.from("leads").select("*", { count: "exact", head: true }).eq("list_id", list.id).in("status", ["won", "lost", "archived"]),
+          supabase.from("leads").select("*", { count: "exact", head: true }).eq("list_id", list.id).not("status", "in", '("won","lost","archived")').or(`claimed_by.is.null,claimed_by.eq.${user.id}`),
+          supabase.from("leads").select("*", { count: "exact", head: true }).eq("list_id", list.id).not("callback_scheduled_at", "is", null).lte("callback_scheduled_at", now),
+        ]);
 
-        // Get done leads count
-        const { count: doneLeads } = await supabase
-          .from("leads")
-          .select("*", { count: "exact", head: true })
-          .eq("list_id", list.id)
-          .in("status", ["won", "lost", "archived"]);
-
-        // Get queued now count (not done, unclaimed or claimed by me)
-        const { count: queuedNow } = await supabase
-          .from("leads")
-          .select("*", { count: "exact", head: true })
-          .eq("list_id", list.id)
-          .not("status", "in", '("won","lost","archived")')
-          .or(`claimed_by.is.null,claimed_by.eq.${user.id}`);
-
-        // Get followups now (callback due)
-        const { count: followupsNow } = await supabase
-          .from("leads")
-          .select("*", { count: "exact", head: true })
-          .eq("list_id", list.id)
-          .not("callback_scheduled_at", "is", null)
-          .lte("callback_scheduled_at", now.toISOString());
-
-        const total = totalLeads || 0;
-        const done = doneLeads || 0;
+        const total = totalResult.count || 0;
+        const done = doneResult.count || 0;
         const donePercentage = total > 0 ? (done / total) * 100 : 0;
 
         return {
           ...list,
           totalLeads: total,
           donePercentage,
-          queuedNow: queuedNow || 0,
-          followupsNow: followupsNow || 0,
+          queuedNow: queuedResult.count || 0,
+          followupsNow: followupsResult.count || 0,
           followupsLater: 0,
-          dueCount: followupsNow || 0,
+          dueCount: followupsResult.count || 0,
         };
       })
     );
 
     setLists(listsWithStats);
-
-    // Fetch scheduled callbacks (leads with callback_scheduled_at in the future, claimed by user)
-    const { data: scheduledData } = await supabase
-      .from("leads")
-      .select("*")
-      .eq("claimed_by", user.id)
-      .not("callback_scheduled_at", "is", null)
-      .gt("callback_scheduled_at", now.toISOString())
-      .order("callback_scheduled_at", { ascending: true })
-      .limit(100);
-    
-    setScheduledLeads((scheduledData || []).map((l) => ({
-      ...l,
-      data: (l.data as Record<string, unknown>) || {},
-    })) as Lead[]);
-
-    // Fetch claimed leads
-    const { data: claimedData } = await supabase
-      .from("leads")
-      .select("*")
-      .eq("claimed_by", user.id)
-      .not("status", "in", '("won","lost","archived")')
-      .order("claimed_at", { ascending: false })
-      .limit(100);
-    
-    setClaimedLeads((claimedData || []).map((l) => ({
-      ...l,
-      data: (l.data as Record<string, unknown>) || {},
-    })) as Lead[]);
-
     setLoading(false);
   }, [user]);
 
