@@ -13,6 +13,11 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
+import {
   Phone,
   Users,
   LayoutGrid,
@@ -24,6 +29,11 @@ import {
   Briefcase,
   Home,
   LayoutDashboard,
+  List,
+  Copy,
+  Flag,
+  CreditCard,
+  ChevronDown,
 } from "lucide-react";
 import { useState } from "react";
 import flowcallLogo from "@/assets/flowcall-logo.png";
@@ -34,8 +44,15 @@ const navItems = [
   { to: "/work", icon: Phone, label: "Dialer", roles: ["owner", "account_manager", "agent"] },
   { to: "/campaigns", icon: LayoutGrid, label: "Campaigns", roles: ["owner", "account_manager"] },
   { to: "/reports", icon: BarChart3, label: "Reports", roles: ["owner", "account_manager"] },
-  { to: "/team", icon: Briefcase, label: "Team", roles: ["owner"] },
-  { to: "/settings", icon: Settings, label: "Settings", roles: ["owner", "account_manager"] },
+];
+
+const manageSubItems = [
+  { to: "/manage/lists", icon: List, label: "Lists" },
+  { to: "/team", icon: Users, label: "Team" },
+  { to: "/manage/duplicates", icon: Copy, label: "Duplicates" },
+  { to: "/manage/claims", icon: Flag, label: "Claims" },
+  { to: "/preferences", icon: Settings, label: "Settings" },
+  { to: "/manage/account", icon: CreditCard, label: "Account" },
 ];
 
 export function AppSidebar() {
@@ -44,6 +61,11 @@ export function AppSidebar() {
   const { branding } = useBranding();
   const location = useLocation();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [manageOpen, setManageOpen] = useState(
+    location.pathname.startsWith("/manage") || 
+    location.pathname === "/team" || 
+    location.pathname === "/preferences"
+  );
 
   const appName = branding?.app_name || "FlowCall";
   const logoUrl = branding?.logo_url || flowcallLogo;
@@ -51,6 +73,12 @@ export function AppSidebar() {
   const visibleItems = navItems.filter(
     (item) => roles.some(r => item.roles.includes(r)) || (roles.length === 0 && item.roles.includes("agent"))
   );
+
+  // Check if Manage section should be shown (owner or account_manager)
+  const showManageSection = roles.includes("owner") || roles.includes("account_manager");
+
+  // Check if current route is a manage sub-route
+  const isManageSubRoute = manageSubItems.some(item => location.pathname === item.to);
 
   // Format roles for display
   const displayRole = roles.length > 0 
@@ -88,7 +116,7 @@ export function AppSidebar() {
           onClick={() => setMobileOpen(false)}
         >
           <nav
-            className="bg-sidebar w-64 h-full p-4 space-y-2"
+            className="bg-sidebar w-64 h-full p-4 space-y-2 overflow-y-auto"
             onClick={(e) => e.stopPropagation()}
           >
             {visibleItems.map((item) => (
@@ -107,6 +135,37 @@ export function AppSidebar() {
                 {item.label}
               </NavLink>
             ))}
+            
+            {/* Manage Section - Mobile */}
+            {showManageSection && (
+              <Collapsible open={manageOpen} onOpenChange={setManageOpen}>
+                <CollapsibleTrigger className="w-full flex items-center justify-between gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors text-sidebar-foreground hover:bg-sidebar-accent">
+                  <div className="flex items-center gap-3">
+                    <Briefcase className="w-5 h-5" />
+                    Manage
+                  </div>
+                  <ChevronDown className={cn("w-4 h-4 transition-transform", manageOpen && "rotate-180")} />
+                </CollapsibleTrigger>
+                <CollapsibleContent className="pl-4 space-y-1 mt-1">
+                  {manageSubItems.map((item) => (
+                    <NavLink
+                      key={item.to}
+                      to={item.to}
+                      onClick={() => setMobileOpen(false)}
+                      className={cn(
+                        "flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors",
+                        location.pathname === item.to
+                          ? "bg-sidebar-primary text-sidebar-primary-foreground"
+                          : "text-sidebar-foreground hover:bg-sidebar-accent"
+                      )}
+                    >
+                      <item.icon className="w-4 h-4" />
+                      {item.label}
+                    </NavLink>
+                  ))}
+                </CollapsibleContent>
+              </Collapsible>
+            )}
           </nav>
         </div>
       )}
@@ -120,7 +179,7 @@ export function AppSidebar() {
         </div>
 
         {/* Navigation */}
-        <nav className="flex-1 p-4 space-y-1">
+        <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
           {visibleItems.map((item) => (
             <NavLink
               key={item.to}
@@ -136,6 +195,36 @@ export function AppSidebar() {
               {item.label}
             </NavLink>
           ))}
+          
+          {/* Manage Section - Desktop */}
+          {showManageSection && (
+            <Collapsible open={manageOpen} onOpenChange={setManageOpen}>
+              <CollapsibleTrigger className="w-full flex items-center justify-between gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground">
+                <div className="flex items-center gap-3">
+                  <Briefcase className="w-5 h-5" />
+                  Manage
+                </div>
+                <ChevronDown className={cn("w-4 h-4 transition-transform", manageOpen && "rotate-180")} />
+              </CollapsibleTrigger>
+              <CollapsibleContent className="pl-4 space-y-1 mt-1">
+                {manageSubItems.map((item) => (
+                  <NavLink
+                    key={item.to}
+                    to={item.to}
+                    className={cn(
+                      "flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors",
+                      location.pathname === item.to
+                        ? "bg-sidebar-primary text-sidebar-primary-foreground"
+                        : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+                    )}
+                  >
+                    <item.icon className="w-4 h-4" />
+                    {item.label}
+                  </NavLink>
+                ))}
+              </CollapsibleContent>
+            </Collapsible>
+          )}
         </nav>
 
         {/* User Menu */}
@@ -158,7 +247,7 @@ export function AppSidebar() {
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-56">
               <DropdownMenuItem asChild>
-                <NavLink to="/settings" className="flex items-center gap-2">
+                <NavLink to="/preferences" className="flex items-center gap-2">
                   <Settings className="w-4 h-4" />
                   Settings
                 </NavLink>
