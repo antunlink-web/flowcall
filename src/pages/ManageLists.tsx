@@ -146,6 +146,7 @@ export default function ManageLists() {
   const [editingEmailTemplate, setEditingEmailTemplate] = useState<EmailTemplate | null>(null);
   const [editingSmsTemplate, setEditingSmsTemplate] = useState<SmsTemplate | null>(null);
   const [editingScript, setEditingScript] = useState<CallScript | null>(null);
+  const [previewingEmailTemplate, setPreviewingEmailTemplate] = useState<EmailTemplate | null>(null);
   
   // Template form state
   const [templateName, setTemplateName] = useState("");
@@ -1237,13 +1238,28 @@ export default function ManageLists() {
                         <tr key={template.id} className="border-t border-border">
                           <td className="p-3 text-primary">{template.name}</td>
                           <td className="p-3">{template.subject}</td>
-                          <td className="p-3 text-muted-foreground truncate max-w-xs">{template.body}</td>
+                          <td className="p-3 text-muted-foreground truncate max-w-xs">
+                            <div 
+                              className="truncate"
+                              dangerouslySetInnerHTML={{ __html: template.body.replace(/<[^>]*>/g, ' ').slice(0, 80) + '...' }}
+                            />
+                          </td>
                           <td className="p-3 text-right">
                             <div className="flex items-center justify-end gap-1">
                               <Button 
                                 variant="outline" 
                                 size="icon" 
                                 className="h-8 w-8"
+                                title="Preview"
+                                onClick={() => setPreviewingEmailTemplate(template)}
+                              >
+                                <Eye className="h-4 w-4" />
+                              </Button>
+                              <Button 
+                                variant="outline" 
+                                size="icon" 
+                                className="h-8 w-8"
+                                title="Edit"
                                 onClick={() => openEditEmailTemplate(template)}
                               >
                                 <Edit className="h-4 w-4" />
@@ -1252,6 +1268,7 @@ export default function ManageLists() {
                                 variant="outline" 
                                 size="icon" 
                                 className="h-8 w-8"
+                                title="Delete"
                                 onClick={() => deleteEmailTemplate(template.id)}
                               >
                                 <Trash2 className="h-4 w-4" />
@@ -1264,6 +1281,56 @@ export default function ManageLists() {
                   </tbody>
                 </table>
               </div>
+
+              {/* Email Preview Dialog */}
+              <Dialog open={!!previewingEmailTemplate} onOpenChange={(open) => !open && setPreviewingEmailTemplate(null)}>
+                <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
+                  <DialogHeader>
+                    <DialogTitle>Email Preview: {previewingEmailTemplate?.name}</DialogTitle>
+                    <DialogDescription>
+                      Preview of how the email will appear to recipients
+                    </DialogDescription>
+                  </DialogHeader>
+                  {previewingEmailTemplate && (
+                    <div className="border border-border rounded bg-white">
+                      {/* Email client simulation header */}
+                      <div className="bg-muted/50 border-b border-border p-3 space-y-1">
+                        <div className="flex items-center gap-2 text-sm">
+                          <span className="font-medium text-muted-foreground w-16">From:</span>
+                          <span>{emailConfig.from_name || 'Your Company'} &lt;{emailConfig.from_email || 'noreply@example.com'}&gt;</span>
+                        </div>
+                        <div className="flex items-center gap-2 text-sm">
+                          <span className="font-medium text-muted-foreground w-16">To:</span>
+                          <span>{previewLead ? Object.values(previewLead).find(v => v?.includes?.('@')) || 'recipient@example.com' : 'recipient@example.com'}</span>
+                        </div>
+                        <div className="flex items-center gap-2 text-sm">
+                          <span className="font-medium text-muted-foreground w-16">Subject:</span>
+                          <span className="font-medium">{previewingEmailTemplate.subject || "(no subject)"}</span>
+                        </div>
+                      </div>
+                      {/* Email body preview */}
+                      <div 
+                        className="prose prose-sm max-w-none p-4 min-h-[200px]"
+                        dangerouslySetInnerHTML={{ 
+                          __html: previewingEmailTemplate.body || "<p class='text-muted-foreground italic'>(no content)</p>" 
+                        }}
+                      />
+                    </div>
+                  )}
+                  <DialogFooter>
+                    <Button variant="outline" onClick={() => setPreviewingEmailTemplate(null)}>
+                      Close
+                    </Button>
+                    <Button onClick={() => {
+                      openEditEmailTemplate(previewingEmailTemplate!);
+                      setPreviewingEmailTemplate(null);
+                    }}>
+                      <Edit className="h-4 w-4 mr-2" />
+                      Edit Template
+                    </Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
             </div>
           </div>
         );

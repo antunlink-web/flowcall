@@ -2,6 +2,8 @@ import { useState, useCallback, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Select,
   SelectContent,
@@ -42,6 +44,8 @@ import {
   Redo,
   Type,
   Palette,
+  Code,
+  Eye,
 } from "lucide-react";
 import { ListField } from "@/hooks/useLists";
 import { useEditor, EditorContent } from "@tiptap/react";
@@ -123,6 +127,8 @@ export function EmailTemplateEditor({
   const [selectedMergeTag, setSelectedMergeTag] = useState<string>("");
   const [linkUrl, setLinkUrl] = useState("");
   const [imageUrl, setImageUrl] = useState("");
+  const [editorMode, setEditorMode] = useState<"visual" | "html" | "preview">("visual");
+  const [htmlSource, setHtmlSource] = useState(templateBody || "");
 
   // Handle pasted images from clipboard
   const handlePastedImage = useCallback((file: File): Promise<string> => {
@@ -229,8 +235,25 @@ export function EmailTemplateEditor({
   useEffect(() => {
     if (editor && templateBody !== editor.getHTML()) {
       editor.commands.setContent(templateBody || "");
+      setHtmlSource(templateBody || "");
     }
   }, [templateBody, editor]);
+
+  // Sync HTML source when switching modes
+  useEffect(() => {
+    if (editorMode === "html" && editor) {
+      setHtmlSource(editor.getHTML());
+    }
+  }, [editorMode, editor]);
+
+  // Apply HTML source changes when switching back to visual mode
+  const handleModeChange = (newMode: string) => {
+    if (editorMode === "html" && newMode === "visual" && editor) {
+      editor.commands.setContent(htmlSource);
+      onBodyChange(htmlSource);
+    }
+    setEditorMode(newMode as "visual" | "html" | "preview");
+  };
 
   // Generate merge tags from fields
   const fieldMergeTags = fields.map((field) => ({
@@ -333,294 +356,365 @@ export function EmailTemplateEditor({
         />
       </div>
 
-      {/* Email Body with TipTap Editor */}
+      {/* Email Body with Mode Tabs */}
       <div className="space-y-2">
-        <Label className="text-sm font-medium">Email body</Label>
+        <div className="flex items-center justify-between">
+          <Label className="text-sm font-medium">Email body</Label>
+          <Tabs value={editorMode} onValueChange={handleModeChange}>
+            <TabsList className="h-8">
+              <TabsTrigger value="visual" className="text-xs px-3 h-7">
+                <Type className="h-3 w-3 mr-1" />
+                Visual
+              </TabsTrigger>
+              <TabsTrigger value="html" className="text-xs px-3 h-7">
+                <Code className="h-3 w-3 mr-1" />
+                HTML
+              </TabsTrigger>
+              <TabsTrigger value="preview" className="text-xs px-3 h-7">
+                <Eye className="h-3 w-3 mr-1" />
+                Preview
+              </TabsTrigger>
+            </TabsList>
+          </Tabs>
+        </div>
         
-        {/* Toolbar */}
-        <div className="flex items-center gap-1 border border-border rounded-t bg-muted/50 p-1.5 flex-wrap">
-          {/* Undo/Redo */}
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            className="h-8 w-8 p-0"
-            onClick={() => editor.chain().focus().undo().run()}
-            disabled={!editor.can().undo()}
-          >
-            <Undo className="h-4 w-4" />
-          </Button>
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            className="h-8 w-8 p-0"
-            onClick={() => editor.chain().focus().redo().run()}
-            disabled={!editor.can().redo()}
-          >
-            <Redo className="h-4 w-4" />
-          </Button>
-
-          <div className="w-px h-6 bg-border mx-1" />
-
-          {/* Text formatting */}
-          <Button
-            type="button"
-            variant={editor.isActive("bold") ? "secondary" : "ghost"}
-            size="sm"
-            className="h-8 w-8 p-0"
-            onClick={() => editor.chain().focus().toggleBold().run()}
-          >
-            <Bold className="h-4 w-4" />
-          </Button>
-          <Button
-            type="button"
-            variant={editor.isActive("italic") ? "secondary" : "ghost"}
-            size="sm"
-            className="h-8 w-8 p-0"
-            onClick={() => editor.chain().focus().toggleItalic().run()}
-          >
-            <Italic className="h-4 w-4" />
-          </Button>
-          <Button
-            type="button"
-            variant={editor.isActive("underline") ? "secondary" : "ghost"}
-            size="sm"
-            className="h-8 w-8 p-0"
-            onClick={() => editor.chain().focus().toggleUnderline().run()}
-          >
-            <Underline className="h-4 w-4" />
-          </Button>
-          <Button
-            type="button"
-            variant={editor.isActive("strike") ? "secondary" : "ghost"}
-            size="sm"
-            className="h-8 w-8 p-0"
-            onClick={() => editor.chain().focus().toggleStrike().run()}
-          >
-            <Strikethrough className="h-4 w-4" />
-          </Button>
-          
-          <div className="w-px h-6 bg-border mx-1" />
-
-          {/* Headings */}
-          <Button
-            type="button"
-            variant={editor.isActive("heading", { level: 1 }) ? "secondary" : "ghost"}
-            size="sm"
-            className="h-8 w-8 p-0"
-            onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}
-          >
-            <Heading1 className="h-4 w-4" />
-          </Button>
-          <Button
-            type="button"
-            variant={editor.isActive("heading", { level: 2 }) ? "secondary" : "ghost"}
-            size="sm"
-            className="h-8 w-8 p-0"
-            onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
-          >
-            <Heading2 className="h-4 w-4" />
-          </Button>
-          <Button
-            type="button"
-            variant={editor.isActive("heading", { level: 3 }) ? "secondary" : "ghost"}
-            size="sm"
-            className="h-8 w-8 p-0"
-            onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()}
-          >
-            <Heading3 className="h-4 w-4" />
-          </Button>
-          <Button
-            type="button"
-            variant={editor.isActive("paragraph") ? "secondary" : "ghost"}
-            size="sm"
-            className="h-8 w-8 p-0"
-            onClick={() => editor.chain().focus().setParagraph().run()}
-          >
-            <Type className="h-4 w-4" />
-          </Button>
-          
-          <div className="w-px h-6 bg-border mx-1" />
-
-          {/* Color picker */}
-          <Popover>
-            <PopoverTrigger asChild>
-              <Button type="button" variant="ghost" size="sm" className="h-8 w-8 p-0">
-                <Palette className="h-4 w-4" />
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-auto p-2">
-              <div className="grid grid-cols-5 gap-1">
-                {TEXT_COLORS.map((color) => (
-                  <button
-                    key={color.name}
-                    className="w-6 h-6 rounded border border-border hover:scale-110 transition-transform"
-                    style={{ backgroundColor: color.value || "#ffffff" }}
-                    onClick={() => {
-                      if (color.value) {
-                        editor.chain().focus().setColor(color.value).run();
-                      } else {
-                        editor.chain().focus().unsetColor().run();
-                      }
-                    }}
-                    title={color.name}
-                  />
-                ))}
-              </div>
-            </PopoverContent>
-          </Popover>
-          
-          <div className="w-px h-6 bg-border mx-1" />
-
-          {/* Lists */}
-          <Button
-            type="button"
-            variant={editor.isActive("bulletList") ? "secondary" : "ghost"}
-            size="sm"
-            className="h-8 w-8 p-0"
-            onClick={() => editor.chain().focus().toggleBulletList().run()}
-          >
-            <List className="h-4 w-4" />
-          </Button>
-          <Button
-            type="button"
-            variant={editor.isActive("orderedList") ? "secondary" : "ghost"}
-            size="sm"
-            className="h-8 w-8 p-0"
-            onClick={() => editor.chain().focus().toggleOrderedList().run()}
-          >
-            <ListOrdered className="h-4 w-4" />
-          </Button>
-          <Button
-            type="button"
-            variant={editor.isActive("blockquote") ? "secondary" : "ghost"}
-            size="sm"
-            className="h-8 w-8 p-0"
-            onClick={() => editor.chain().focus().toggleBlockquote().run()}
-          >
-            <Quote className="h-4 w-4" />
-          </Button>
-          
-          <div className="w-px h-6 bg-border mx-1" />
-          
-          {/* Alignment */}
-          <Button
-            type="button"
-            variant={editor.isActive({ textAlign: "left" }) ? "secondary" : "ghost"}
-            size="sm"
-            className="h-8 w-8 p-0"
-            onClick={() => editor.chain().focus().setTextAlign("left").run()}
-          >
-            <AlignLeft className="h-4 w-4" />
-          </Button>
-          <Button
-            type="button"
-            variant={editor.isActive({ textAlign: "center" }) ? "secondary" : "ghost"}
-            size="sm"
-            className="h-8 w-8 p-0"
-            onClick={() => editor.chain().focus().setTextAlign("center").run()}
-          >
-            <AlignCenter className="h-4 w-4" />
-          </Button>
-          <Button
-            type="button"
-            variant={editor.isActive({ textAlign: "right" }) ? "secondary" : "ghost"}
-            size="sm"
-            className="h-8 w-8 p-0"
-            onClick={() => editor.chain().focus().setTextAlign("right").run()}
-          >
-            <AlignRight className="h-4 w-4" />
-          </Button>
-          
-          <div className="w-px h-6 bg-border mx-1" />
-
-          {/* Link */}
-          <Popover>
-            <PopoverTrigger asChild>
+        {editorMode === "visual" && (
+          <>
+            {/* Toolbar */}
+            <div className="flex items-center gap-1 border border-border rounded-t bg-muted/50 p-1.5 flex-wrap">
+              {/* Undo/Redo */}
               <Button
                 type="button"
-                variant={editor.isActive("link") ? "secondary" : "ghost"}
+                variant="ghost"
                 size="sm"
                 className="h-8 w-8 p-0"
+                onClick={() => editor.chain().focus().undo().run()}
+                disabled={!editor.can().undo()}
               >
-                <Link2 className="h-4 w-4" />
+                <Undo className="h-4 w-4" />
               </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-80">
-              <div className="space-y-3">
-                <Label className="text-sm font-medium">Insert Link</Label>
-                <Input
-                  value={linkUrl}
-                  onChange={(e) => setLinkUrl(e.target.value)}
-                  placeholder="https://example.com"
-                />
-                <div className="flex gap-2">
-                  <Button size="sm" onClick={addLink}>
-                    Add Link
-                  </Button>
-                  {editor.isActive("link") && (
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => editor.chain().focus().unsetLink().run()}
-                    >
-                      Remove Link
-                    </Button>
-                  )}
-                </div>
-              </div>
-            </PopoverContent>
-          </Popover>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="h-8 w-8 p-0"
+                onClick={() => editor.chain().focus().redo().run()}
+                disabled={!editor.can().redo()}
+              >
+                <Redo className="h-4 w-4" />
+              </Button>
 
-          {/* Image */}
-          <Popover>
-            <PopoverTrigger asChild>
-              <Button type="button" variant="ghost" size="sm" className="h-8 w-8 p-0">
-                <Image className="h-4 w-4" />
+              <div className="w-px h-6 bg-border mx-1" />
+
+              {/* Text formatting */}
+              <Button
+                type="button"
+                variant={editor.isActive("bold") ? "secondary" : "ghost"}
+                size="sm"
+                className="h-8 w-8 p-0"
+                onClick={() => editor.chain().focus().toggleBold().run()}
+              >
+                <Bold className="h-4 w-4" />
               </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-80">
-              <div className="space-y-3">
-                <Label className="text-sm font-medium">Insert Image</Label>
-                <div className="space-y-2">
-                  <Input
-                    value={imageUrl}
-                    onChange={(e) => setImageUrl(e.target.value)}
-                    placeholder="https://example.com/image.jpg"
-                  />
-                  <Button size="sm" onClick={addImage} className="w-full">
-                    Add from URL
+              <Button
+                type="button"
+                variant={editor.isActive("italic") ? "secondary" : "ghost"}
+                size="sm"
+                className="h-8 w-8 p-0"
+                onClick={() => editor.chain().focus().toggleItalic().run()}
+              >
+                <Italic className="h-4 w-4" />
+              </Button>
+              <Button
+                type="button"
+                variant={editor.isActive("underline") ? "secondary" : "ghost"}
+                size="sm"
+                className="h-8 w-8 p-0"
+                onClick={() => editor.chain().focus().toggleUnderline().run()}
+              >
+                <Underline className="h-4 w-4" />
+              </Button>
+              <Button
+                type="button"
+                variant={editor.isActive("strike") ? "secondary" : "ghost"}
+                size="sm"
+                className="h-8 w-8 p-0"
+                onClick={() => editor.chain().focus().toggleStrike().run()}
+              >
+                <Strikethrough className="h-4 w-4" />
+              </Button>
+              
+              <div className="w-px h-6 bg-border mx-1" />
+
+              {/* Headings */}
+              <Button
+                type="button"
+                variant={editor.isActive("heading", { level: 1 }) ? "secondary" : "ghost"}
+                size="sm"
+                className="h-8 w-8 p-0"
+                onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}
+              >
+                <Heading1 className="h-4 w-4" />
+              </Button>
+              <Button
+                type="button"
+                variant={editor.isActive("heading", { level: 2 }) ? "secondary" : "ghost"}
+                size="sm"
+                className="h-8 w-8 p-0"
+                onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
+              >
+                <Heading2 className="h-4 w-4" />
+              </Button>
+              <Button
+                type="button"
+                variant={editor.isActive("heading", { level: 3 }) ? "secondary" : "ghost"}
+                size="sm"
+                className="h-8 w-8 p-0"
+                onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()}
+              >
+                <Heading3 className="h-4 w-4" />
+              </Button>
+              <Button
+                type="button"
+                variant={editor.isActive("paragraph") ? "secondary" : "ghost"}
+                size="sm"
+                className="h-8 w-8 p-0"
+                onClick={() => editor.chain().focus().setParagraph().run()}
+              >
+                <Type className="h-4 w-4" />
+              </Button>
+              
+              <div className="w-px h-6 bg-border mx-1" />
+
+              {/* Color picker */}
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button type="button" variant="ghost" size="sm" className="h-8 w-8 p-0">
+                    <Palette className="h-4 w-4" />
                   </Button>
-                </div>
-                <div className="relative">
-                  <div className="absolute inset-0 flex items-center">
-                    <span className="w-full border-t" />
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-2">
+                  <div className="grid grid-cols-5 gap-1">
+                    {TEXT_COLORS.map((color) => (
+                      <button
+                        key={color.name}
+                        className="w-6 h-6 rounded border border-border hover:scale-110 transition-transform"
+                        style={{ backgroundColor: color.value || "#ffffff" }}
+                        onClick={() => {
+                          if (color.value) {
+                            editor.chain().focus().setColor(color.value).run();
+                          } else {
+                            editor.chain().focus().unsetColor().run();
+                          }
+                        }}
+                        title={color.name}
+                      />
+                    ))}
                   </div>
-                  <div className="relative flex justify-center text-xs uppercase">
-                    <span className="bg-popover px-2 text-muted-foreground">Or</span>
+                </PopoverContent>
+              </Popover>
+              
+              <div className="w-px h-6 bg-border mx-1" />
+
+              {/* Lists */}
+              <Button
+                type="button"
+                variant={editor.isActive("bulletList") ? "secondary" : "ghost"}
+                size="sm"
+                className="h-8 w-8 p-0"
+                onClick={() => editor.chain().focus().toggleBulletList().run()}
+              >
+                <List className="h-4 w-4" />
+              </Button>
+              <Button
+                type="button"
+                variant={editor.isActive("orderedList") ? "secondary" : "ghost"}
+                size="sm"
+                className="h-8 w-8 p-0"
+                onClick={() => editor.chain().focus().toggleOrderedList().run()}
+              >
+                <ListOrdered className="h-4 w-4" />
+              </Button>
+              <Button
+                type="button"
+                variant={editor.isActive("blockquote") ? "secondary" : "ghost"}
+                size="sm"
+                className="h-8 w-8 p-0"
+                onClick={() => editor.chain().focus().toggleBlockquote().run()}
+              >
+                <Quote className="h-4 w-4" />
+              </Button>
+              
+              <div className="w-px h-6 bg-border mx-1" />
+              
+              {/* Alignment */}
+              <Button
+                type="button"
+                variant={editor.isActive({ textAlign: "left" }) ? "secondary" : "ghost"}
+                size="sm"
+                className="h-8 w-8 p-0"
+                onClick={() => editor.chain().focus().setTextAlign("left").run()}
+              >
+                <AlignLeft className="h-4 w-4" />
+              </Button>
+              <Button
+                type="button"
+                variant={editor.isActive({ textAlign: "center" }) ? "secondary" : "ghost"}
+                size="sm"
+                className="h-8 w-8 p-0"
+                onClick={() => editor.chain().focus().setTextAlign("center").run()}
+              >
+                <AlignCenter className="h-4 w-4" />
+              </Button>
+              <Button
+                type="button"
+                variant={editor.isActive({ textAlign: "right" }) ? "secondary" : "ghost"}
+                size="sm"
+                className="h-8 w-8 p-0"
+                onClick={() => editor.chain().focus().setTextAlign("right").run()}
+              >
+                <AlignRight className="h-4 w-4" />
+              </Button>
+              
+              <div className="w-px h-6 bg-border mx-1" />
+
+              {/* Link */}
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    type="button"
+                    variant={editor.isActive("link") ? "secondary" : "ghost"}
+                    size="sm"
+                    className="h-8 w-8 p-0"
+                  >
+                    <Link2 className="h-4 w-4" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-80">
+                  <div className="space-y-3">
+                    <Label className="text-sm font-medium">Insert Link</Label>
+                    <Input
+                      value={linkUrl}
+                      onChange={(e) => setLinkUrl(e.target.value)}
+                      placeholder="https://example.com"
+                    />
+                    <div className="flex gap-2">
+                      <Button size="sm" onClick={addLink}>
+                        Add Link
+                      </Button>
+                      {editor.isActive("link") && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => editor.chain().focus().unsetLink().run()}
+                        >
+                          Remove Link
+                        </Button>
+                      )}
+                    </div>
                   </div>
+                </PopoverContent>
+              </Popover>
+
+              {/* Image */}
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button type="button" variant="ghost" size="sm" className="h-8 w-8 p-0">
+                    <Image className="h-4 w-4" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-80">
+                  <div className="space-y-3">
+                    <Label className="text-sm font-medium">Insert Image</Label>
+                    <div className="space-y-2">
+                      <Input
+                        value={imageUrl}
+                        onChange={(e) => setImageUrl(e.target.value)}
+                        placeholder="https://example.com/image.jpg"
+                      />
+                      <Button size="sm" onClick={addImage} className="w-full">
+                        Add from URL
+                      </Button>
+                    </div>
+                    <div className="relative">
+                      <div className="absolute inset-0 flex items-center">
+                        <span className="w-full border-t" />
+                      </div>
+                      <div className="relative flex justify-center text-xs uppercase">
+                        <span className="bg-popover px-2 text-muted-foreground">Or</span>
+                      </div>
+                    </div>
+                    <div>
+                      <Input
+                        type="file"
+                        accept="image/*"
+                        onChange={handleImageUpload}
+                        className="cursor-pointer"
+                      />
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Upload from your computer
+                      </p>
+                    </div>
+                  </div>
+                </PopoverContent>
+              </Popover>
+            </div>
+            
+            {/* TipTap Editor */}
+            <div className="border border-t-0 border-border rounded-b bg-background">
+              <EditorContent editor={editor} />
+            </div>
+          </>
+        )}
+
+        {editorMode === "html" && (
+          <div className="space-y-2">
+            <Textarea
+              value={htmlSource}
+              onChange={(e) => {
+                setHtmlSource(e.target.value);
+                onBodyChange(e.target.value);
+              }}
+              placeholder="<p>Enter your HTML here...</p>"
+              className="font-mono text-sm min-h-[400px] bg-slate-50"
+            />
+            <p className="text-xs text-muted-foreground">
+              Edit the raw HTML source. Changes are saved when you switch tabs.
+            </p>
+          </div>
+        )}
+
+        {editorMode === "preview" && (
+          <div className="space-y-2">
+            <div className="border border-border rounded bg-white">
+              {/* Email client simulation header */}
+              <div className="bg-muted/50 border-b border-border p-3 space-y-1">
+                <div className="flex items-center gap-2 text-sm">
+                  <span className="font-medium text-muted-foreground w-16">From:</span>
+                  <span>Your Company &lt;noreply@example.com&gt;</span>
                 </div>
-                <div>
-                  <Input
-                    type="file"
-                    accept="image/*"
-                    onChange={handleImageUpload}
-                    className="cursor-pointer"
-                  />
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Upload from your computer
-                  </p>
+                <div className="flex items-center gap-2 text-sm">
+                  <span className="font-medium text-muted-foreground w-16">To:</span>
+                  <span>{previewData ? Object.values(previewData).find(v => v?.includes('@')) || 'recipient@example.com' : 'recipient@example.com'}</span>
+                </div>
+                <div className="flex items-center gap-2 text-sm">
+                  <span className="font-medium text-muted-foreground w-16">Subject:</span>
+                  <span className="font-medium">{getPreviewContent(templateSubject) || "(no subject)"}</span>
                 </div>
               </div>
-            </PopoverContent>
-          </Popover>
-        </div>
-        
-        {/* TipTap Editor */}
-        <div className="border border-t-0 border-border rounded-b bg-background">
-          <EditorContent editor={editor} />
-        </div>
+              {/* Email body preview */}
+              <div 
+                className="prose prose-sm max-w-none p-4 min-h-[300px]"
+                dangerouslySetInnerHTML={{ 
+                  __html: getPreviewContent(editor?.getHTML() || htmlSource) || "<p class='text-muted-foreground italic'>(no content)</p>" 
+                }}
+              />
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Preview shows how the email will appear to recipients with merge tags replaced.
+            </p>
+          </div>
+        )}
       </div>
 
       {/* Insert Merge Tag */}
