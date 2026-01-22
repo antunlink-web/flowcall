@@ -1074,9 +1074,13 @@ export default function ManageAccount() {
                       <li className="border-t pt-3">Premium support</li>
                       <li className="border-t pt-3">Duplicate detection</li>
                       <li className="border-t pt-3">Email integration</li>
+                      <li className="border-t pt-3">SMS integration</li>
+                      <li className="border-t pt-3">Email templates</li>
+                      <li className="border-t pt-3">SMS templates</li>
+                      <li className="border-t pt-3">Call scripts</li>
+                      <li className="border-t pt-3">Callback scheduling</li>
                       <li className="border-t pt-3">Automation</li>
                       <li className="border-t pt-3">Power Dialer (rates apply)</li>
-                      <li className="border-t pt-3">SMS integration</li>
                     </ul>
                     {currentPlan === "basic" ? (
                       <div className="mt-6 py-2 bg-green-100 text-green-700 rounded font-medium flex items-center justify-center gap-2">
@@ -1104,6 +1108,10 @@ export default function ManageAccount() {
                     <p className="text-sm mb-4">Everything from Basic</p>
                     <ul className="text-sm space-y-3 text-left">
                       <li className="border-t pt-3">5 calling lists</li>
+                      <li className="border-t pt-3">Campaigns</li>
+                      <li className="border-t pt-3">Reports & Analytics</li>
+                      <li className="border-t pt-3">Team management</li>
+                      <li className="border-t pt-3">Multi-device support</li>
                       <li className="border-t pt-3">Bulk deduplication</li>
                       <li className="border-t pt-3">Campaign-wide CIDs</li>
                       <li className="border-t pt-3">Inbound calls</li>
