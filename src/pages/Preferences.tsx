@@ -7,18 +7,13 @@ import { cn } from "@/lib/utils";
 import { 
   User, 
   Key, 
-  Mail, 
-  MessageSquare, 
   Phone, 
   Settings2, 
   Filter, 
   Bell, 
-  Inbox,
   ChevronRight,
-  Upload,
   X,
   Smartphone,
-  Wifi,
   WifiOff,
   Circle
 } from "lucide-react";
@@ -119,13 +114,10 @@ function FlowCallSmartSection() {
 const sidebarItems = [
   { id: "profile", label: "Profile information", icon: User },
   { id: "credentials", label: "Credentials", icon: Key },
-  { id: "email", label: "E-mail", icon: Mail },
-  { id: "texting", label: "Texting", icon: MessageSquare },
   { id: "dialling", label: "Dialling", icon: Phone },
   { id: "working", label: "Working", icon: Settings2 },
   { id: "queue", label: "Queue", icon: Filter },
   { id: "notifications", label: "Notifications", icon: Bell },
-  { id: "email-dropbox", label: "Email Dropbox", icon: Inbox },
 ];
 
 export default function Preferences() {
@@ -677,52 +669,6 @@ export default function Preferences() {
             <Button onClick={handleSaveWorking} className="bg-[hsl(200,50%,45%)] hover:bg-[hsl(200,50%,40%)]">
               Update
             </Button>
-          </div>
-        );
-
-      case "email-dropbox":
-        return (
-          <div className="space-y-6">
-            <div>
-              <p className="text-muted-foreground mb-4">
-                Forward or BCC email to this address to attach it to a leads's history:
-              </p>
-              <div className="bg-muted p-6 rounded-md text-center">
-                <p className="text-lg font-medium">{user?.email?.replace("@", "-")?.replace(".", "-")}@dropbox.app</p>
-              </div>
-            </div>
-            <div>
-              <h3 className="text-lg font-medium mb-4">How does the dropbox work?</h3>
-              <Separator className="mb-4" />
-              <ul className="list-disc list-inside space-y-2 text-muted-foreground">
-                <li>FORWARD an email to your dropbox and the system will find the lead who wrote the email and attach the email to that lead's history.</li>
-                <li>BCC your dropbox when you send an email and the email will be attached to the lead receiving the email.</li>
-              </ul>
-            </div>
-          </div>
-        );
-
-      case "email":
-        return (
-          <div className="space-y-6">
-            <p className="text-muted-foreground">
-              Configure your email integration settings here.
-            </p>
-            <div className="bg-muted/50 p-4 rounded-md">
-              <p className="text-sm text-muted-foreground">No email integration configured.</p>
-            </div>
-          </div>
-        );
-
-      case "texting":
-        return (
-          <div className="space-y-6">
-            <p className="text-muted-foreground">
-              Configure your SMS/texting settings here.
-            </p>
-            <div className="bg-muted/50 p-4 rounded-md">
-              <p className="text-sm text-muted-foreground">No texting integration configured.</p>
-            </div>
           </div>
         );
 
