@@ -77,7 +77,6 @@ export default function ManageAccount() {
   
   // Plan state
   const [currentPlan, setCurrentPlan] = useState<string>("basic");
-  const [billingCycle, setBillingCycle] = useState<"monthly" | "annual">("monthly");
   
   // Branding state
   const [brandingCompanyName, setBrandingCompanyName] = useState("");
@@ -123,9 +122,8 @@ export default function ManageAccount() {
             setSeats(String(value.total || 4));
           }
           if (setting.setting_key === "subscription_plan") {
-            const value = setting.setting_value as { plan?: string; billing_cycle?: string };
+            const value = setting.setting_value as { plan?: string };
             setCurrentPlan(value.plan || "basic");
-            setBillingCycle((value.billing_cycle as "monthly" | "annual") || "monthly");
           }
           if (setting.setting_key === "billing_info") {
             const value = setting.setting_value as {
@@ -247,7 +245,7 @@ export default function ManageAccount() {
       .eq("setting_key", "subscription_plan")
       .maybeSingle();
 
-    const planData = { plan, billing_cycle: billingCycle };
+    const planData = { plan, billing_cycle: "monthly" };
 
     if (existing) {
       const { error } = await supabase
@@ -278,18 +276,16 @@ export default function ManageAccount() {
     const planNames: Record<string, string> = {
       basic: "Basic - The Startup Suite",
       plus: "Plus - The Scaleup Suite",
-      premium: "Premium - The Agency Suite",
     };
     return planNames[currentPlan] || "Basic";
   };
 
   const getPlanPrice = () => {
-    const prices: Record<string, { monthly: number; annual: number }> = {
-      basic: { monthly: 27, annual: 22 },
-      plus: { monthly: 38, annual: 31 },
-      premium: { monthly: 59, annual: 48 },
+    const prices: Record<string, number> = {
+      basic: 12,
+      plus: 18,
     };
-    return prices[currentPlan]?.[billingCycle] || 27;
+    return prices[currentPlan] || 12;
   };
 
   const parseVatAddress = (address: string) => {
@@ -536,11 +532,11 @@ export default function ManageAccount() {
       <div className="space-y-2 text-sm">
         <div className="grid grid-cols-[180px_1fr] gap-2">
           <span className="font-bold text-right">Your current plan:</span>
-          <span>{getPlanDisplayName()} - €{getPlanPrice()} {billingCycle === "annual" ? "per user/month (billed annually)" : "per user/month"}</span>
+          <span>{getPlanDisplayName()} - €{getPlanPrice()} per user/month</span>
         </div>
         <div className="grid grid-cols-[180px_1fr] gap-2">
           <span className="font-bold text-right">Billing cycle:</span>
-          <span className="capitalize">{billingCycle}</span>
+          <span>Monthly</span>
         </div>
         <div className="grid grid-cols-[180px_1fr] gap-2">
           <span className="font-bold text-right">Users:</span>
@@ -1056,27 +1052,12 @@ export default function ManageAccount() {
               <p>Your selected plan determines which features are available to your team.</p>
             </div>
 
-            {/* Billing Cycle Toggle */}
-            <div className="flex justify-center gap-4">
-              <Button
-                variant={billingCycle === "monthly" ? "default" : "outline"}
-                onClick={() => setBillingCycle("monthly")}
-              >
-                Monthly
-              </Button>
-              <Button
-                variant={billingCycle === "annual" ? "default" : "outline"}
-                onClick={() => setBillingCycle("annual")}
-              >
-                Annual (Save ~20%)
-              </Button>
-            </div>
 
             <div>
               <h2 className="text-xl font-medium text-primary mb-2">Available plans</h2>
               <div className="w-16 h-0.5 bg-primary mb-6" />
 
-              <div className="grid grid-cols-3 gap-6">
+              <div className="grid grid-cols-2 gap-6 max-w-2xl mx-auto">
                 {/* Basic Plan */}
                 <div className={`border rounded overflow-hidden ${currentPlan === "basic" ? "border-2 border-green-500 ring-2 ring-green-200" : "border-border"}`}>
                   <div className="bg-slate-600 text-white text-center py-4">
@@ -1085,10 +1066,9 @@ export default function ManageAccount() {
                   </div>
                   <div className="p-6 text-center">
                     <div className="mb-4">
-                      <span className="text-3xl font-bold text-green-600">€{billingCycle === "annual" ? "22" : "27"}</span>
+                      <span className="text-3xl font-bold text-green-600">€12</span>
                       <span className="text-sm text-muted-foreground"> per user/month</span>
                     </div>
-                    {billingCycle === "annual" && <p className="text-sm text-green-600 mb-4">Billed annually</p>}
                     <ul className="text-sm space-y-3 text-left">
                       <li className="border-t pt-3">Premium support</li>
                       <li className="border-t pt-3">Duplicate detection</li>
@@ -1117,10 +1097,9 @@ export default function ManageAccount() {
                   </div>
                   <div className="p-6 text-center">
                     <div className="mb-4">
-                      <span className="text-3xl font-bold text-green-600">€{billingCycle === "annual" ? "31" : "38"}</span>
+                      <span className="text-3xl font-bold text-green-600">€18</span>
                       <span className="text-sm text-muted-foreground"> per user/month</span>
                     </div>
-                    {billingCycle === "annual" && <p className="text-sm text-green-600 mb-4">Billed annually</p>}
                     <p className="text-sm mb-4">Everything from Basic</p>
                     <ul className="text-sm space-y-3 text-left">
                       <li className="border-t pt-3">Bulk deduplication</li>
@@ -1136,38 +1115,6 @@ export default function ManageAccount() {
                       </div>
                     ) : (
                       <Button onClick={() => handleSelectPlan("plus")} className="mt-6 bg-primary hover:bg-primary/90 w-full">
-                        Select Plan
-                      </Button>
-                    )}
-                  </div>
-                </div>
-
-                {/* Premium Plan */}
-                <div className={`border rounded overflow-hidden ${currentPlan === "premium" ? "border-2 border-green-500 ring-2 ring-green-200" : "border-border"}`}>
-                  <div className="bg-white text-slate-600 text-center py-4 border-b">
-                    <h3 className="font-bold text-lg">PREMIUM</h3>
-                    <p className="text-sm text-green-600">The Agency Suite</p>
-                  </div>
-                  <div className="p-6 text-center">
-                    <div className="mb-4">
-                      <span className="text-3xl font-bold text-green-600">€{billingCycle === "annual" ? "48" : "59"}</span>
-                      <span className="text-sm text-muted-foreground"> per user/month</span>
-                    </div>
-                    {billingCycle === "annual" && <p className="text-sm text-green-600 mb-4">Billed annually</p>}
-                    <p className="text-sm mb-4">Everything from Plus</p>
-                    <ul className="text-sm space-y-3 text-left">
-                      <li className="border-t pt-3">Callcenter tools</li>
-                      <li className="border-t pt-3">Client silos/subaccounts</li>
-                      <li className="border-t pt-3">Custom branding</li>
-                      <li className="border-t pt-3">Live monitoring and training</li>
-                      <li className="border-t pt-3">White-label add-on</li>
-                    </ul>
-                    {currentPlan === "premium" ? (
-                      <div className="mt-6 py-2 bg-green-100 text-green-700 rounded font-medium flex items-center justify-center gap-2">
-                        <Check className="h-4 w-4" /> Current Plan
-                      </div>
-                    ) : (
-                      <Button onClick={() => handleSelectPlan("premium")} className="mt-6 bg-primary hover:bg-primary/90 w-full">
                         Select Plan
                       </Button>
                     )}
