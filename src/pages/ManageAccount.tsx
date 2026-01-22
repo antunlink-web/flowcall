@@ -1123,33 +1123,6 @@ export default function ManageAccount() {
               </div>
             </div>
 
-            {/* Add-ons */}
-            <div>
-              <h2 className="text-xl font-medium text-primary mb-2">Add-ons</h2>
-              <div className="w-16 h-0.5 bg-primary mb-6" />
-
-              <div className="max-w-md mx-auto">
-                <div className="border border-border rounded overflow-hidden">
-                  <div className="bg-slate-600 text-white text-center py-4">
-                    <h3 className="font-bold text-lg">PRIORITY SUPPORT</h3>
-                  </div>
-                  <div className="p-6 text-center">
-                    <div className="mb-4">
-                      <span className="text-3xl font-bold text-green-600">€59</span>
-                      <span className="text-sm text-muted-foreground"> per month</span>
-                    </div>
-                    <p className="text-sm mb-4">With Priority Support, you're our top priority</p>
-                    <ul className="text-sm space-y-3 text-left">
-                      <li className="border-t pt-3">Quick Resolutions: Speed up problem-solving</li>
-                      <li className="border-t pt-3">Peace of Mind: Help is always a moment away</li>
-                      <li className="border-t pt-3">Convenience at Your Fingertips: Enjoy hassle-free support</li>
-                    </ul>
-                    <Button className="mt-6 bg-green-600 hover:bg-green-700 w-full">Enable</Button>
-                  </div>
-                </div>
-              </div>
-            </div>
-
             {/* Cancel Subscription */}
             <div>
               <h2 className="text-xl font-medium text-primary italic mb-2">Cancel subscription</h2>
