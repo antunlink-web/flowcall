@@ -24,6 +24,7 @@ export default function Auth() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [redirecting, setRedirecting] = useState(false);
   const [showForgotPassword, setShowForgotPassword] = useState(false);
   const [errors, setErrors] = useState<{ email?: string; password?: string }>({});
   
@@ -37,20 +38,43 @@ export default function Auth() {
       
       // If on root domain, redirect to tenant subdomain
       if (isRootDomain()) {
+        setRedirecting(true);
         try {
           // Get user's tenant subdomain
-          const { data: profile } = await supabase
+          const { data: profile, error: profileError } = await supabase
             .from("profiles")
             .select("tenant_id")
             .eq("id", user.id)
             .single();
           
+          if (profileError) {
+            console.error("Error getting profile:", profileError);
+            toast({
+              title: "Error",
+              description: "Could not find your workspace. Please contact support.",
+              variant: "destructive",
+            });
+            setRedirecting(false);
+            return;
+          }
+          
           if (profile?.tenant_id) {
-            const { data: tenant } = await supabase
+            const { data: tenant, error: tenantError } = await supabase
               .from("tenants")
               .select("subdomain")
               .eq("id", profile.tenant_id)
               .single();
+            
+            if (tenantError) {
+              console.error("Error getting tenant:", tenantError);
+              toast({
+                title: "Error",
+                description: "Could not find your workspace. Please contact support.",
+                variant: "destructive",
+              });
+              setRedirecting(false);
+              return;
+            }
             
             if (tenant?.subdomain) {
               // Redirect to tenant subdomain
@@ -58,17 +82,33 @@ export default function Auth() {
               return;
             }
           }
+          
+          // No tenant found
+          toast({
+            title: "No workspace found",
+            description: "Your account is not associated with a workspace. Please register or contact support.",
+            variant: "destructive",
+          });
+          setRedirecting(false);
+          return;
         } catch (error) {
-          console.error("Error getting tenant:", error);
+          console.error("Error during redirect:", error);
+          toast({
+            title: "Error",
+            description: "Something went wrong. Please try again.",
+            variant: "destructive",
+          });
+          setRedirecting(false);
+          return;
         }
       }
       
-      // Default: navigate within current domain
+      // Not on root domain: navigate within current domain
       navigate("/");
     };
     
     redirectAfterLogin();
-  }, [user, navigate]);
+  }, [user, navigate, toast]);
 
   const validateForm = (emailOnly: boolean = false) => {
     const newErrors: typeof errors = {};
@@ -130,6 +170,18 @@ export default function Auth() {
       setShowForgotPassword(false);
     }
   };
+
+  // Show loading state while redirecting to tenant subdomain
+  if (redirecting) {
+    return (
+      <div className="min-h-screen bg-background flex flex-col items-center justify-center p-4">
+        <div className="text-center space-y-4">
+          <img src={flowcallLogo} alt="FlowCall" className="h-14 w-auto mx-auto animate-pulse" />
+          <p className="text-muted-foreground">Redirecting to your workspace...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background flex flex-col items-center justify-center p-4">
