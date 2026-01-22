@@ -9,9 +9,16 @@ import { useToast } from "@/hooks/use-toast";
 import { Mail, Users, ArrowLeft } from "lucide-react";
 import flowcallLogo from "@/assets/flowcall-logo.png";
 import { z } from "zod";
+import { supabase } from "@/integrations/supabase/client";
 
 const emailSchema = z.string().email("Please enter a valid email address");
 const passwordSchema = z.string().min(6, "Password must be at least 6 characters");
+
+// Check if we're on the root domain (marketing site)
+const isRootDomain = () => {
+  const hostname = window.location.hostname;
+  return hostname === "flowcall.eu" || hostname === "www.flowcall.eu";
+};
 
 export default function Auth() {
   const [email, setEmail] = useState("");
@@ -25,9 +32,42 @@ export default function Auth() {
   const { toast } = useToast();
 
   useEffect(() => {
-    if (user) {
+    const redirectAfterLogin = async () => {
+      if (!user) return;
+      
+      // If on root domain, redirect to tenant subdomain
+      if (isRootDomain()) {
+        try {
+          // Get user's tenant subdomain
+          const { data: profile } = await supabase
+            .from("profiles")
+            .select("tenant_id")
+            .eq("id", user.id)
+            .single();
+          
+          if (profile?.tenant_id) {
+            const { data: tenant } = await supabase
+              .from("tenants")
+              .select("subdomain")
+              .eq("id", profile.tenant_id)
+              .single();
+            
+            if (tenant?.subdomain) {
+              // Redirect to tenant subdomain
+              window.location.href = `https://${tenant.subdomain}.flowcall.eu`;
+              return;
+            }
+          }
+        } catch (error) {
+          console.error("Error getting tenant:", error);
+        }
+      }
+      
+      // Default: navigate within current domain
       navigate("/");
-    }
+    };
+    
+    redirectAfterLogin();
   }, [user, navigate]);
 
   const validateForm = (emailOnly: boolean = false) => {

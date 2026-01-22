@@ -145,11 +145,20 @@ export default function Register() {
 
       toast({
         title: "Registration successful!",
-        description: `Your organization "${companyName}" has been created. You can now sign in.`,
+        description: `Your organization "${companyName}" has been created. Redirecting to your workspace...`,
       });
 
-      // Redirect to auth page
-      navigate("/auth");
+      // Redirect to tenant subdomain
+      const hostname = window.location.hostname;
+      const isRootDomain = hostname === "flowcall.eu" || hostname === "www.flowcall.eu";
+      
+      if (isRootDomain) {
+        // Redirect to the new tenant's subdomain auth page
+        window.location.href = `https://${subdomain}.flowcall.eu/auth`;
+      } else {
+        // In dev/preview, just go to auth
+        navigate("/auth");
+      }
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : "Registration failed. Please try again.";
       toast({
