@@ -49,7 +49,7 @@ const features = [
 const plans = [
   {
     name: "Basic",
-    price: "€29",
+    price: "€12",
     period: "/user/month",
     features: [
       "1 calling list",
@@ -62,7 +62,7 @@ const plans = [
   },
   {
     name: "Plus",
-    price: "€49",
+    price: "€18",
     period: "/user/month",
     popular: true,
     features: [
