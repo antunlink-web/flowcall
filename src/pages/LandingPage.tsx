@@ -20,11 +20,6 @@ const features = [
     description: "Maximize call efficiency with automated dialing and seamless lead progression."
   },
   {
-    icon: Smartphone,
-    title: "Use Your Smartphone",
-    description: "Dial and send SMS directly from your phone. Work from your PC, call from your pocket."
-  },
-  {
     icon: Users,
     title: "Lead Management",
     description: "Organize, track, and nurture leads with intelligent list management."
@@ -124,6 +119,31 @@ export default function LandingPage() {
           <p className="text-sm text-muted-foreground mt-4">
             Get your own workspace at <strong>yourcompany.flowcall.eu</strong>
           </p>
+        </div>
+      </section>
+
+      {/* Unique Feature Highlight - Smartphone Integration */}
+      <section className="py-16 bg-gradient-to-r from-primary/10 via-primary/5 to-primary/10 border-y">
+        <div className="container mx-auto px-4">
+          <div className="flex flex-col md:flex-row items-center gap-8 md:gap-12">
+            <div className="flex-shrink-0">
+              <div className="w-24 h-24 md:w-32 md:h-32 rounded-full bg-primary/20 flex items-center justify-center">
+                <Smartphone className="w-12 h-12 md:w-16 md:h-16 text-primary" />
+              </div>
+            </div>
+            <div className="text-center md:text-left">
+              <div className="inline-block bg-primary/20 text-primary text-xs font-semibold px-3 py-1 rounded-full mb-3">
+                UNIQUE FEATURE
+              </div>
+              <h2 className="text-2xl md:text-3xl font-bold mb-3">
+                Your Smartphone, Your Dialer
+              </h2>
+              <p className="text-lg text-muted-foreground max-w-2xl">
+                Work from your computer, call and text from your phone. FlowCall Smart connects your PC to your smartphone — 
+                click to dial, send SMS, all through your existing mobile number. No VoIP, no extra hardware, no hassle.
+              </p>
+            </div>
+          </div>
         </div>
       </section>
 
