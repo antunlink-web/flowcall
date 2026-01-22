@@ -113,7 +113,7 @@ export default function LandingPage() {
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Link to="/register">
               <Button size="lg" className="gap-2">
-                Start Free Trial <ArrowRight className="h-4 w-4" />
+                Start 14-Day Free Trial <ArrowRight className="h-4 w-4" />
               </Button>
             </Link>
             <Link to="/auth">
@@ -123,23 +123,26 @@ export default function LandingPage() {
             </Link>
           </div>
           <p className="text-sm text-muted-foreground mt-4">
-            Get your own workspace at <strong>yourcompany.flowcall.eu</strong>
+            No credit card required • Get your workspace at <strong>yourcompany.flowcall.eu</strong>
           </p>
         </div>
       </section>
 
       {/* Unique Feature Highlight - Smartphone Integration */}
-      <section className="py-16 bg-gradient-to-r from-primary/10 via-primary/5 to-primary/10 border-y">
+      <section className="py-16 bg-gradient-to-r from-primary/10 via-primary/5 to-primary/10 border-y overflow-hidden">
         <div className="container mx-auto px-4">
           <div className="flex flex-col md:flex-row items-center gap-8 md:gap-12">
-            <div className="flex-shrink-0">
-              <div className="w-24 h-24 md:w-32 md:h-32 rounded-full bg-primary/20 flex items-center justify-center">
+            <div className="flex-shrink-0 relative">
+              {/* Animated rings */}
+              <div className="absolute inset-0 w-24 h-24 md:w-32 md:h-32 rounded-full bg-primary/10 animate-ping" style={{ animationDuration: '2s' }} />
+              <div className="absolute inset-0 w-24 h-24 md:w-32 md:h-32 rounded-full bg-primary/5 animate-ping" style={{ animationDuration: '2s', animationDelay: '0.5s' }} />
+              <div className="relative w-24 h-24 md:w-32 md:h-32 rounded-full bg-primary/20 flex items-center justify-center animate-pulse" style={{ animationDuration: '3s' }}>
                 <Smartphone className="w-12 h-12 md:w-16 md:h-16 text-primary" />
               </div>
             </div>
-            <div className="text-center md:text-left">
-              <div className="inline-block bg-primary/20 text-primary text-xs font-semibold px-3 py-1 rounded-full mb-3">
-                UNIQUE FEATURE
+            <div className="text-center md:text-left animate-fade-in">
+              <div className="inline-block bg-primary text-primary-foreground text-xs font-semibold px-3 py-1 rounded-full mb-3 animate-pulse">
+                ✨ UNIQUE FEATURE
               </div>
               <h2 className="text-2xl md:text-3xl font-bold mb-3">
                 Your Smartphone, Your Dialer
@@ -231,11 +234,11 @@ export default function LandingPage() {
             Ready to Transform Your Sales?
           </h2>
           <p className="text-primary-foreground/80 max-w-xl mx-auto mb-8">
-            Join hundreds of teams using FlowCall to close more deals every day.
+            Join hundreds of teams using FlowCall to close more deals every day. Start your 14-day free trial — no credit card required.
           </p>
           <Link to="/register">
             <Button size="lg" variant="secondary" className="gap-2">
-              Start Your Free Trial <ArrowRight className="h-4 w-4" />
+              Start 14-Day Free Trial <ArrowRight className="h-4 w-4" />
             </Button>
           </Link>
         </div>
