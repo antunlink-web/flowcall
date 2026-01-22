@@ -6,7 +6,7 @@ import { Link, useLocation } from "react-router-dom";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { Progress } from "@/components/ui/progress";
+
 import {
   Select,
   SelectContent,
@@ -48,20 +48,6 @@ const sidebarItems = [
   { icon: Receipt, label: "Invoices", id: "invoices" },
 ];
 
-const mockInvoices = [
-  { date: "5 January 2026", amount: "€105.74", transactionId: "6p5ayg0b" },
-  { date: "8 December 2025", amount: "€24.23", transactionId: "rr8nsvgh" },
-  { date: "5 December 2025", amount: "€150.00", transactionId: "0rfksbjk" },
-  { date: "18 November 2025", amount: "€15.87", transactionId: "cbkann6z" },
-  { date: "11 November 2025", amount: "€21.70", transactionId: "g6z5hwwz" },
-  { date: "5 November 2025", amount: "€80.61", transactionId: "5dqkb6j5" },
-  { date: "13 October 2025", amount: "€20.19", transactionId: "ea2h9f78" },
-  { date: "13 October 2025", amount: "€20.19", transactionId: "3a81b297" },
-];
-
-const mockBalanceHistory = [
-  { timestamp: "07-01-2026 15:45", description: "Credited: Removed seat from Basic (Legacy 2025-12) Plan subscription", amount: "€24.2300", balance: "€24.2300" },
-];
 
 export default function ManageAccount() {
   const location = useLocation();
@@ -1210,30 +1196,11 @@ export default function ManageAccount() {
             </div>
 
             <div>
-              <h2 className="text-xl font-medium text-primary mb-2">How we calculated your balance</h2>
+              <h2 className="text-xl font-medium text-primary mb-2">Balance history</h2>
               <div className="w-16 h-0.5 bg-primary mb-6" />
 
-              <div className="border border-border rounded overflow-hidden">
-                <table className="w-full">
-                  <thead className="bg-muted">
-                    <tr>
-                      <th className="text-left p-3 font-medium">Timestamp</th>
-                      <th className="text-left p-3 font-medium">Description</th>
-                      <th className="text-right p-3 font-medium">Amount</th>
-                      <th className="text-right p-3 font-medium">Balance</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {mockBalanceHistory.map((item, idx) => (
-                      <tr key={idx} className="border-t border-border">
-                        <td className="p-3 text-sm">{item.timestamp}</td>
-                        <td className="p-3 text-sm text-primary">{item.description}</td>
-                        <td className="p-3 text-sm text-right">{item.amount}</td>
-                        <td className="p-3 text-sm text-right">{item.balance}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+              <div className="border border-border rounded p-8 text-center text-muted-foreground">
+                <p>No balance transactions yet.</p>
               </div>
             </div>
           </div>
@@ -1276,38 +1243,8 @@ export default function ManageAccount() {
               </div>
             </div>
 
-            <div className="border border-border rounded overflow-hidden">
-              <table className="w-full">
-                <thead className="bg-muted">
-                  <tr>
-                    <th className="text-left p-3 font-medium">Date</th>
-                    <th className="text-left p-3 font-medium">Amount</th>
-                    <th className="text-left p-3 font-medium">Transaction ID</th>
-                    <th className="text-right p-3 font-medium"></th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {mockInvoices.map((invoice, idx) => (
-                    <tr key={idx} className="border-t border-border">
-                      <td className="p-3 text-sm text-primary">{invoice.date}</td>
-                      <td className="p-3 text-sm">{invoice.amount}</td>
-                      <td className="p-3 text-sm text-primary">{invoice.transactionId}</td>
-                      <td className="p-3 text-sm text-right">
-                        <span className="text-primary cursor-pointer hover:underline">View/print invoice</span>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-
-            <div className="flex items-center justify-between">
-              <p className="text-sm text-muted-foreground">Showing 1 to {mockInvoices.length} of {mockInvoices.length} entries</p>
-              <div className="flex items-center gap-2">
-                <Button variant="outline" size="sm">Previous</Button>
-                <Button variant="default" size="sm" className="bg-destructive hover:bg-destructive/90">1</Button>
-                <Button variant="outline" size="sm">Next</Button>
-              </div>
+            <div className="border border-border rounded p-8 text-center text-muted-foreground">
+              <p>No invoices yet.</p>
             </div>
           </div>
         );
