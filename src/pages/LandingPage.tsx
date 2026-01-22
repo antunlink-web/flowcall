@@ -9,7 +9,8 @@ import {
   Shield, 
   Clock,
   ArrowRight,
-  CheckCircle2
+  CheckCircle2,
+  BadgeEuro
 } from "lucide-react";
 import flowcallLogo from "@/assets/flowcall-logo.png";
 
@@ -38,6 +39,11 @@ const features = [
     icon: Clock,
     title: "Callback Scheduling",
     description: "Never miss a follow-up with smart callback scheduling and reminders."
+  },
+  {
+    icon: BadgeEuro,
+    title: "Unbeatable Value",
+    description: "One of the most affordable cold calling CRMs on the market. Enterprise features, startup pricing."
   }
 ];
 
