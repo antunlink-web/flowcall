@@ -24,6 +24,7 @@ export function SubdomainRouter({ children }: SubdomainRouterProps) {
   const isDevOrPreview = 
     hostname === "localhost" || 
     hostname.includes("lovable.app") ||
+    hostname.includes("lovableproject.com") ||
     hostname.includes("127.0.0.1");
   
   // If on root domain (not subdomain), show landing page
