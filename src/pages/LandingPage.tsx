@@ -5,7 +5,7 @@ import {
   Phone, 
   Users, 
   BarChart3, 
-  Zap, 
+  Smartphone, 
   Shield, 
   Clock,
   ArrowRight,
@@ -20,6 +20,11 @@ const features = [
     description: "Maximize call efficiency with automated dialing and seamless lead progression."
   },
   {
+    icon: Smartphone,
+    title: "Use Your Smartphone",
+    description: "Dial and send SMS directly from your phone. Work from your PC, call from your pocket."
+  },
+  {
     icon: Users,
     title: "Lead Management",
     description: "Organize, track, and nurture leads with intelligent list management."
@@ -28,11 +33,6 @@ const features = [
     icon: BarChart3,
     title: "Analytics & Reports",
     description: "Gain insights with comprehensive reporting and performance metrics."
-  },
-  {
-    icon: Zap,
-    title: "Automation",
-    description: "Automate repetitive tasks and focus on what matters - closing deals."
   },
   {
     icon: Shield,
