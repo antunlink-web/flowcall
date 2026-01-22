@@ -1070,6 +1070,7 @@ export default function ManageAccount() {
                       <span className="text-sm text-muted-foreground"> per user/month</span>
                     </div>
                     <ul className="text-sm space-y-3 text-left">
+                      <li className="border-t pt-3">1 calling list</li>
                       <li className="border-t pt-3">Premium support</li>
                       <li className="border-t pt-3">Duplicate detection</li>
                       <li className="border-t pt-3">Email integration</li>
@@ -1102,6 +1103,7 @@ export default function ManageAccount() {
                     </div>
                     <p className="text-sm mb-4">Everything from Basic</p>
                     <ul className="text-sm space-y-3 text-left">
+                      <li className="border-t pt-3">5 calling lists</li>
                       <li className="border-t pt-3">Bulk deduplication</li>
                       <li className="border-t pt-3">Campaign-wide CIDs</li>
                       <li className="border-t pt-3">Inbound calls</li>
