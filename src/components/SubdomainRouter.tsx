@@ -22,15 +22,21 @@ export function SubdomainRouter({ children }: SubdomainRouterProps) {
   const hostname = window.location.hostname;
   const location = useLocation();
   
+  // Debug logging for mobile app
+  console.log("[SubdomainRouter] hostname:", hostname);
+  console.log("[SubdomainRouter] pathname:", location.pathname);
+  
   // Check if we're on the root domain (flowcall.eu without subdomain)
   const isRootDomain = hostname === "flowcall.eu" || hostname === "www.flowcall.eu";
   
-  // For local development or Lovable preview URLs, show CRM
+  // For local development, Lovable preview URLs, or Capacitor (localhost), show CRM
   const isDevOrPreview = 
     hostname === "localhost" || 
     hostname.includes("lovable.app") ||
     hostname.includes("lovableproject.com") ||
     hostname.includes("127.0.0.1");
+  
+  console.log("[SubdomainRouter] isRootDomain:", isRootDomain, "isDevOrPreview:", isDevOrPreview);
   
   // Check if current path is an auth-related path
   const isAuthPath = AUTH_PATHS.some(path => location.pathname.startsWith(path));
