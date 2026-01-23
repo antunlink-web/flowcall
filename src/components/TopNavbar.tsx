@@ -291,28 +291,28 @@ export function TopNavbar() {
                 <ChevronDown className="w-4 h-4" />
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-48 bg-background">
+            <DropdownMenuContent align="end" className="w-48 bg-popover text-popover-foreground">
               <DropdownMenuItem asChild>
-                <NavLink to="/preferences">
+                <Link to="/preferences" className="w-full cursor-pointer">
                   Preferences
-                </NavLink>
+                </Link>
               </DropdownMenuItem>
               {isOwnerOrManager && (
                 <>
                   <DropdownMenuItem asChild>
-                    <NavLink to="/manage/account">
+                    <Link to="/manage/account" className="w-full cursor-pointer">
                       Account Settings
-                    </NavLink>
+                    </Link>
                   </DropdownMenuItem>
                   <DropdownMenuItem asChild>
-                    <NavLink to="/">
+                    <Link to="/" className="w-full cursor-pointer">
                       Getting Started
-                    </NavLink>
+                    </Link>
                   </DropdownMenuItem>
                 </>
               )}
               <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={signOut} className="text-destructive">
+              <DropdownMenuItem onClick={signOut} className="text-destructive cursor-pointer">
                 Sign out
               </DropdownMenuItem>
             </DropdownMenuContent>
