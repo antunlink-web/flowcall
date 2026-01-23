@@ -238,7 +238,7 @@ export function TopNavbar() {
             onClick={() => navigate("/dashboard")}
             className={`h-9 w-9 relative ${
               isOnDashboard 
-                ? "bg-sidebar-accent text-sidebar-foreground" 
+                ? "bg-sidebar-accent text-sidebar-foreground ring-2 ring-sidebar-primary/50" 
                 : "text-sidebar-foreground/90 hover:text-sidebar-foreground hover:bg-sidebar-accent"
             }`}
             title="Dashboard"
@@ -258,7 +258,7 @@ export function TopNavbar() {
             onClick={() => navigate("/?reset=true")}
             className={`h-9 w-9 ${
               isOnControlPanel 
-                ? "bg-sidebar-accent text-sidebar-foreground" 
+                ? "bg-sidebar-accent text-sidebar-foreground ring-2 ring-sidebar-primary/50" 
                 : "text-sidebar-foreground/90 hover:text-sidebar-foreground hover:bg-sidebar-accent"
             }`}
             title="Control Panel"
