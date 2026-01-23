@@ -293,11 +293,6 @@ export function TopNavbar() {
                     </NavLink>
                   </DropdownMenuItem>
                   <DropdownMenuItem asChild>
-                    <NavLink to="/manage/account?section=billing">
-                      Billing
-                    </NavLink>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem asChild>
                     <NavLink to="/">
                       Getting Started
                     </NavLink>
