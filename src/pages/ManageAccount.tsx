@@ -2,7 +2,8 @@ import { useState, useEffect, useRef } from "react";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Link, useLocation } from "react-router-dom";
+import { Link } from "react-router-dom";
+
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -33,13 +34,6 @@ import { Separator } from "@/components/ui/separator";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useBranding } from "@/hooks/useBranding";
 
-const subNavItems = [
-  { label: "Lists", href: "/manage/lists" },
-  { label: "Users", href: "/manage/users" },
-  { label: "Duplicates", href: "/manage/duplicates" },
-  { label: "Claims", href: "/manage/claims" },
-  { label: "Account", href: "/manage/account" },
-];
 
 const sidebarItems = [
   { icon: CreditCard, label: "Billing", id: "billing", plusOnly: false, description: "Company & tax info" },
@@ -53,7 +47,6 @@ const sidebarItems = [
 
 
 export default function ManageAccount() {
-  const location = useLocation();
   const { isOwner } = useUserRole();
   const { branding, refetch: refetchBranding } = useBranding();
   const [activeSection, setActiveSection] = useState<string | null>(null);
@@ -1285,24 +1278,6 @@ export default function ManageAccount() {
 
   return (
     <DashboardLayout>
-      {/* Sub Navigation */}
-      <div className="border-b border-border bg-background">
-        <div className="flex gap-6 px-6">
-          {subNavItems.map((item) => (
-            <Link
-              key={item.label}
-              to={item.href}
-              className={`py-3 text-sm font-medium border-b-2 transition-colors ${
-                location.pathname === item.href
-                  ? "border-primary text-foreground"
-                  : "border-transparent text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              {item.label}
-            </Link>
-          ))}
-        </div>
-      </div>
 
       {/* Section Header - shows when in a sub-section */}
       {activeSection && currentSection && (
