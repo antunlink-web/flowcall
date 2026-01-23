@@ -1310,21 +1310,31 @@ export default function ManageAccount() {
               return (
                 <button
                   key={item.id}
-                  onClick={() => setActiveSection(item.id)}
+                  onClick={() => !isLocked && setActiveSection(item.id)}
+                  disabled={isLocked}
                   className={`w-full flex items-center justify-between px-4 py-3 rounded text-sm transition-colors ${
-                    activeSection === item.id
-                      ? "text-primary font-medium"
-                      : "text-foreground hover:bg-accent"
+                    isLocked
+                      ? "text-muted-foreground cursor-not-allowed opacity-60"
+                      : activeSection === item.id
+                        ? "text-primary font-medium"
+                        : "text-foreground hover:bg-accent"
                   }`}
+                  title={isLocked ? "Available in Plus plan only" : undefined}
                 >
                   <div className="flex items-center gap-3">
-                    <item.icon className={`w-5 h-5 ${activeSection === item.id ? "text-primary" : ""}`} />
-                    <span>{item.label}</span>
-                    {isLocked && (
-                      <Lock className="w-3.5 h-3.5 text-muted-foreground" />
-                    )}
+                    <item.icon className={`w-5 h-5 ${isLocked ? "text-muted-foreground" : activeSection === item.id ? "text-primary" : ""}`} />
+                    <div className="flex flex-col items-start">
+                      <span>{item.label}</span>
+                      {isLocked && (
+                        <span className="text-xs text-muted-foreground">Plus plan only</span>
+                      )}
+                    </div>
                   </div>
-                  <ChevronRight className={`w-4 h-4 ${activeSection === item.id ? "text-primary" : "text-muted-foreground"}`} />
+                  {isLocked ? (
+                    <Lock className="w-4 h-4 text-muted-foreground" />
+                  ) : (
+                    <ChevronRight className={`w-4 h-4 ${activeSection === item.id ? "text-primary" : "text-muted-foreground"}`} />
+                  )}
                 </button>
               );
             })}
