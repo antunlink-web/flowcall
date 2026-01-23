@@ -44,6 +44,7 @@ import {
   Send,
   Settings,
   Flag,
+  Lock,
 } from "lucide-react";
 import {
   Popover,
@@ -410,6 +411,57 @@ export function LeadDetailView({ leadId, onClose }: LeadDetailViewProps) {
     fetchActivity(); // Refresh activity feed
   };
 
+  // Claim lead for current user
+  const handleClaimLead = async () => {
+    if (!lead || !user) return;
+    
+    const { error } = await supabase
+      .from("leads")
+      .update({ 
+        claimed_by: user.id, 
+        claimed_at: new Date().toISOString(),
+        status: lead.status === "new" ? "in_progress" : lead.status,
+        updated_at: new Date().toISOString()
+      })
+      .eq("id", lead.id);
+
+    if (error) {
+      toast({ title: "Failed to claim lead", variant: "destructive" });
+    } else {
+      toast({ title: "Lead claimed successfully" });
+      fetchLead();
+      fetchActivity();
+    }
+  };
+
+  // Release claim on lead
+  const handleReleaseClaim = async () => {
+    if (!lead || !user) return;
+    
+    // Only allow releasing if current user is the claimer
+    if (lead.claimed_by !== user.id) {
+      toast({ title: "You can only release leads you've claimed", variant: "destructive" });
+      return;
+    }
+    
+    const { error } = await supabase
+      .from("leads")
+      .update({ 
+        claimed_by: null, 
+        claimed_at: null,
+        updated_at: new Date().toISOString()
+      })
+      .eq("id", lead.id);
+
+    if (error) {
+      toast({ title: "Failed to release lead", variant: "destructive" });
+    } else {
+      toast({ title: "Lead released" });
+      fetchLead();
+      fetchActivity();
+    }
+  };
+
   // Parse categories from list settings
   const getCategories = (type: "callback" | "winner" | "loser" | "archive"): string[] => {
     if (!list?.settings) return [];
@@ -635,10 +687,26 @@ export function LeadDetailView({ leadId, onClose }: LeadDetailViewProps) {
           <Button variant="ghost" size="icon" onClick={onClose}>
             <ArrowLeft className="w-5 h-5" />
           </Button>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 flex-1">
             {getStatusBadge(lead.status)}
             <h1 className="text-2xl font-semibold">{displayName}</h1>
+            {lead.claimed_by && (
+              <Badge variant="outline" className="gap-1 border-amber-500/50 text-amber-500">
+                <Lock className="w-3 h-3" />
+                Locked
+              </Badge>
+            )}
           </div>
+          {/* Claim button in header for unclaimed leads */}
+          {!lead.claimed_by && (
+            <Button 
+              onClick={handleClaimLead}
+              className="gap-2 bg-primary hover:bg-primary/90"
+            >
+              <Lock className="w-4 h-4" />
+              Claim Lead
+            </Button>
+          )}
         </div>
         {/* Phone numbers */}
         <div className="ml-14 mt-2 space-y-1">
@@ -719,16 +787,38 @@ export function LeadDetailView({ leadId, onClose }: LeadDetailViewProps) {
                 {list?.name || "No list"} <span className="text-muted-foreground">→</span>
               </span>
             </div>
-            <div className="flex text-sm">
+            <div className="flex text-sm items-center">
               <span className="w-40 text-right pr-4 text-muted-foreground font-medium flex-shrink-0">
                 Claimed by
               </span>
-              <span>
+              <span className="flex items-center gap-2">
                 {lead.claimed_by ? (
-                  "Claimed"
+                  <>
+                    <Lock className="w-4 h-4 text-amber-500" />
+                    <span className="text-foreground">{claimedByName || "You"}</span>
+                    {lead.claimed_by === user?.id && (
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        className="h-6 px-2 text-xs text-muted-foreground hover:text-destructive"
+                        onClick={handleReleaseClaim}
+                      >
+                        Release
+                      </Button>
+                    )}
+                  </>
                 ) : (
                   <>
-                    Not claimed - <span className="text-primary cursor-pointer hover:underline">Claim now</span>
+                    <span className="text-muted-foreground">Not claimed</span>
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      className="h-6 px-2 text-xs gap-1 border-primary/50 text-primary hover:bg-primary hover:text-primary-foreground"
+                      onClick={handleClaimLead}
+                    >
+                      <Lock className="w-3 h-3" />
+                      Claim now
+                    </Button>
                   </>
                 )}
               </span>
