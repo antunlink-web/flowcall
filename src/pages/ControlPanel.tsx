@@ -274,17 +274,22 @@ export default function ControlPanel() {
         {/* Main Panel - Category Selection */}
         {activeTab === "main" && (
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-            {filteredCategories.map((item) => (
+            {filteredCategories.map((item, index) => (
               <button
                 key={item.id}
                 onClick={() => setActiveTab(item.id)}
-                className="flex flex-col items-center p-8 rounded-xl bg-card border shadow-sm hover:shadow-lg hover:border-primary/30 transition-all group"
+                className="flex flex-col items-center p-8 rounded-xl bg-card border border-border/50 shadow-md 
+                  hover:shadow-xl hover:shadow-primary/10 hover:-translate-y-1 hover:border-primary/40
+                  transition-all duration-300 ease-out group animate-fade-in"
+                style={{ animationDelay: `${index * 75}ms` }}
               >
-                <div className="mb-4 p-4 rounded-full bg-primary/10">
-                  <item.icon className="w-12 h-12 text-primary group-hover:scale-110 transition-transform" strokeWidth={1.5} />
+                <div className="mb-5 p-5 rounded-2xl bg-gradient-to-br from-primary/15 to-primary/5 
+                  shadow-inner ring-1 ring-primary/10 group-hover:ring-primary/30 group-hover:shadow-primary/20
+                  transition-all duration-300">
+                  <item.icon className="w-14 h-14 text-primary group-hover:scale-110 transition-transform duration-300" strokeWidth={1.5} />
                 </div>
-                <h3 className="text-xl font-semibold text-foreground text-center mb-2">{item.name}</h3>
-                <p className="text-sm text-muted-foreground text-center">{item.description}</p>
+                <h3 className="text-xl font-semibold text-foreground text-center mb-1">{item.name}</h3>
+                <p className="text-sm text-muted-foreground text-center leading-snug">{item.description}</p>
               </button>
             ))}
           </div>
@@ -293,7 +298,7 @@ export default function ControlPanel() {
         {/* Work Section */}
         {activeTab === "work" && (
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
-            {workItems.map((item) => {
+            {workItems.map((item, index) => {
               const badge = item.id === "due" ? dueCallbacks.length : undefined;
               
               if (item.isTab) {
@@ -301,18 +306,22 @@ export default function ControlPanel() {
                   <button
                     key={item.id}
                     onClick={() => setActiveTab(item.id as TabType)}
-                    className="relative flex flex-col items-center p-6 rounded-xl bg-card border shadow-sm hover:shadow-md hover:border-primary/30 transition-all group"
+                    className="relative flex flex-col items-center p-6 rounded-xl bg-card border border-border/50 shadow-md
+                      hover:shadow-lg hover:shadow-primary/10 hover:-translate-y-1 hover:border-primary/40
+                      transition-all duration-300 ease-out group animate-fade-in"
+                    style={{ animationDelay: `${index * 50}ms` }}
                   >
                     {badge !== undefined && badge > 0 && (
-                      <Badge variant="destructive" className="absolute top-2 right-2 h-5 min-w-5 px-1">
+                      <Badge variant="destructive" className="absolute top-2 right-2 h-5 min-w-5 px-1 animate-pulse">
                         {badge}
                       </Badge>
                     )}
-                    <div className="mb-4">
-                      <item.icon className="w-10 h-10 text-primary group-hover:scale-110 transition-transform" strokeWidth={1.5} />
+                    <div className="mb-3 p-3 rounded-xl bg-gradient-to-br from-primary/15 to-primary/5 
+                      ring-1 ring-primary/10 group-hover:ring-primary/30 transition-all duration-300">
+                      <item.icon className="w-11 h-11 text-primary group-hover:scale-110 transition-transform duration-300" strokeWidth={1.5} />
                     </div>
-                    <h3 className="font-semibold text-foreground text-center mb-1">{item.name}</h3>
-                    <p className="text-xs text-muted-foreground text-center">{item.description}</p>
+                    <h3 className="font-semibold text-foreground text-center">{item.name}</h3>
+                    <p className="text-xs text-muted-foreground text-center leading-tight mt-0.5">{item.description}</p>
                   </button>
                 );
               }
@@ -321,13 +330,17 @@ export default function ControlPanel() {
                 <Link
                   key={item.id}
                   to={item.href!}
-                  className="flex flex-col items-center p-6 rounded-xl bg-card border shadow-sm hover:shadow-md hover:border-primary/30 transition-all group"
+                  className="flex flex-col items-center p-6 rounded-xl bg-card border border-border/50 shadow-md
+                    hover:shadow-lg hover:shadow-primary/10 hover:-translate-y-1 hover:border-primary/40
+                    transition-all duration-300 ease-out group animate-fade-in"
+                  style={{ animationDelay: `${index * 50}ms` }}
                 >
-                  <div className="mb-4">
-                    <item.icon className="w-10 h-10 text-primary group-hover:scale-110 transition-transform" strokeWidth={1.5} />
+                  <div className="mb-3 p-3 rounded-xl bg-gradient-to-br from-primary/15 to-primary/5 
+                    ring-1 ring-primary/10 group-hover:ring-primary/30 transition-all duration-300">
+                    <item.icon className="w-11 h-11 text-primary group-hover:scale-110 transition-transform duration-300" strokeWidth={1.5} />
                   </div>
-                  <h3 className="font-semibold text-foreground text-center mb-1">{item.name}</h3>
-                  <p className="text-xs text-muted-foreground text-center">{item.description}</p>
+                  <h3 className="font-semibold text-foreground text-center">{item.name}</h3>
+                  <p className="text-xs text-muted-foreground text-center leading-tight mt-0.5">{item.description}</p>
                 </Link>
               );
             })}
@@ -337,17 +350,21 @@ export default function ControlPanel() {
         {/* Manage Section */}
         {activeTab === "manage" && (
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-            {manageItems.map((item) => (
+            {manageItems.map((item, index) => (
               <Link
                 key={item.name}
                 to={item.href}
-                className="flex flex-col items-center p-6 rounded-xl bg-card border shadow-sm hover:shadow-md hover:border-primary/30 transition-all group"
+                className="flex flex-col items-center p-6 rounded-xl bg-card border border-border/50 shadow-md
+                  hover:shadow-lg hover:shadow-primary/10 hover:-translate-y-1 hover:border-primary/40
+                  transition-all duration-300 ease-out group animate-fade-in"
+                style={{ animationDelay: `${index * 50}ms` }}
               >
-                <div className="mb-4">
-                  <item.icon className="w-10 h-10 text-primary group-hover:scale-110 transition-transform" strokeWidth={1.5} />
+                <div className="mb-3 p-3 rounded-xl bg-gradient-to-br from-primary/15 to-primary/5 
+                  ring-1 ring-primary/10 group-hover:ring-primary/30 transition-all duration-300">
+                  <item.icon className="w-11 h-11 text-primary group-hover:scale-110 transition-transform duration-300" strokeWidth={1.5} />
                 </div>
-                <h3 className="font-semibold text-foreground text-center mb-1">{item.name}</h3>
-                <p className="text-xs text-muted-foreground text-center">{item.description}</p>
+                <h3 className="font-semibold text-foreground text-center">{item.name}</h3>
+                <p className="text-xs text-muted-foreground text-center leading-tight mt-0.5">{item.description}</p>
               </Link>
             ))}
           </div>
@@ -356,17 +373,21 @@ export default function ControlPanel() {
         {/* Review Section */}
         {activeTab === "review" && (
           <div className="grid grid-cols-2 sm:grid-cols-2 gap-4">
-            {reviewItems.map((item) => (
+            {reviewItems.map((item, index) => (
               <Link
                 key={item.name}
                 to={item.href}
-                className="flex flex-col items-center p-6 rounded-xl bg-card border shadow-sm hover:shadow-md hover:border-primary/30 transition-all group"
+                className="flex flex-col items-center p-6 rounded-xl bg-card border border-border/50 shadow-md
+                  hover:shadow-lg hover:shadow-primary/10 hover:-translate-y-1 hover:border-primary/40
+                  transition-all duration-300 ease-out group animate-fade-in"
+                style={{ animationDelay: `${index * 50}ms` }}
               >
-                <div className="mb-4">
-                  <item.icon className="w-10 h-10 text-primary group-hover:scale-110 transition-transform" strokeWidth={1.5} />
+                <div className="mb-3 p-3 rounded-xl bg-gradient-to-br from-primary/15 to-primary/5 
+                  ring-1 ring-primary/10 group-hover:ring-primary/30 transition-all duration-300">
+                  <item.icon className="w-11 h-11 text-primary group-hover:scale-110 transition-transform duration-300" strokeWidth={1.5} />
                 </div>
-                <h3 className="font-semibold text-foreground text-center mb-1">{item.name}</h3>
-                <p className="text-xs text-muted-foreground text-center">{item.description}</p>
+                <h3 className="font-semibold text-foreground text-center">{item.name}</h3>
+                <p className="text-xs text-muted-foreground text-center leading-tight mt-0.5">{item.description}</p>
               </Link>
             ))}
           </div>
