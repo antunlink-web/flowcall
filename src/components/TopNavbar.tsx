@@ -227,13 +227,13 @@ export function TopNavbar() {
             )}
           </div>
 
-          {/* Control Panel Icon (Home) */}
+          {/* Dashboard Icon */}
           <Button 
             variant="ghost"
             size="icon"
-            onClick={() => navigate("/")}
+            onClick={() => navigate("/dashboard")}
             className="text-sidebar-foreground/90 hover:text-sidebar-foreground hover:bg-sidebar-accent h-9 w-9 relative"
-            title="Control Panel"
+            title="Dashboard"
           >
             <LayoutDashboard className="w-5 h-5" />
             {dueCount > 0 && (
