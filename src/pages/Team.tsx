@@ -63,13 +63,6 @@ interface Invitation {
   accepted_at: string | null;
 }
 
-const subNavItems = [
-  { label: "Lists", href: "/manage/lists" },
-  { label: "Users", href: "/team" },
-  { label: "Duplicates", href: "/manage/duplicates" },
-  { label: "Claims", href: "/manage/claims" },
-  { label: "Account", href: "/manage/account" },
-];
 
 export default function Team() {
   const [members, setMembers] = useState<TeamMember[]>([]);
@@ -329,24 +322,6 @@ export default function Team() {
 
   return (
     <DashboardLayout>
-      {/* Sub Navigation */}
-      <div className="border-b border-border bg-background">
-        <div className="flex gap-6 px-6">
-          {subNavItems.map((item) => (
-            <a
-              key={item.label}
-              href={item.href}
-              className={`py-3 text-sm font-medium border-b-2 transition-colors ${
-                item.label === "Users"
-                  ? "border-primary text-foreground"
-                  : "border-transparent text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              {item.label}
-            </a>
-          ))}
-        </div>
-      </div>
 
       {/* Main Content */}
       <div className="p-8 max-w-5xl">
