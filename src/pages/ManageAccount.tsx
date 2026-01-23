@@ -22,12 +22,14 @@ import {
   ShoppingCart,
   PiggyBank,
   Receipt,
-  ChevronRight,
+  ChevronLeft,
   Check,
   Upload,
   X,
   Lock,
+  Grip,
 } from "lucide-react";
+import { Separator } from "@/components/ui/separator";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useBranding } from "@/hooks/useBranding";
 
@@ -40,13 +42,13 @@ const subNavItems = [
 ];
 
 const sidebarItems = [
-  { icon: CreditCard, label: "Billing Information", id: "billing", plusOnly: false },
-  { icon: Palette, label: "Custom Branding", id: "branding", plusOnly: true },
-  { icon: Wallet, label: "Payment Method", id: "payment", plusOnly: false },
-  { icon: Users, label: "Seats", id: "seats", plusOnly: false },
-  { icon: ShoppingCart, label: "Subscription", id: "subscription", plusOnly: false },
-  { icon: PiggyBank, label: "Balance", id: "balance", plusOnly: false },
-  { icon: Receipt, label: "Invoices", id: "invoices", plusOnly: false },
+  { icon: CreditCard, label: "Billing", id: "billing", plusOnly: false, description: "Company & tax info" },
+  { icon: Palette, label: "Branding", id: "branding", plusOnly: true, description: "Logo, colors & theme" },
+  { icon: Wallet, label: "Payment", id: "payment", plusOnly: false, description: "Payment methods" },
+  { icon: Users, label: "Seats", id: "seats", plusOnly: false, description: "User seat licenses" },
+  { icon: ShoppingCart, label: "Subscription", id: "subscription", plusOnly: false, description: "Plan & billing cycle" },
+  { icon: PiggyBank, label: "Balance", id: "balance", plusOnly: false, description: "Voice credit balance" },
+  { icon: Receipt, label: "Invoices", id: "invoices", plusOnly: false, description: "Billing history" },
 ];
 
 
@@ -54,7 +56,7 @@ export default function ManageAccount() {
   const location = useLocation();
   const { isOwner } = useUserRole();
   const { branding, refetch: refetchBranding } = useBranding();
-  const [activeSection, setActiveSection] = useState("billing");
+  const [activeSection, setActiveSection] = useState<string | null>(null);
   const [seats, setSeats] = useState("4");
   const [usedSeats, setUsedSeats] = useState(0);
   const [topUpTo, setTopUpTo] = useState("0");
@@ -1279,6 +1281,8 @@ export default function ManageAccount() {
     }
   };
 
+  const currentSection = activeSection ? sidebarItems.find(item => item.id === activeSection) : null;
+
   return (
     <DashboardLayout>
       {/* Sub Navigation */}
@@ -1300,53 +1304,75 @@ export default function ManageAccount() {
         </div>
       </div>
 
-      {/* Main Content with Sidebar */}
-      <div className="flex min-h-[calc(100vh-120px)]">
-        {/* Sidebar */}
-        <div className="w-64 border-r border-border bg-background">
-          <nav className="p-2">
-            {sidebarItems.map((item) => {
-              const isLocked = item.plusOnly && currentPlan !== "plus";
-              return (
-                <button
-                  key={item.id}
-                  onClick={() => !isLocked && setActiveSection(item.id)}
-                  disabled={isLocked}
-                  className={`w-full flex items-center justify-between px-4 py-3 rounded text-sm transition-colors ${
-                    isLocked
-                      ? "text-muted-foreground cursor-not-allowed opacity-60"
-                      : activeSection === item.id
-                        ? "text-primary font-medium"
-                        : "text-foreground hover:bg-accent"
-                  }`}
-                  title={isLocked ? "Available in Plus plan only" : undefined}
-                >
-                  <div className="flex items-center gap-3">
-                    <item.icon className={`w-5 h-5 ${isLocked ? "text-muted-foreground" : activeSection === item.id ? "text-primary" : ""}`} />
-                    <div className="flex flex-col items-start">
-                      <span>{item.label}</span>
-                      {isLocked && (
-                        <span className="text-xs text-muted-foreground">Plus plan only</span>
-                      )}
-                    </div>
-                  </div>
-                  {isLocked ? (
-                    <Lock className="w-4 h-4 text-muted-foreground" />
-                  ) : (
-                    <ChevronRight className={`w-4 h-4 ${activeSection === item.id ? "text-primary" : "text-muted-foreground"}`} />
-                  )}
-                </button>
-              );
-            })}
-          </nav>
+      {/* Section Header - shows when in a sub-section */}
+      {activeSection && currentSection && (
+        <div className="bg-[hsl(215,25%,27%)] sticky top-14 z-40 shadow-md">
+          <div className="max-w-7xl mx-auto px-4 py-3">
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => setActiveSection(null)}
+                className="flex items-center gap-1 text-slate-300 hover:text-white transition-colors"
+              >
+                <ChevronLeft className="w-5 h-5" />
+                <Grip className="w-4 h-4" />
+              </button>
+              <div className="w-px h-6 bg-slate-500" />
+              <div className="flex items-center gap-2 text-white">
+                <currentSection.icon className="w-5 h-5" />
+                <span className="font-medium">{currentSection.label}</span>
+              </div>
+            </div>
+          </div>
         </div>
+      )}
 
-        {/* Content Area */}
-        <div className="flex-1 p-8 overflow-auto">
+      {/* Main Content */}
+      <div className="max-w-7xl mx-auto px-4 py-8">
+        {/* Control Panel Grid - shows when no section is selected */}
+        {!activeSection && (
+          <>
+            <h1 className="text-3xl font-light text-primary mb-2">Account</h1>
+            <Separator className="mb-8 bg-primary h-0.5 w-16" />
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+              {sidebarItems.map((item) => {
+                const isLocked = item.plusOnly && currentPlan !== "plus";
+                return (
+                  <button
+                    key={item.id}
+                    onClick={() => !isLocked && setActiveSection(item.id)}
+                    disabled={isLocked}
+                    className={`relative flex flex-col items-center p-6 rounded-xl bg-card border shadow-sm transition-all group ${
+                      isLocked
+                        ? "opacity-60 cursor-not-allowed"
+                        : "hover:shadow-md hover:border-primary/30"
+                    }`}
+                    title={isLocked ? "Available in Plus plan only" : undefined}
+                  >
+                    {isLocked && (
+                      <div className="absolute top-2 right-2">
+                        <Lock className="w-4 h-4 text-muted-foreground" />
+                      </div>
+                    )}
+                    <div className="mb-4">
+                      <item.icon className={`w-10 h-10 ${isLocked ? "text-muted-foreground" : "text-primary group-hover:scale-110"} transition-transform`} strokeWidth={1.5} />
+                    </div>
+                    <h3 className="font-semibold text-foreground text-center mb-1">{item.label}</h3>
+                    <p className="text-xs text-muted-foreground text-center">
+                      {isLocked ? "Plus plan only" : item.description}
+                    </p>
+                  </button>
+                );
+              })}
+            </div>
+          </>
+        )}
+
+        {/* Section Content - shows when a section is selected */}
+        {activeSection && (
           <div className="max-w-4xl">
             {renderContent()}
           </div>
-        </div>
+        )}
       </div>
     </DashboardLayout>
   );
