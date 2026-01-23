@@ -11,11 +11,12 @@ import {
   Settings2, 
   Filter, 
   Bell, 
-  ChevronRight,
+  ChevronLeft,
   X,
   Smartphone,
   WifiOff,
-  Circle
+  Circle,
+  Grip
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -112,17 +113,17 @@ function FlowCallSmartSection() {
 }
 
 const sidebarItems = [
-  { id: "profile", label: "Profile information", icon: User },
-  { id: "credentials", label: "Credentials", icon: Key },
-  { id: "dialling", label: "Dialling", icon: Phone },
-  { id: "working", label: "Working", icon: Settings2 },
-  { id: "queue", label: "Queue", icon: Filter },
-  { id: "notifications", label: "Notifications", icon: Bell },
+  { id: "profile", label: "Profile", icon: User, description: "Name, email & avatar" },
+  { id: "credentials", label: "Credentials", icon: Key, description: "Password & security" },
+  { id: "dialling", label: "Dialling", icon: Phone, description: "Dialer preferences" },
+  { id: "working", label: "Working", icon: Settings2, description: "Workflow settings" },
+  { id: "queue", label: "Queue", icon: Filter, description: "Lead queue filters" },
+  { id: "notifications", label: "Notifications", icon: Bell, description: "Alerts & reminders" },
 ];
 
 export default function Preferences() {
   const { user } = useAuth();
-  const [activeSection, setActiveSection] = useState("profile");
+  const [activeSection, setActiveSection] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Avatar state
@@ -689,42 +690,63 @@ export default function Preferences() {
     }
   };
 
+  const currentSection = activeSection ? sidebarItems.find(item => item.id === activeSection) : null;
+
   return (
     <DashboardLayout>
-      <div className="flex min-h-[calc(100vh-3rem)]">
-        {/* Sidebar */}
-        <div className="w-64 border-r bg-background">
-          <nav className="py-2">
-            {sidebarItems.map((item) => (
+      {/* Section Header - shows when in a sub-section */}
+      {activeSection && currentSection && (
+        <div className="bg-[hsl(215,25%,27%)] sticky top-14 z-40 shadow-md">
+          <div className="max-w-7xl mx-auto px-4 py-3">
+            <div className="flex items-center gap-3">
               <button
-                key={item.id}
-                onClick={() => setActiveSection(item.id)}
-                className={cn(
-                  "w-full flex items-center justify-between px-4 py-3 text-sm transition-colors",
-                  activeSection === item.id
-                    ? "text-[hsl(200,50%,45%)] bg-muted/50"
-                    : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
-                )}
+                onClick={() => setActiveSection(null)}
+                className="flex items-center gap-1 text-slate-300 hover:text-white transition-colors"
               >
-                <div className="flex items-center gap-3">
-                  <item.icon className="w-4 h-4" />
-                  <span>{item.label}</span>
-                </div>
-                <ChevronRight className={cn(
-                  "w-4 h-4",
-                  activeSection === item.id ? "text-[hsl(200,50%,45%)]" : ""
-                )} />
+                <ChevronLeft className="w-5 h-5" />
+                <Grip className="w-4 h-4" />
               </button>
-            ))}
-          </nav>
+              <div className="w-px h-6 bg-slate-500" />
+              <div className="flex items-center gap-2 text-white">
+                <currentSection.icon className="w-5 h-5" />
+                <span className="font-medium">{currentSection.label}</span>
+              </div>
+            </div>
+          </div>
         </div>
+      )}
 
-        {/* Content */}
-        <div className="flex-1 p-8">
-          <h1 className="text-3xl font-light text-[hsl(200,50%,45%)] mb-2">Preferences</h1>
-          <Separator className="mb-8 bg-[hsl(200,50%,45%)] h-0.5 w-16" />
-          {renderContent()}
-        </div>
+      {/* Main Content */}
+      <div className="max-w-7xl mx-auto px-4 py-8">
+        {/* Control Panel Grid - shows when no section is selected */}
+        {!activeSection && (
+          <>
+            <h1 className="text-3xl font-light text-primary mb-2">Preferences</h1>
+            <Separator className="mb-8 bg-primary h-0.5 w-16" />
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+              {sidebarItems.map((item) => (
+                <button
+                  key={item.id}
+                  onClick={() => setActiveSection(item.id)}
+                  className="flex flex-col items-center p-6 rounded-xl bg-card border shadow-sm hover:shadow-md hover:border-primary/30 transition-all group"
+                >
+                  <div className="mb-4">
+                    <item.icon className="w-10 h-10 text-primary group-hover:scale-110 transition-transform" strokeWidth={1.5} />
+                  </div>
+                  <h3 className="font-semibold text-foreground text-center mb-1">{item.label}</h3>
+                  <p className="text-xs text-muted-foreground text-center">{item.description}</p>
+                </button>
+              ))}
+            </div>
+          </>
+        )}
+
+        {/* Section Content - shows when a section is selected */}
+        {activeSection && (
+          <div className="max-w-4xl">
+            {renderContent()}
+          </div>
+        )}
       </div>
     </DashboardLayout>
   );
