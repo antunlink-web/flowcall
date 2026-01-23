@@ -41,12 +41,16 @@ export function TopNavbar() {
   const { user, signOut } = useAuth();
   const { isOwnerOrManager } = useUserRole();
   const navigate = useNavigate();
+  const location = useLocation();
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
   const [searchLoading, setSearchLoading] = useState(false);
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [mobileOpen, setMobileOpen] = useState(false);
   const { dueCount } = useDueCallbacks();
+
+  const isOnDashboard = location.pathname === "/dashboard";
+  const isOnControlPanel = location.pathname === "/";
 
   useEffect(() => {
     const fetchAvatar = async () => {
@@ -232,7 +236,11 @@ export function TopNavbar() {
             variant="ghost"
             size="icon"
             onClick={() => navigate("/dashboard")}
-            className="text-sidebar-foreground/90 hover:text-sidebar-foreground hover:bg-sidebar-accent h-9 w-9 relative"
+            className={`h-9 w-9 relative ${
+              isOnDashboard 
+                ? "bg-sidebar-accent text-sidebar-foreground" 
+                : "text-sidebar-foreground/90 hover:text-sidebar-foreground hover:bg-sidebar-accent"
+            }`}
             title="Dashboard"
           >
             <LayoutDashboard className="w-5 h-5" />
@@ -248,7 +256,11 @@ export function TopNavbar() {
             variant="ghost"
             size="icon"
             onClick={() => navigate("/?reset=true")}
-            className="text-sidebar-foreground/90 hover:text-sidebar-foreground hover:bg-sidebar-accent h-9 w-9"
+            className={`h-9 w-9 ${
+              isOnControlPanel 
+                ? "bg-sidebar-accent text-sidebar-foreground" 
+                : "text-sidebar-foreground/90 hover:text-sidebar-foreground hover:bg-sidebar-accent"
+            }`}
             title="Control Panel"
           >
             <Grip className="w-5 h-5" />
