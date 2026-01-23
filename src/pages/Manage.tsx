@@ -4,8 +4,7 @@ import {
   Users, 
   Copy, 
   Flag, 
-  Settings,
-  CreditCard
+  Settings
 } from "lucide-react";
 import { Link } from "react-router-dom";
 
@@ -39,12 +38,6 @@ const menuItems = [
     title: "Settings",
     description: "Configure your preferences and options",
     href: "/preferences",
-  },
-  {
-    icon: CreditCard,
-    title: "Account",
-    description: "Manage billing, seats, subscription etc.",
-    href: "/manage/account",
   },
 ];
 
