@@ -32,7 +32,6 @@ import {
   List,
   Copy,
   Flag,
-  CreditCard,
   ChevronDown,
 } from "lucide-react";
 import { useState } from "react";
@@ -52,7 +51,6 @@ const manageSubItems = [
   { to: "/manage/duplicates", icon: Copy, label: "Duplicates" },
   { to: "/manage/claims", icon: Flag, label: "Claims" },
   { to: "/preferences", icon: Settings, label: "Settings" },
-  { to: "/manage/account", icon: CreditCard, label: "Account" },
 ];
 
 export function AppSidebar() {
