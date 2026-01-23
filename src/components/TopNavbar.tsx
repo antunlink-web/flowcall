@@ -14,7 +14,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import {
   Home,
-  LayoutDashboard,
+  Grip,
   HelpCircle,
   ChevronDown,
   Menu,
@@ -243,15 +243,15 @@ export function TopNavbar() {
             )}
           </Button>
 
-          {/* Dashboard Icon */}
+          {/* Control Panel Grid Icon */}
           <Button 
             variant="ghost"
             size="icon"
-            onClick={() => navigate("/dashboard")}
+            onClick={() => navigate("/?reset=true")}
             className="text-sidebar-foreground/90 hover:text-sidebar-foreground hover:bg-sidebar-accent h-9 w-9"
-            title="Dashboard"
+            title="Control Panel"
           >
-            <LayoutDashboard className="w-5 h-5" />
+            <Grip className="w-5 h-5" />
           </Button>
         </div>
 

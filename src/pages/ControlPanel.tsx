@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -98,6 +98,17 @@ export default function ControlPanel() {
   const { roles } = useUserRole();
   const { dueCallbacks } = useDueCallbacks();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  // Reset to main grid when reset param is present
+  useEffect(() => {
+    if (searchParams.get("reset") === "true") {
+      setActiveTab("main");
+      // Remove the reset param from URL
+      searchParams.delete("reset");
+      setSearchParams(searchParams, { replace: true });
+    }
+  }, [searchParams, setSearchParams]);
 
   const filteredCategories = categoryItems.filter(item => {
     if (!roles || roles.length === 0) return item.roles.includes("agent");
