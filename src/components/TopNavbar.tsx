@@ -13,7 +13,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
-  Home,
+  LayoutDashboard,
   Grip,
   HelpCircle,
   ChevronDown,
@@ -235,7 +235,7 @@ export function TopNavbar() {
             className="text-sidebar-foreground/90 hover:text-sidebar-foreground hover:bg-sidebar-accent h-9 w-9 relative"
             title="Control Panel"
           >
-            <Home className="w-5 h-5" />
+            <LayoutDashboard className="w-5 h-5" />
             {dueCount > 0 && (
               <span className="absolute -top-0.5 -right-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-destructive text-[10px] font-medium text-destructive-foreground">
                 {dueCount > 9 ? "9+" : dueCount}
@@ -336,7 +336,7 @@ export function TopNavbar() {
                 navigate("/");
               }}
             >
-              <Home className="w-4 h-4" />
+              <LayoutDashboard className="w-4 h-4" />
               Open Control Panel
               {dueCount > 0 && (
                 <Badge variant="destructive" className="ml-auto">{dueCount}</Badge>
