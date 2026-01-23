@@ -26,6 +26,7 @@ import {
   Check,
   Upload,
   X,
+  Lock,
 } from "lucide-react";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useBranding } from "@/hooks/useBranding";
@@ -39,13 +40,13 @@ const subNavItems = [
 ];
 
 const sidebarItems = [
-  { icon: CreditCard, label: "Billing Information", id: "billing" },
-  { icon: Palette, label: "Custom Branding", id: "branding" },
-  { icon: Wallet, label: "Payment Method", id: "payment" },
-  { icon: Users, label: "Seats", id: "seats" },
-  { icon: ShoppingCart, label: "Subscription", id: "subscription" },
-  { icon: PiggyBank, label: "Balance", id: "balance" },
-  { icon: Receipt, label: "Invoices", id: "invoices" },
+  { icon: CreditCard, label: "Billing Information", id: "billing", plusOnly: false },
+  { icon: Palette, label: "Custom Branding", id: "branding", plusOnly: true },
+  { icon: Wallet, label: "Payment Method", id: "payment", plusOnly: false },
+  { icon: Users, label: "Seats", id: "seats", plusOnly: false },
+  { icon: ShoppingCart, label: "Subscription", id: "subscription", plusOnly: false },
+  { icon: PiggyBank, label: "Balance", id: "balance", plusOnly: false },
+  { icon: Receipt, label: "Invoices", id: "invoices", plusOnly: false },
 ];
 
 
@@ -782,6 +783,8 @@ export default function ManageAccount() {
         );
 
       case "branding":
+        const isPlusPlan = currentPlan === "plus";
+        
         return (
           <div className="space-y-8">
             <div>
@@ -789,13 +792,31 @@ export default function ManageAccount() {
               <div className="w-16 h-0.5 bg-primary mb-8" />
             </div>
 
-            {!isOwner && (
+            {!isPlusPlan && (
+              <div className="border border-primary/30 rounded-lg p-6 bg-primary/5 space-y-4">
+                <div className="flex items-center gap-3">
+                  <ShoppingCart className="h-6 w-6 text-primary" />
+                  <h2 className="text-lg font-semibold text-primary">Plus Plan Required</h2>
+                </div>
+                <p className="text-muted-foreground">
+                  Custom branding is available exclusively for Plus plan subscribers. Upgrade to personalize your CRM with your company logo, colors, and branding.
+                </p>
+                <Button 
+                  onClick={() => setActiveSection("subscription")}
+                  className="bg-primary hover:bg-primary/90"
+                >
+                  Upgrade to Plus
+                </Button>
+              </div>
+            )}
+
+            {isPlusPlan && !isOwner && (
               <div className="border border-border rounded p-6 bg-muted/20">
                 <p className="text-muted-foreground">Only account owners can modify branding settings.</p>
               </div>
             )}
 
-            {isOwner && (
+            {isPlusPlan && isOwner && (
               <div className="space-y-6">
                 {/* Company & App Names */}
                 <div className="border border-border rounded p-6 space-y-4">
@@ -1284,23 +1305,29 @@ export default function ManageAccount() {
         {/* Sidebar */}
         <div className="w-64 border-r border-border bg-background">
           <nav className="p-2">
-            {sidebarItems.map((item) => (
-              <button
-                key={item.id}
-                onClick={() => setActiveSection(item.id)}
-                className={`w-full flex items-center justify-between px-4 py-3 rounded text-sm transition-colors ${
-                  activeSection === item.id
-                    ? "text-primary font-medium"
-                    : "text-foreground hover:bg-accent"
-                }`}
-              >
-                <div className="flex items-center gap-3">
-                  <item.icon className={`w-5 h-5 ${activeSection === item.id ? "text-primary" : ""}`} />
-                  <span>{item.label}</span>
-                </div>
-                <ChevronRight className={`w-4 h-4 ${activeSection === item.id ? "text-primary" : "text-muted-foreground"}`} />
-              </button>
-            ))}
+            {sidebarItems.map((item) => {
+              const isLocked = item.plusOnly && currentPlan !== "plus";
+              return (
+                <button
+                  key={item.id}
+                  onClick={() => setActiveSection(item.id)}
+                  className={`w-full flex items-center justify-between px-4 py-3 rounded text-sm transition-colors ${
+                    activeSection === item.id
+                      ? "text-primary font-medium"
+                      : "text-foreground hover:bg-accent"
+                  }`}
+                >
+                  <div className="flex items-center gap-3">
+                    <item.icon className={`w-5 h-5 ${activeSection === item.id ? "text-primary" : ""}`} />
+                    <span>{item.label}</span>
+                    {isLocked && (
+                      <Lock className="w-3.5 h-3.5 text-muted-foreground" />
+                    )}
+                  </div>
+                  <ChevronRight className={`w-4 h-4 ${activeSection === item.id ? "text-primary" : "text-muted-foreground"}`} />
+                </button>
+              );
+            })}
           </nav>
         </div>
 
