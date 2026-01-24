@@ -420,7 +420,7 @@ export function LeadDetailView({ leadId, onClose }: LeadDetailViewProps) {
       .update({ 
         claimed_by: user.id, 
         claimed_at: new Date().toISOString(),
-        status: lead.status === "new" ? "in_progress" : lead.status,
+        status: lead.status === "new" ? "contacted" : lead.status,
         updated_at: new Date().toISOString()
       })
       .eq("id", lead.id);
