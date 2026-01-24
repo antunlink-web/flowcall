@@ -412,20 +412,25 @@ export function LeadDetailView({ leadId, onClose }: LeadDetailViewProps) {
   };
 
   // Claim lead for current user
+  // Claim lead for current user
   const handleClaimLead = async () => {
     if (!lead || !user) return;
+    
+    // Only update status to 'contacted' if currently 'new', otherwise keep current status
+    const newStatus = lead.status === "new" ? "contacted" : lead.status;
     
     const { error } = await supabase
       .from("leads")
       .update({ 
         claimed_by: user.id, 
         claimed_at: new Date().toISOString(),
-        status: lead.status === "new" ? "contacted" : lead.status,
+        status: newStatus,
         updated_at: new Date().toISOString()
       })
       .eq("id", lead.id);
 
     if (error) {
+      console.error("Claim error:", error);
       toast({ title: "Failed to claim lead", variant: "destructive" });
     } else {
       toast({ title: "Lead claimed successfully" });
