@@ -188,7 +188,6 @@ export default function ControlPanel() {
         .select("id, data, claimed_at")
         .eq("claimed_by", user.id)
         .not("claimed_at", "is", null)
-        .eq("status", "in_progress")
         .order("claimed_at", { ascending: false })
         .limit(10);
 
