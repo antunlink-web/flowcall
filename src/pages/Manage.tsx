@@ -14,30 +14,36 @@ const menuItems = [
     title: "Lists",
     description: "Manage and configure lists",
     href: "/manage/lists",
+    disabled: false,
   },
   {
     icon: Users,
     title: "Users",
     description: "Add, delete and manage access for users",
     href: "/manage/users",
+    disabled: false,
   },
   {
     icon: Copy,
     title: "Duplicates",
     description: "Review and merge or delete duplicate leads",
     href: "/manage/duplicates",
+    disabled: true,
+    comingSoon: true,
   },
   {
     icon: Flag,
     title: "Claims",
     description: "View and give back claimed leads",
     href: "/manage/claims",
+    disabled: false,
   },
   {
     icon: Settings,
     title: "Settings",
     description: "Configure your preferences and options",
     href: "/preferences",
+    disabled: false,
   },
 ];
 
@@ -51,23 +57,45 @@ export default function Manage() {
         <div className="w-16 h-0.5 bg-primary mb-8" />
 
         <div className="space-y-6">
-          {menuItems.map((item) => (
-            <Link
-              key={item.title}
-              to={item.href}
-              className="flex items-start gap-4 group"
-            >
-              <item.icon className="h-6 w-6 text-foreground mt-0.5 shrink-0" />
-              <div>
-                <h3 className="text-primary font-medium group-hover:underline">
-                  {item.title}
-                </h3>
-                <p className="text-muted-foreground text-sm">
-                  {item.description}
-                </p>
+          {menuItems.map((item) => 
+            item.disabled ? (
+              <div
+                key={item.title}
+                className="flex items-start gap-4 opacity-50 cursor-not-allowed"
+              >
+                <item.icon className="h-6 w-6 text-foreground mt-0.5 shrink-0" />
+                <div>
+                  <h3 className="text-primary font-medium flex items-center gap-2">
+                    {item.title}
+                    {item.comingSoon && (
+                      <span className="text-xs bg-muted text-muted-foreground px-2 py-0.5 rounded-full font-normal">
+                        Coming soon
+                      </span>
+                    )}
+                  </h3>
+                  <p className="text-muted-foreground text-sm">
+                    {item.description}
+                  </p>
+                </div>
               </div>
-            </Link>
-          ))}
+            ) : (
+              <Link
+                key={item.title}
+                to={item.href}
+                className="flex items-start gap-4 group"
+              >
+                <item.icon className="h-6 w-6 text-foreground mt-0.5 shrink-0" />
+                <div>
+                  <h3 className="text-primary font-medium group-hover:underline">
+                    {item.title}
+                  </h3>
+                  <p className="text-muted-foreground text-sm">
+                    {item.description}
+                  </p>
+                </div>
+              </Link>
+            )
+          )}
         </div>
       </div>
     </DashboardLayout>
