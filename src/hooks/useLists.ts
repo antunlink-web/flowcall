@@ -59,36 +59,41 @@ export function useLists() {
 
       if (listsError) throw listsError;
 
-      // Fetch aggregated lead counts per list using a more efficient approach
-      // Instead of fetching all leads, fetch counts grouped by list_id and status
-      const listIds = (listsData || []).map(l => l.id);
-      
       // Build stats map with defaults
+      const listIds = (listsData || []).map(l => l.id);
       const statsMap: Record<string, { total: number; new: number; callback: number; won: number; lost: number }> = {};
       listIds.forEach(id => {
         statsMap[id] = { total: 0, new: 0, callback: 0, won: 0, lost: 0 };
       });
 
-      // Fetch lead counts for each list in a single query per list
-      // This is more efficient than fetching all individual leads
+      // Fetch lead counts using proper count queries (no row limit issues)
       if (listIds.length > 0) {
-        const { data: leadsData, error: leadsError } = await supabase
-          .from("leads")
-          .select("list_id, status")
-          .in("list_id", listIds);
+        // Run count queries in parallel for each list
+        const countPromises = listIds.map(async (listId) => {
+          const [totalResult, newResult, callbackResult, wonResult, lostResult] = await Promise.all([
+            supabase.from("leads").select("*", { count: "exact", head: true }).eq("list_id", listId),
+            supabase.from("leads").select("*", { count: "exact", head: true }).eq("list_id", listId).eq("status", "new"),
+            supabase.from("leads").select("*", { count: "exact", head: true }).eq("list_id", listId).eq("status", "callback"),
+            supabase.from("leads").select("*", { count: "exact", head: true }).eq("list_id", listId).eq("status", "won"),
+            supabase.from("leads").select("*", { count: "exact", head: true }).eq("list_id", listId).eq("status", "lost"),
+          ]);
 
-        if (!leadsError && leadsData) {
-          // Count leads by list and status
-          leadsData.forEach(lead => {
-            if (lead.list_id && statsMap[lead.list_id]) {
-              statsMap[lead.list_id].total++;
-              if (lead.status === "new") statsMap[lead.list_id].new++;
-              else if (lead.status === "callback") statsMap[lead.list_id].callback++;
-              else if (lead.status === "won") statsMap[lead.list_id].won++;
-              else if (lead.status === "lost") statsMap[lead.list_id].lost++;
-            }
-          });
-        }
+          return {
+            listId,
+            total: totalResult.count ?? 0,
+            new: newResult.count ?? 0,
+            callback: callbackResult.count ?? 0,
+            won: wonResult.count ?? 0,
+            lost: lostResult.count ?? 0,
+          };
+        });
+
+        const counts = await Promise.all(countPromises);
+        counts.forEach(({ listId, total, new: newCount, callback, won, lost }) => {
+          if (statsMap[listId]) {
+            statsMap[listId] = { total, new: newCount, callback, won, lost };
+          }
+        });
       }
 
       // Build lists with stats
