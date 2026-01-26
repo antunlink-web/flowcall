@@ -16,7 +16,9 @@ import {
   Smartphone,
   WifiOff,
   Circle,
-  Grip
+  Grip,
+  MessageSquare,
+  MessageCircle
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -116,6 +118,8 @@ const sidebarItems = [
   { id: "profile", label: "Profile", icon: User, description: "Name, email & avatar" },
   { id: "credentials", label: "Credentials", icon: Key, description: "Password & security" },
   { id: "dialling", label: "Dialling", icon: Phone, description: "Dialer preferences" },
+  { id: "sms", label: "SMS", icon: MessageSquare, description: "Text message settings" },
+  { id: "whatsapp", label: "WhatsApp", icon: MessageCircle, description: "WhatsApp integration", disabled: true, comingSoon: true },
   { id: "working", label: "Working", icon: Settings2, description: "Workflow settings" },
   { id: "queue", label: "Queue", icon: Filter, description: "Lead queue filters" },
   { id: "notifications", label: "Notifications", icon: Bell, description: "Alerts & reminders" },
@@ -578,6 +582,66 @@ export default function Preferences() {
           </div>
         );
 
+      case "sms":
+        return (
+          <div className="space-y-6">
+            <div>
+              <h3 className="text-lg font-medium mb-4">SMS Preferences</h3>
+              <Separator className="mb-6" />
+              <div className="grid gap-4 max-w-lg">
+                <div className="grid grid-cols-[120px_1fr] items-start gap-4">
+                  <Label className="text-right pt-2">SMS Mode</Label>
+                  <div className="space-y-2">
+                    <Select defaultValue="flowcall-smart">
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent className="bg-popover text-popover-foreground">
+                        <SelectItem value="flowcall-smart">FlowCall Smart</SelectItem>
+                        <SelectItem value="native">Native SMS app</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <p className="text-sm text-muted-foreground">
+                      FlowCall Smart sends SMS through your companion phone. Native opens your device's SMS app.
+                    </p>
+                  </div>
+                </div>
+                <div className="grid grid-cols-[120px_1fr] items-start gap-4">
+                  <Label className="text-right pt-2">Default template</Label>
+                  <div className="space-y-2">
+                    <Select defaultValue="none">
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent className="bg-popover text-popover-foreground">
+                        <SelectItem value="none">No default template</SelectItem>
+                        <SelectItem value="list">Use list default</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <p className="text-sm text-muted-foreground">
+                      SMS templates are configured per list in Manage → Lists.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <Button className="bg-[hsl(200,50%,45%)] hover:bg-[hsl(200,50%,40%)]">
+              Update
+            </Button>
+          </div>
+        );
+
+      case "whatsapp":
+        return (
+          <div className="space-y-6">
+            <div className="text-center py-12">
+              <MessageCircle className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
+              <h3 className="text-lg font-medium mb-2">WhatsApp Integration</h3>
+              <p className="text-muted-foreground">Coming soon</p>
+            </div>
+          </div>
+        );
+
       case "working":
         return (
           <div className="space-y-6">
@@ -724,19 +788,38 @@ export default function Preferences() {
             <h1 className="text-3xl font-light text-primary mb-2">Preferences</h1>
             <Separator className="mb-8 bg-primary h-0.5 w-16" />
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-              {sidebarItems.map((item) => (
-                <button
-                  key={item.id}
-                  onClick={() => setActiveSection(item.id)}
-                  className="flex flex-col items-center p-6 rounded-xl bg-card border shadow-sm hover:shadow-md hover:border-primary/30 transition-all group"
-                >
-                  <div className="mb-4">
-                    <item.icon className="w-10 h-10 text-primary group-hover:scale-110 transition-transform" strokeWidth={1.5} />
-                  </div>
-                  <h3 className="font-semibold text-foreground text-center mb-1">{item.label}</h3>
-                  <p className="text-xs text-muted-foreground text-center">{item.description}</p>
-                </button>
-              ))}
+              {sidebarItems.map((item) => {
+                const isDisabled = 'disabled' in item && item.disabled;
+                const isComingSoon = 'comingSoon' in item && item.comingSoon;
+                
+                return (
+                  <button
+                    key={item.id}
+                    onClick={() => !isDisabled && setActiveSection(item.id)}
+                    disabled={isDisabled}
+                    className={cn(
+                      "flex flex-col items-center p-6 rounded-xl bg-card border shadow-sm transition-all group relative",
+                      isDisabled 
+                        ? "opacity-50 cursor-not-allowed" 
+                        : "hover:shadow-md hover:border-primary/30"
+                    )}
+                  >
+                    {isComingSoon && (
+                      <span className="absolute top-2 right-2 text-xs bg-muted text-muted-foreground px-2 py-0.5 rounded-full">
+                        Coming soon
+                      </span>
+                    )}
+                    <div className="mb-4">
+                      <item.icon className={cn(
+                        "w-10 h-10 text-primary transition-transform",
+                        !isDisabled && "group-hover:scale-110"
+                      )} strokeWidth={1.5} />
+                    </div>
+                    <h3 className="font-semibold text-foreground text-center mb-1">{item.label}</h3>
+                    <p className="text-xs text-muted-foreground text-center">{item.description}</p>
+                  </button>
+                );
+              })}
             </div>
           </>
         )}
