@@ -66,34 +66,29 @@ export function useLists() {
         statsMap[id] = { total: 0, new: 0, callback: 0, won: 0, lost: 0 };
       });
 
-      // Fetch lead counts using proper count queries (no row limit issues)
+      // Fetch all lead counts in a single efficient query using RPC or aggregated fetch
+      // Instead of N*5 queries, we fetch leads with just list_id and status, then aggregate client-side
       if (listIds.length > 0) {
-        // Run count queries in parallel for each list
-        const countPromises = listIds.map(async (listId) => {
-          const [totalResult, newResult, callbackResult, wonResult, lostResult] = await Promise.all([
-            supabase.from("leads").select("*", { count: "exact", head: true }).eq("list_id", listId),
-            supabase.from("leads").select("*", { count: "exact", head: true }).eq("list_id", listId).eq("status", "new"),
-            supabase.from("leads").select("*", { count: "exact", head: true }).eq("list_id", listId).eq("status", "callback"),
-            supabase.from("leads").select("*", { count: "exact", head: true }).eq("list_id", listId).eq("status", "won"),
-            supabase.from("leads").select("*", { count: "exact", head: true }).eq("list_id", listId).eq("status", "lost"),
-          ]);
+        // Fetch aggregated counts - single query for all lists
+        const { data: leadsData, error: leadsError } = await supabase
+          .from("leads")
+          .select("list_id, status")
+          .in("list_id", listIds);
 
-          return {
-            listId,
-            total: totalResult.count ?? 0,
-            new: newResult.count ?? 0,
-            callback: callbackResult.count ?? 0,
-            won: wonResult.count ?? 0,
-            lost: lostResult.count ?? 0,
-          };
-        });
-
-        const counts = await Promise.all(countPromises);
-        counts.forEach(({ listId, total, new: newCount, callback, won, lost }) => {
-          if (statsMap[listId]) {
-            statsMap[listId] = { total, new: newCount, callback, won, lost };
-          }
-        });
+        if (!leadsError && leadsData) {
+          // Aggregate counts client-side
+          leadsData.forEach((lead) => {
+            const listId = lead.list_id;
+            if (listId && statsMap[listId]) {
+              statsMap[listId].total += 1;
+              const status = lead.status as string;
+              if (status === "new") statsMap[listId].new += 1;
+              else if (status === "callback") statsMap[listId].callback += 1;
+              else if (status === "won") statsMap[listId].won += 1;
+              else if (status === "lost") statsMap[listId].lost += 1;
+            }
+          });
+        }
       }
 
       // Build lists with stats
