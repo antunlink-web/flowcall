@@ -66,26 +66,28 @@ export function useLists() {
         statsMap[id] = { total: 0, new: 0, callback: 0, won: 0, lost: 0 };
       });
 
-      // Fetch all lead counts in a single efficient query using RPC or aggregated fetch
-      // Instead of N*5 queries, we fetch leads with just list_id and status, then aggregate client-side
+      // Use efficient RPC function to get counts - no row limit, server-side aggregation
       if (listIds.length > 0) {
-        // Fetch aggregated counts - single query for all lists
-        const { data: leadsData, error: leadsError } = await supabase
-          .from("leads")
-          .select("list_id, status")
-          .in("list_id", listIds);
+        const { data: countsData, error: countsError } = await supabase
+          .rpc("get_list_lead_counts", { list_ids: listIds });
 
-        if (!leadsError && leadsData) {
-          // Aggregate counts client-side
-          leadsData.forEach((lead) => {
-            const listId = lead.list_id;
-            if (listId && statsMap[listId]) {
-              statsMap[listId].total += 1;
-              const status = lead.status as string;
-              if (status === "new") statsMap[listId].new += 1;
-              else if (status === "callback") statsMap[listId].callback += 1;
-              else if (status === "won") statsMap[listId].won += 1;
-              else if (status === "lost") statsMap[listId].lost += 1;
+        if (!countsError && countsData) {
+          countsData.forEach((count: { 
+            list_id: string; 
+            total: number; 
+            new_count: number; 
+            callback_count: number; 
+            won_count: number; 
+            lost_count: number 
+          }) => {
+            if (statsMap[count.list_id]) {
+              statsMap[count.list_id] = {
+                total: Number(count.total),
+                new: Number(count.new_count),
+                callback: Number(count.callback_count),
+                won: Number(count.won_count),
+                lost: Number(count.lost_count),
+              };
             }
           });
         }

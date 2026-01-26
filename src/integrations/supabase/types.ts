@@ -924,6 +924,17 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      get_list_lead_counts: {
+        Args: { list_ids: string[] }
+        Returns: {
+          callback_count: number
+          list_id: string
+          lost_count: number
+          new_count: number
+          total: number
+          won_count: number
+        }[]
+      }
       get_user_tenant_id: { Args: { _user_id: string }; Returns: string }
       has_role: {
         Args: {
