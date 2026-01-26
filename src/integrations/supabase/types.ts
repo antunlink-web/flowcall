@@ -934,6 +934,14 @@ export type Database = {
       }
       is_admin_or_manager: { Args: { _user_id: string }; Returns: boolean }
       is_product_owner: { Args: { _user_id: string }; Returns: boolean }
+      is_same_tenant: {
+        Args: { _tenant_id: string; _user_id: string }
+        Returns: boolean
+      }
+      is_tenant_admin_or_manager: {
+        Args: { _tenant_id: string; _user_id: string }
+        Returns: boolean
+      }
       search_leads: {
         Args: { search_term: string }
         Returns: {
