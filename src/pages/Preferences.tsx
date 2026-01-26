@@ -18,7 +18,6 @@ import {
   Circle,
   Grip,
   MessageSquare,
-  MessageCircle,
   PhoneCall
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
@@ -32,6 +31,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { formatDistanceToNow } from "date-fns";
+import whatsappIcon from "@/assets/whatsapp-icon.png";
 
 // FlowCall Smart Section Component
 function FlowCallSmartSection() {
@@ -120,7 +120,7 @@ const sidebarItems = [
   { id: "credentials", label: "Credentials", icon: Key, description: "Password & security" },
   { id: "dialling", label: "Dialling", icon: Phone, description: "Dialer preferences" },
   { id: "sms", label: "SMS", icon: MessageSquare, description: "Text message settings" },
-  { id: "whatsapp", label: "WhatsApp", icon: MessageCircle, description: "WhatsApp integration", disabled: true, comingSoon: true },
+  { id: "whatsapp", label: "WhatsApp", customIcon: whatsappIcon, description: "WhatsApp integration", disabled: true, comingSoon: true },
   { id: "viber", label: "Viber", icon: PhoneCall, description: "Viber integration", disabled: true, comingSoon: true },
   { id: "working", label: "Working", icon: Settings2, description: "Workflow settings" },
   { id: "queue", label: "Queue", icon: Filter, description: "Lead queue filters" },
@@ -637,7 +637,7 @@ export default function Preferences() {
         return (
           <div className="space-y-6">
             <div className="text-center py-12">
-              <MessageCircle className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
+              <img src={whatsappIcon} alt="WhatsApp" className="w-16 h-16 mx-auto mb-4 opacity-50" />
               <h3 className="text-lg font-medium mb-2">WhatsApp Integration</h3>
               <p className="text-muted-foreground">Coming soon</p>
             </div>
@@ -785,7 +785,11 @@ export default function Preferences() {
               </button>
               <div className="w-px h-6 bg-slate-500" />
               <div className="flex items-center gap-2 text-white">
-                <currentSection.icon className="w-5 h-5" />
+                {'customIcon' in currentSection && currentSection.customIcon ? (
+                  <img src={currentSection.customIcon} alt={currentSection.label} className="w-5 h-5" />
+                ) : (
+                  <currentSection.icon className="w-5 h-5" />
+                )}
                 <span className="font-medium">{currentSection.label}</span>
               </div>
             </div>
@@ -823,10 +827,21 @@ export default function Preferences() {
                       </span>
                     )}
                     <div className="mb-4">
-                      <item.icon className={cn(
-                        "w-10 h-10 text-primary transition-transform",
-                        !isDisabled && "group-hover:scale-110"
-                      )} strokeWidth={1.5} />
+                      {'customIcon' in item && item.customIcon ? (
+                        <img 
+                          src={item.customIcon} 
+                          alt={item.label} 
+                          className={cn(
+                            "w-10 h-10 transition-transform",
+                            !isDisabled && "group-hover:scale-110"
+                          )} 
+                        />
+                      ) : (
+                        <item.icon className={cn(
+                          "w-10 h-10 text-primary transition-transform",
+                          !isDisabled && "group-hover:scale-110"
+                        )} strokeWidth={1.5} />
+                      )}
                     </div>
                     <h3 className="font-semibold text-foreground text-center mb-1">{item.label}</h3>
                     <p className="text-xs text-muted-foreground text-center">{item.description}</p>
