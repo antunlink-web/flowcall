@@ -30,9 +30,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { formatDistanceToNow } from "date-fns";
-import whatsappIcon from "@/assets/whatsapp-icon.png";
-import viberIcon from "@/assets/viber-icon.png";
-
+import { WhatsAppIcon } from "@/components/icons/WhatsAppIcon";
+import { ViberIcon } from "@/components/icons/ViberIcon";
 // FlowCall Smart Section Component
 function FlowCallSmartSection() {
   const { devices, onlineDevices, loading, isDeviceOnline } = useConnectedDevices();
@@ -120,8 +119,8 @@ const sidebarItems = [
   { id: "credentials", label: "Credentials", icon: Key, description: "Password & security" },
   { id: "dialling", label: "Dialling", icon: Phone, description: "Dialer preferences" },
   { id: "sms", label: "SMS", icon: MessageSquare, description: "Text message settings" },
-  { id: "whatsapp", label: "WhatsApp", customIcon: whatsappIcon, description: "WhatsApp integration", disabled: true, comingSoon: true },
-  { id: "viber", label: "Viber", customIcon: viberIcon, description: "Viber integration", disabled: true, comingSoon: true },
+  { id: "whatsapp", label: "WhatsApp", icon: WhatsAppIcon, description: "WhatsApp integration", disabled: true, comingSoon: true },
+  { id: "viber", label: "Viber", icon: ViberIcon, description: "Viber integration", disabled: true, comingSoon: true },
   { id: "working", label: "Working", icon: Settings2, description: "Workflow settings" },
   { id: "queue", label: "Queue", icon: Filter, description: "Lead queue filters" },
   { id: "notifications", label: "Notifications", icon: Bell, description: "Alerts & reminders" },
@@ -637,7 +636,7 @@ export default function Preferences() {
         return (
           <div className="space-y-6">
             <div className="text-center py-12">
-              <img src={whatsappIcon} alt="WhatsApp" className="w-16 h-16 mx-auto mb-4 opacity-50" />
+              <WhatsAppIcon size={64} className="mx-auto mb-4 text-muted-foreground" />
               <h3 className="text-lg font-medium mb-2">WhatsApp Integration</h3>
               <p className="text-muted-foreground">Coming soon</p>
             </div>
@@ -648,7 +647,7 @@ export default function Preferences() {
         return (
           <div className="space-y-6">
             <div className="text-center py-12">
-              <img src={viberIcon} alt="Viber" className="w-16 h-16 mx-auto mb-4 opacity-50" />
+              <ViberIcon size={64} className="mx-auto mb-4 text-muted-foreground" />
               <h3 className="text-lg font-medium mb-2">Viber Integration</h3>
               <p className="text-muted-foreground">Coming soon</p>
             </div>
@@ -785,11 +784,7 @@ export default function Preferences() {
               </button>
               <div className="w-px h-6 bg-slate-500" />
               <div className="flex items-center gap-2 text-white">
-                {'customIcon' in currentSection && currentSection.customIcon ? (
-                  <img src={currentSection.customIcon} alt={currentSection.label} className="w-5 h-5" />
-                ) : (
-                  <currentSection.icon className="w-5 h-5" />
-                )}
+                <currentSection.icon className="w-5 h-5" />
                 <span className="font-medium">{currentSection.label}</span>
               </div>
             </div>
@@ -827,21 +822,10 @@ export default function Preferences() {
                       </span>
                     )}
                     <div className="mb-4">
-                      {'customIcon' in item && item.customIcon ? (
-                        <img 
-                          src={item.customIcon} 
-                          alt={item.label} 
-                          className={cn(
-                            "w-10 h-10 transition-transform opacity-90",
-                            !isDisabled && "group-hover:scale-110"
-                          )} 
-                        />
-                      ) : (
-                        <item.icon className={cn(
-                          "w-10 h-10 text-primary transition-transform",
-                          !isDisabled && "group-hover:scale-110"
-                        )} strokeWidth={1.5} />
-                      )}
+                      <item.icon className={cn(
+                        "w-10 h-10 text-primary transition-transform",
+                        !isDisabled && "group-hover:scale-110"
+                      )} strokeWidth={1.5} />
                     </div>
                     <h3 className="font-semibold text-foreground text-center mb-1">{item.label}</h3>
                     <p className="text-xs text-muted-foreground text-center">{item.description}</p>
