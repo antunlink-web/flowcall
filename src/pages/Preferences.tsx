@@ -120,6 +120,7 @@ const sidebarItems = [
   { id: "dialling", label: "Dialling", icon: Phone, description: "Dialer preferences" },
   { id: "sms", label: "SMS", icon: MessageSquare, description: "Text message settings" },
   { id: "whatsapp", label: "WhatsApp", icon: MessageCircle, description: "WhatsApp integration", disabled: true, comingSoon: true },
+  { id: "viber", label: "Viber", icon: MessageCircle, description: "Viber integration", disabled: true, comingSoon: true },
   { id: "working", label: "Working", icon: Settings2, description: "Workflow settings" },
   { id: "queue", label: "Queue", icon: Filter, description: "Lead queue filters" },
   { id: "notifications", label: "Notifications", icon: Bell, description: "Alerts & reminders" },
@@ -637,6 +638,17 @@ export default function Preferences() {
             <div className="text-center py-12">
               <MessageCircle className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
               <h3 className="text-lg font-medium mb-2">WhatsApp Integration</h3>
+              <p className="text-muted-foreground">Coming soon</p>
+            </div>
+          </div>
+        );
+
+      case "viber":
+        return (
+          <div className="space-y-6">
+            <div className="text-center py-12">
+              <MessageCircle className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
+              <h3 className="text-lg font-medium mb-2">Viber Integration</h3>
               <p className="text-muted-foreground">Coming soon</p>
             </div>
           </div>
