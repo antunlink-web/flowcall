@@ -832,7 +832,7 @@ export default function Preferences() {
                           src={item.customIcon} 
                           alt={item.label} 
                           className={cn(
-                            "w-10 h-10 transition-transform",
+                            "w-10 h-10 transition-transform opacity-90",
                             !isDisabled && "group-hover:scale-110"
                           )} 
                         />
