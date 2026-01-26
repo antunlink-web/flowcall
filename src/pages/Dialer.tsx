@@ -1,13 +1,14 @@
 import { useEffect, useState, useCallback } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
-import { Phone, PhoneOff, Smartphone, Wifi, WifiOff, Volume2, MessageSquare, Send, X, Shield, ShieldCheck, ShieldAlert } from "lucide-react";
+import { Phone, Smartphone, Wifi, WifiOff, Volume2, MessageSquare, Send, X, ShieldCheck, ShieldAlert, Trash2, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { formatDistanceToNow } from "date-fns";
 import { 
   isNativeApp, 
   makeCall, 
@@ -33,6 +34,24 @@ interface SmsRequest {
   created_at: string;
 }
 
+interface CallLogEntry {
+  id: string;
+  lead_id: string;
+  outcome: string;
+  notes: string | null;
+  duration_seconds: number | null;
+  created_at: string;
+  phone_number?: string;
+}
+
+interface SmsLogEntry {
+  id: string;
+  lead_id: string;
+  message: string;
+  created_at: string;
+  phone_number?: string;
+}
+
 interface PermissionState {
   isNative: boolean;
   call: boolean;
@@ -47,8 +66,9 @@ export default function Dialer() {
   const [currentRequest, setCurrentRequest] = useState<DialRequest | null>(null);
   const [currentSmsRequest, setCurrentSmsRequest] = useState<SmsRequest | null>(null);
   const [deviceRegistered, setDeviceRegistered] = useState(false);
-  const [recentCalls, setRecentCalls] = useState<DialRequest[]>([]);
-  const [recentSms, setRecentSms] = useState<SmsRequest[]>([]);
+  const [callHistory, setCallHistory] = useState<CallLogEntry[]>([]);
+  const [smsHistory, setSmsHistory] = useState<SmsLogEntry[]>([]);
+  const [historyLoading, setHistoryLoading] = useState(true);
   const [permissions, setPermissions] = useState<PermissionState>({
     isNative: false,
     call: false,
@@ -63,6 +83,119 @@ export default function Dialer() {
     };
     checkPermissions();
   }, []);
+
+  // Load call and SMS history from database
+  const loadHistory = useCallback(async () => {
+    if (!user) return;
+    
+    setHistoryLoading(true);
+    try {
+      // Load call logs
+      const { data: callLogs } = await supabase
+        .from("call_logs")
+        .select("*")
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: false })
+        .limit(50);
+
+      // Load SMS logs
+      const { data: smsLogs } = await supabase
+        .from("sms_logs")
+        .select("*")
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: false })
+        .limit(50);
+
+      setCallHistory(callLogs || []);
+      setSmsHistory(smsLogs || []);
+    } catch (error) {
+      console.error("Failed to load history:", error);
+    } finally {
+      setHistoryLoading(false);
+    }
+  }, [user]);
+
+  // Load history on mount
+  useEffect(() => {
+    if (user) {
+      loadHistory();
+    }
+  }, [user, loadHistory]);
+
+  // Log completed call to call_logs
+  const logCall = useCallback(async (request: DialRequest, outcome: string = "dialed") => {
+    if (!user || !request.lead_id) return;
+    
+    try {
+      // Get tenant_id from profile
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("tenant_id")
+        .eq("id", user.id)
+        .single();
+
+      await supabase.from("call_logs").insert({
+        user_id: user.id,
+        lead_id: request.lead_id,
+        outcome: outcome,
+        notes: `Dialed via FlowCall Smart: ${request.phone_number}`,
+        tenant_id: profile?.tenant_id,
+      });
+      
+      // Reload history to show new entry
+      loadHistory();
+    } catch (error) {
+      console.error("Failed to log call:", error);
+    }
+  }, [user, loadHistory]);
+
+  // Log completed SMS to sms_logs
+  const logSms = useCallback(async (request: SmsRequest) => {
+    if (!user || !request.lead_id) return;
+    
+    try {
+      // Get tenant_id from profile
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("tenant_id")
+        .eq("id", user.id)
+        .single();
+
+      await supabase.from("sms_logs").insert({
+        user_id: user.id,
+        lead_id: request.lead_id,
+        message: request.message,
+        tenant_id: profile?.tenant_id,
+      });
+      
+      // Reload history to show new entry
+      loadHistory();
+    } catch (error) {
+      console.error("Failed to log SMS:", error);
+    }
+  }, [user, loadHistory]);
+
+  // Delete a call log entry
+  const deleteCallLog = useCallback(async (id: string) => {
+    try {
+      await supabase.from("call_logs").delete().eq("id", id);
+      setCallHistory(prev => prev.filter(c => c.id !== id));
+      toast({ title: "Call deleted from history" });
+    } catch (error) {
+      console.error("Failed to delete call log:", error);
+    }
+  }, [toast]);
+
+  // Delete an SMS log entry
+  const deleteSmsLog = useCallback(async (id: string) => {
+    try {
+      await supabase.from("sms_logs").delete().eq("id", id);
+      setSmsHistory(prev => prev.filter(s => s.id !== id));
+      toast({ title: "SMS deleted from history" });
+    } catch (error) {
+      console.error("Failed to delete SMS log:", error);
+    }
+  }, [toast]);
 
   // Request permissions
   const handleRequestPermissions = async () => {
@@ -152,7 +285,7 @@ export default function Dialer() {
     try {
       const audio = new Audio("/notification.mp3");
       audio.play().catch(() => {});
-    } catch (e) {}
+    } catch (_e) { /* ignore */ }
 
     if (navigator.vibrate) {
       navigator.vibrate([200, 100, 200]);
@@ -179,7 +312,8 @@ export default function Dialer() {
           .update({ status: "completed" })
           .eq("id", request.id);
         
-        setRecentCalls(prev => [request, ...prev.slice(0, 9)]);
+        // Log the call to permanent history
+        await logCall(request, "dialed");
         setCurrentRequest(null);
         
         toast({
@@ -196,7 +330,7 @@ export default function Dialer() {
         description: `Number: ${request.phone_number}`,
       });
     }
-  }, [permissions, toast]);
+  }, [permissions, toast, logCall]);
 
   // Handle incoming SMS request - auto-send if native permissions granted
   const handleSmsRequest = useCallback(async (request: SmsRequest) => {
@@ -205,7 +339,7 @@ export default function Dialer() {
     try {
       const audio = new Audio("/notification.mp3");
       audio.play().catch(() => {});
-    } catch (e) {}
+    } catch (_e) { /* ignore */ }
 
     if (navigator.vibrate) {
       navigator.vibrate([200, 100, 200, 100, 200]);
@@ -232,7 +366,8 @@ export default function Dialer() {
           .update({ status: "completed" })
           .eq("id", request.id);
         
-        setRecentSms(prev => [request, ...prev.slice(0, 9)]);
+        // Log the SMS to permanent history
+        await logSms(request);
         setCurrentSmsRequest(null);
         
         toast({
@@ -249,7 +384,7 @@ export default function Dialer() {
         description: `To: ${request.phone_number}`,
       });
     }
-  }, [permissions, toast]);
+  }, [permissions, toast, logSms]);
 
   // Manual dial (fallback)
   const dialNumber = useCallback(async () => {
@@ -263,10 +398,11 @@ export default function Dialer() {
         .update({ status: "completed" })
         .eq("id", currentRequest.id);
       
-      setRecentCalls(prev => [currentRequest, ...prev.slice(0, 9)]);
+      // Log the call to permanent history
+      await logCall(currentRequest, "dialed");
       setCurrentRequest(null);
     }
-  }, [currentRequest]);
+  }, [currentRequest, logCall]);
 
   // Dismiss dial request
   const dismissRequest = useCallback(async () => {
@@ -292,10 +428,11 @@ export default function Dialer() {
         .update({ status: "completed" })
         .eq("id", currentSmsRequest.id);
       
-      setRecentSms(prev => [currentSmsRequest, ...prev.slice(0, 9)]);
+      // Log the SMS to permanent history
+      await logSms(currentSmsRequest);
       setCurrentSmsRequest(null);
     }
-  }, [currentSmsRequest]);
+  }, [currentSmsRequest, logSms]);
 
   // Dismiss SMS request
   const dismissSmsRequest = useCallback(async () => {
@@ -557,62 +694,82 @@ export default function Dialer() {
         </Card>
       )}
 
-      {/* Recent Activity Tabs */}
+      {/* History Tabs */}
       <Card>
         <Tabs defaultValue="calls" className="w-full">
           <CardHeader className="pb-2">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-sm font-medium">History</span>
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={loadHistory}
+                disabled={historyLoading}
+              >
+                <RefreshCw className={`h-4 w-4 ${historyLoading ? "animate-spin" : ""}`} />
+              </Button>
+            </div>
             <TabsList className="grid w-full grid-cols-2">
               <TabsTrigger value="calls" className="gap-1">
-                <Phone className="h-4 w-4" /> Calls
+                <Phone className="h-4 w-4" /> Calls ({callHistory.length})
               </TabsTrigger>
               <TabsTrigger value="sms" className="gap-1">
-                <MessageSquare className="h-4 w-4" /> SMS
+                <MessageSquare className="h-4 w-4" /> SMS ({smsHistory.length})
               </TabsTrigger>
             </TabsList>
           </CardHeader>
           <CardContent>
-            <TabsContent value="calls" className="mt-0 space-y-2">
-              {recentCalls.length === 0 ? (
-                <p className="text-sm text-muted-foreground text-center py-4">No recent calls</p>
+            <TabsContent value="calls" className="mt-0 space-y-2 max-h-64 overflow-y-auto">
+              {historyLoading ? (
+                <p className="text-sm text-muted-foreground text-center py-4">Loading...</p>
+              ) : callHistory.length === 0 ? (
+                <p className="text-sm text-muted-foreground text-center py-4">No call history</p>
               ) : (
-                recentCalls.map((call) => (
+                callHistory.map((call) => (
                   <div 
                     key={call.id} 
                     className="flex items-center justify-between py-2 border-b last:border-0"
                   >
-                    <span className="font-mono text-sm">{call.phone_number}</span>
+                    <div className="flex-1 min-w-0">
+                      <span className="text-sm block">{call.notes || "Call"}</span>
+                      <span className="text-xs text-muted-foreground">
+                        {formatDistanceToNow(new Date(call.created_at), { addSuffix: true })}
+                      </span>
+                    </div>
                     <Button
                       variant="ghost"
                       size="sm"
-                      onClick={async () => {
-                        await makeCall(call.phone_number);
-                      }}
+                      onClick={() => deleteCallLog(call.id)}
                     >
-                      <Phone className="h-4 w-4" />
+                      <Trash2 className="h-4 w-4 text-muted-foreground" />
                     </Button>
                   </div>
                 ))
               )}
             </TabsContent>
-            <TabsContent value="sms" className="mt-0 space-y-2">
-              {recentSms.length === 0 ? (
-                <p className="text-sm text-muted-foreground text-center py-4">No recent SMS</p>
+            <TabsContent value="sms" className="mt-0 space-y-2 max-h-64 overflow-y-auto">
+              {historyLoading ? (
+                <p className="text-sm text-muted-foreground text-center py-4">Loading...</p>
+              ) : smsHistory.length === 0 ? (
+                <p className="text-sm text-muted-foreground text-center py-4">No SMS history</p>
               ) : (
-                recentSms.map((sms) => (
+                smsHistory.map((sms) => (
                   <div 
                     key={sms.id} 
                     className="flex items-center justify-between py-2 border-b last:border-0"
                   >
                     <div className="flex-1 min-w-0">
-                      <span className="font-mono text-sm block">{sms.phone_number}</span>
-                      <span className="text-xs text-muted-foreground truncate block">{sms.message}</span>
+                      <span className="text-sm truncate block">{sms.message}</span>
+                      <span className="text-xs text-muted-foreground">
+                        {formatDistanceToNow(new Date(sms.created_at), { addSuffix: true })}
+                      </span>
                     </div>
                     <Button
                       variant="ghost"
                       size="sm"
-                      onClick={() => window.location.href = `sms:${sms.phone_number}`}
+                      onClick={() => deleteSmsLog(sms.id)}
                     >
-                      <MessageSquare className="h-4 w-4" />
+                      <Trash2 className="h-4 w-4 text-muted-foreground" />
                     </Button>
                   </div>
                 ))
@@ -623,7 +780,7 @@ export default function Dialer() {
       </Card>
 
       {/* Instructions when idle */}
-      {!currentRequest && !currentSmsRequest && recentCalls.length === 0 && recentSms.length === 0 && (
+      {!currentRequest && !currentSmsRequest && callHistory.length === 0 && smsHistory.length === 0 && !historyLoading && (
         <Card className="mt-4">
           <CardContent className="pt-6 text-center">
             <Volume2 className="h-8 w-8 mx-auto text-muted-foreground mb-3" />
