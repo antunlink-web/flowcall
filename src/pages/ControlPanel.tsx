@@ -269,7 +269,7 @@ export default function ControlPanel() {
       )}
 
       {/* Main Content */}
-      <div className="max-w-7xl mx-auto px-4 py-8">
+      <div className="max-w-7xl mx-auto px-4 py-8" data-tour="control-panel">
         {/* Main Panel - Category Selection */}
         {activeTab === "main" && (
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
@@ -277,6 +277,7 @@ export default function ControlPanel() {
               <button
                 key={item.id}
                 onClick={() => setActiveTab(item.id)}
+                data-tour={item.id === "work" ? "work-card" : item.id === "manage" ? "manage-card" : undefined}
                 className="flex flex-col items-center p-8 rounded-xl bg-card border border-border/50 shadow-md 
                   hover:shadow-xl hover:shadow-primary/10 hover:-translate-y-1 hover:border-primary/40
                   transition-all duration-300 ease-out group animate-fade-in"
