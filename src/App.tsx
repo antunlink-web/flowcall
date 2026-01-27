@@ -32,6 +32,7 @@ import Install from "./pages/Install";
 import Register from "./pages/Register";
 import ProductOwnerDashboard from "./pages/ProductOwnerDashboard";
 import LandingPage from "./pages/LandingPage";
+import RegistrationPending from "./pages/RegistrationPending";
 
 const queryClient = new QueryClient();
 
@@ -51,6 +52,7 @@ function CrmApp() {
     <Routes>
       <Route path="/auth" element={<Auth />} />
       <Route path="/register" element={<Register />} />
+      <Route path="/registration-pending" element={<RegistrationPending />} />
       <Route path="/reset-password" element={<ResetPassword />} />
       <Route path="/accept-invite" element={<AcceptInvite />} />
       <Route path="/admin" element={<ProtectedRoute><ProductOwnerDashboard /></ProtectedRoute>} />
@@ -84,6 +86,7 @@ function LandingRoutes() {
       <Route path="/" element={<LandingPage />} />
       <Route path="/auth" element={<Auth />} />
       <Route path="/register" element={<Register />} />
+      <Route path="/registration-pending" element={<RegistrationPending />} />
       <Route path="/reset-password" element={<ResetPassword />} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

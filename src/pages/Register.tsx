@@ -143,6 +143,12 @@ export default function Register() {
         throw new Error(response.data.error);
       }
 
+      // Check if registration is pending approval
+      if (response.data?.pending) {
+        navigate("/registration-pending");
+        return;
+      }
+
       toast({
         title: "Registration successful!",
         description: `Your organization "${companyName}" has been created. Redirecting to your workspace...`,

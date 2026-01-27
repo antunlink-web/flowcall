@@ -49,13 +49,13 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Create the tenant first
+    // Create the tenant with pending status (requires admin approval)
     const { data: tenant, error: tenantError } = await supabaseAdmin
       .from("tenants")
       .insert({
         name: companyName,
         subdomain: subdomain,
-        status: "active",
+        status: "pending",
       })
       .select()
       .single();
@@ -96,9 +96,40 @@ Deno.serve(async (req) => {
       company_name: companyName,
     });
 
+    // Send admin notification email about new registration
+    try {
+      const notifyResponse = await fetch(
+        `${supabaseUrl}/functions/v1/notify-admin-registration`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${supabaseServiceKey}`,
+          },
+          body: JSON.stringify({
+            companyName,
+            subdomain,
+            email,
+            fullName,
+            tenantId: tenant.id,
+          }),
+        }
+      );
+      
+      if (!notifyResponse.ok) {
+        console.error("Failed to send admin notification:", await notifyResponse.text());
+      } else {
+        console.log("Admin notification sent successfully");
+      }
+    } catch (notifyError) {
+      console.error("Error sending admin notification:", notifyError);
+      // Don't fail registration if notification fails
+    }
+
     return new Response(
       JSON.stringify({
         success: true,
+        pending: true,
         tenant: {
           id: tenant.id,
           name: tenant.name,
