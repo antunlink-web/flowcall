@@ -782,30 +782,42 @@ export type Database = {
           created_at: string
           id: string
           logo_url: string | null
+          max_seats: number | null
           name: string
+          seat_count: number
           settings: Json
           status: string
           subdomain: string
+          trial_end_date: string | null
+          trial_start_date: string | null
           updated_at: string
         }
         Insert: {
           created_at?: string
           id?: string
           logo_url?: string | null
+          max_seats?: number | null
           name: string
+          seat_count?: number
           settings?: Json
           status?: string
           subdomain: string
+          trial_end_date?: string | null
+          trial_start_date?: string | null
           updated_at?: string
         }
         Update: {
           created_at?: string
           id?: string
           logo_url?: string | null
+          max_seats?: number | null
           name?: string
+          seat_count?: number
           settings?: Json
           status?: string
           subdomain?: string
+          trial_end_date?: string | null
+          trial_start_date?: string | null
           updated_at?: string
         }
         Relationships: []

@@ -25,6 +25,7 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
 import { useDueCallbacks } from "@/hooks/useDueCallbacks";
+import { TrialBadge } from "@/components/TrialBadge";
 
 interface SearchResult {
   id: string;
@@ -267,8 +268,11 @@ export function TopNavbar() {
           </Button>
         </div>
 
-        {/* Right Section - Help & User */}
-        <div className="flex items-center ml-auto gap-1">
+        {/* Right Section - Trial Badge, Help & User */}
+        <div className="flex items-center ml-auto gap-2">
+          {/* Trial Badge */}
+          <TrialBadge />
+          
           {/* Help */}
           <Button variant="ghost" size="sm" className="text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent gap-1 h-9 hidden md:flex">
             <HelpCircle className="w-5 h-5" />
