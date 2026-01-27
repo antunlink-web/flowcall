@@ -1,8 +1,8 @@
-import { forwardRef } from "react";
+import * as React from "react";
 import { cn } from "@/lib/utils";
 import type { LucideProps } from "lucide-react";
 
-export const ViberIcon = forwardRef<SVGSVGElement, LucideProps>(
+const ViberIcon = React.forwardRef<SVGSVGElement, LucideProps>(
   ({ className, size = 24, strokeWidth = 2, ...props }, ref) => {
     const iconSize = typeof size === "number" ? size : 24;
     const iconStrokeWidth = typeof strokeWidth === "number" ? strokeWidth : 2;
@@ -31,3 +31,5 @@ export const ViberIcon = forwardRef<SVGSVGElement, LucideProps>(
 );
 
 ViberIcon.displayName = "ViberIcon";
+
+export { ViberIcon };
