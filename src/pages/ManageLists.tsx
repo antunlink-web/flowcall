@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { DashboardLayout } from "@/components/DashboardLayout";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -119,6 +119,7 @@ interface UserWithAccess {
 
 export default function ManageLists() {
   const location = useLocation();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { toast } = useToast();
   const { lists, loading, uploadProgress, createList, updateList, deleteList, importLeadsFromData } = useLists();
   
@@ -178,6 +179,17 @@ export default function ManageLists() {
   const activeLists = lists.filter((l) => l.status === "active");
   const archivedLists = lists.filter((l) => l.status === "archived");
   const blocklists = lists.filter((l) => l.status === "blocklist");
+
+  // Handle hint param from dialer redirect
+  useEffect(() => {
+    const hint = searchParams.get("hint");
+    if (hint === "create" && !loading) {
+      setShowCreateDialog(true);
+      // Remove the hint param from URL
+      searchParams.delete("hint");
+      setSearchParams(searchParams, { replace: true });
+    }
+  }, [searchParams, setSearchParams, loading]);
 
   // Fetch a sample lead for preview when configureList changes
   useEffect(() => {
