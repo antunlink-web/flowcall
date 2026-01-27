@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { formatDistanceToNow } from "date-fns";
 import { 
@@ -74,6 +74,37 @@ export default function Dialer() {
     call: false,
     sms: false,
   });
+  const [checkingLists, setCheckingLists] = useState(true);
+
+  // Check if user has any lists, redirect if not
+  useEffect(() => {
+    const checkLists = async () => {
+      if (!user) return;
+      
+      try {
+        const { count, error } = await supabase
+          .from("lists")
+          .select("id", { count: "exact", head: true });
+        
+        if (error) throw error;
+        
+        if (count === 0) {
+          toast({
+            title: "No lists found",
+            description: "Create a list first to start making calls.",
+          });
+          navigate("/manage/lists?hint=create");
+          return;
+        }
+      } catch (error) {
+        console.error("Error checking lists:", error);
+      } finally {
+        setCheckingLists(false);
+      }
+    };
+    
+    checkLists();
+  }, [user, navigate, toast]);
 
   // Check permission status on mount
   useEffect(() => {
