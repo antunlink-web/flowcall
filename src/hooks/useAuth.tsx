@@ -68,13 +68,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const resetPassword = async (email: string) => {
-    // Use the current origin for the redirect URL
-    // This ensures it works on any subdomain (e.g., geravalia.flowcall.eu/reset-password)
+    // Use custom SMTP-based password reset
     const redirectUrl = `${window.location.origin}/reset-password`;
-    const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: redirectUrl,
-    });
-    return { error };
+    
+    try {
+      const response = await supabase.functions.invoke('send-password-reset', {
+        body: { email, redirectTo: redirectUrl },
+      });
+      
+      if (response.error) {
+        return { error: new Error(response.error.message || 'Failed to send reset email') };
+      }
+      
+      return { error: null };
+    } catch (err: any) {
+      return { error: new Error(err.message || 'Failed to send reset email') };
+    }
   };
 
   const updatePassword = async (newPassword: string) => {
