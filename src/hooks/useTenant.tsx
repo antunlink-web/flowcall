@@ -9,6 +9,10 @@ interface Tenant {
   status: string;
   logo_url: string | null;
   settings: Record<string, unknown>;
+  trial_start_date: string | null;
+  trial_end_date: string | null;
+  seat_count: number;
+  max_seats: number | null;
 }
 
 interface TenantContextType {

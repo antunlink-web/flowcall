@@ -50,12 +50,20 @@ Deno.serve(async (req) => {
     }
 
     // Create the tenant with pending status (requires admin approval)
+    // Set 14-day trial period with 1 default seat
+    const trialEndDate = new Date();
+    trialEndDate.setDate(trialEndDate.getDate() + 14);
+    
     const { data: tenant, error: tenantError } = await supabaseAdmin
       .from("tenants")
       .insert({
         name: companyName,
         subdomain: subdomain,
         status: "pending",
+        trial_start_date: new Date().toISOString(),
+        trial_end_date: trialEndDate.toISOString(),
+        seat_count: 1,
+        max_seats: null, // Unlimited during trial
       })
       .select()
       .single();
