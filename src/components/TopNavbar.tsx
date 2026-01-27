@@ -26,6 +26,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
 import { useDueCallbacks } from "@/hooks/useDueCallbacks";
 import { TrialBadge } from "@/components/TrialBadge";
+import { useTour } from "@/hooks/useTour";
 
 interface SearchResult {
   id: string;
@@ -41,6 +42,7 @@ interface SearchResult {
 export function TopNavbar() {
   const { user, signOut } = useAuth();
   const { isOwnerOrManager } = useUserRole();
+  const { startTour } = useTour();
   const navigate = useNavigate();
   const location = useLocation();
   const [searchQuery, setSearchQuery] = useState("");
@@ -311,10 +313,14 @@ export function TopNavbar() {
                       Account Settings
                     </Link>
                   </DropdownMenuItem>
-                  <DropdownMenuItem asChild>
-                    <Link to="/" className="w-full cursor-pointer">
-                      Getting Started
-                    </Link>
+                  <DropdownMenuItem 
+                    className="w-full cursor-pointer"
+                    onClick={() => {
+                      navigate("/");
+                      setTimeout(() => startTour(), 100);
+                    }}
+                  >
+                    Getting Started
                   </DropdownMenuItem>
                 </>
               )}
