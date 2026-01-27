@@ -1,8 +1,8 @@
-import { forwardRef } from "react";
+import * as React from "react";
 import { cn } from "@/lib/utils";
 import type { LucideProps } from "lucide-react";
 
-export const WhatsAppIcon = forwardRef<SVGSVGElement, LucideProps>(
+const WhatsAppIcon = React.forwardRef<SVGSVGElement, LucideProps>(
   ({ className, size = 24, strokeWidth = 2, ...props }, ref) => {
     const iconSize = typeof size === "number" ? size : 24;
     const iconStrokeWidth = typeof strokeWidth === "number" ? strokeWidth : 2;
@@ -30,3 +30,5 @@ export const WhatsAppIcon = forwardRef<SVGSVGElement, LucideProps>(
 );
 
 WhatsAppIcon.displayName = "WhatsAppIcon";
+
+export { WhatsAppIcon };
