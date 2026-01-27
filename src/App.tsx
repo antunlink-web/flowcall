@@ -6,7 +6,9 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "@/hooks/useAuth";
 import { BrandingProvider } from "@/hooks/useBranding";
 import { UploadProgressProvider, useUploadProgress } from "@/hooks/useUploadProgress";
+import { TourProvider } from "@/hooks/useTour";
 import { UploadProgressBar } from "@/components/UploadProgressBar";
+import { TourGuide } from "@/components/TourGuide";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { SubdomainRouter } from "@/components/SubdomainRouter";
 import Auth from "./pages/Auth";
@@ -117,12 +119,15 @@ const App = () => (
       <AuthProvider>
         <BrandingProvider>
           <UploadProgressProvider>
-            <Toaster />
-            <Sonner />
-            <BrowserRouter>
-              <AppContent />
-            </BrowserRouter>
-            <GlobalUploadProgressBar />
+            <TourProvider>
+              <Toaster />
+              <Sonner />
+              <BrowserRouter>
+                <AppContent />
+                <TourGuide />
+              </BrowserRouter>
+              <GlobalUploadProgressBar />
+            </TourProvider>
           </UploadProgressProvider>
         </BrandingProvider>
       </AuthProvider>

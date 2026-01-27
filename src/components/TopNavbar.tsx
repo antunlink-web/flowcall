@@ -243,10 +243,11 @@ export function TopNavbar() {
                 : "text-sidebar-foreground/90 hover:text-sidebar-foreground hover:bg-sidebar-accent"
             }`}
             title="Dashboard"
+            data-tour="dashboard-icon"
           >
             <LayoutDashboard className="w-5 h-5" />
             {dueCount > 0 && (
-              <span className="absolute -top-0.5 -right-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-destructive text-[10px] font-medium text-destructive-foreground">
+              <span data-tour="callback-badge" className="absolute -top-0.5 -right-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-destructive text-[10px] font-medium text-destructive-foreground">
                 {dueCount > 9 ? "9+" : dueCount}
               </span>
             )}
@@ -271,7 +272,9 @@ export function TopNavbar() {
         {/* Right Section - Trial Badge, Help & User */}
         <div className="flex items-center ml-auto gap-2">
           {/* Trial Badge */}
-          <TrialBadge />
+          <div data-tour="trial-badge">
+            <TrialBadge />
+          </div>
           
           {/* Help */}
           <Button variant="ghost" size="sm" className="text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent gap-1 h-9 hidden md:flex">
@@ -282,7 +285,7 @@ export function TopNavbar() {
           {/* User Menu */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="sm" className="text-sidebar-foreground/90 hover:text-sidebar-foreground hover:bg-sidebar-accent gap-1 h-11 ml-2">
+              <Button data-tour="user-menu" variant="ghost" size="sm" className="text-sidebar-foreground/90 hover:text-sidebar-foreground hover:bg-sidebar-accent gap-1 h-11 ml-2">
                 <Avatar className="w-9 h-9 rounded-lg ring-2 ring-sidebar-foreground/20">
                   {avatarUrl ? (
                     <AvatarImage src={avatarUrl} className="object-cover rounded-lg" />

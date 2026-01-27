@@ -1,7 +1,9 @@
 import { useState, useEffect, useRef, useMemo } from "react";
+import { useNavigate } from "react-router-dom";
 import { QRCodeSVG } from "qrcode.react";
 import { useAuth } from "@/hooks/useAuth";
 import { useConnectedDevices } from "@/hooks/useConnectedDevices";
+import { useTour } from "@/hooks/useTour";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { cn } from "@/lib/utils";
 import { 
@@ -17,7 +19,9 @@ import {
   WifiOff,
   Circle,
   Grip,
-  MessageSquare
+  MessageSquare,
+  HelpCircle,
+  PlayCircle
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -124,10 +128,13 @@ const sidebarItems = [
   { id: "working", label: "Working", icon: Settings2, description: "Workflow settings" },
   { id: "queue", label: "Queue", icon: Filter, description: "Lead queue filters" },
   { id: "notifications", label: "Notifications", icon: Bell, description: "Alerts & reminders" },
+  { id: "tour", label: "Tour", icon: HelpCircle, description: "Replay product tour" },
 ];
 
 export default function Preferences() {
   const { user } = useAuth();
+  const { startTour } = useTour();
+  const navigate = useNavigate();
   const [activeSection, setActiveSection] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -757,6 +764,40 @@ export default function Preferences() {
             </p>
             <div className="bg-muted/50 p-4 rounded-md">
               <p className="text-sm text-muted-foreground">Queue settings will appear here.</p>
+            </div>
+          </div>
+        );
+
+      case "tour":
+        return (
+          <div className="space-y-6">
+            <div>
+              <h3 className="text-lg font-medium mb-4">Product Tour</h3>
+              <Separator className="mb-6" />
+              <p className="text-muted-foreground mb-6">
+                Take an interactive tour of FlowCall to learn about all the features and how to use them effectively.
+              </p>
+              <div className="bg-primary/5 border border-primary/20 rounded-lg p-6 space-y-4">
+                <div className="flex items-center gap-3">
+                  <div className="p-3 rounded-full bg-primary/10">
+                    <PlayCircle className="w-8 h-8 text-primary" />
+                  </div>
+                  <div>
+                    <h4 className="font-medium">Interactive Walkthrough</h4>
+                    <p className="text-sm text-muted-foreground">Learn the basics in about 1 minute</p>
+                  </div>
+                </div>
+                <Button 
+                  onClick={() => {
+                    navigate("/");
+                    setTimeout(() => startTour(), 500);
+                  }}
+                  className="w-full"
+                >
+                  <PlayCircle className="w-4 h-4 mr-2" />
+                  Start Product Tour
+                </Button>
+              </div>
             </div>
           </div>
         );
