@@ -2,3 +2,15 @@ project_id = "pbnkrtybgtjotopdobam"
 
 [functions.invite-user]
 verify_jwt = false
+
+[functions.notify-admin-registration]
+verify_jwt = false
+
+[functions.register-tenant]
+verify_jwt = false
+
+[functions.send-email]
+verify_jwt = false
+
+[functions.verify-vat]
+verify_jwt = false
