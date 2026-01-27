@@ -43,7 +43,7 @@ const navItems = [
   { to: "/work", icon: Phone, label: "Dialer", roles: ["owner", "account_manager", "agent"] },
   { to: "/campaigns", icon: LayoutGrid, label: "Campaigns", roles: ["owner", "account_manager"] },
   { to: "/reports", icon: BarChart3, label: "Reports", roles: ["owner", "account_manager"] },
-  { to: "/admin", icon: Briefcase, label: "Platform Admin", roles: ["product_owner"] },
+  { to: "/aiculedssul", icon: Briefcase, label: "Platform Admin", roles: ["product_owner"] },
 ];
 
 const manageSubItems = [
