@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useUploadProgress } from "@/hooks/useUploadProgress";
@@ -44,78 +44,118 @@ export interface List {
   lost?: number;
 }
 
+// Query keys for cache management
+export const listQueryKeys = {
+  all: ["lists"] as const,
+  lists: () => [...listQueryKeys.all, "list"] as const,
+  counts: () => [...listQueryKeys.all, "counts"] as const,
+};
+
+// Base list type without computed stats
+interface ListBase {
+  id: string;
+  name: string;
+  description: string | null;
+  fields: ListField[];
+  settings: ListSettings;
+  status: "active" | "archived" | "blocklist";
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+// Fetch lists without counts (fast)
+async function fetchListsData(): Promise<ListBase[]> {
+  const { data, error } = await supabase
+    .from("lists")
+    .select("*")
+    .order("created_at", { ascending: false });
+
+  if (error) throw error;
+
+  return (data || []).map((list) => ({
+    ...list,
+    status: list.status as "active" | "archived" | "blocklist",
+    fields: (list.fields as unknown as ListField[]) || [],
+    settings: (list.settings as unknown as ListSettings) || {},
+  }));
+}
+
+// Fetch counts separately (can be slower)
+async function fetchListCounts(listIds: string[]): Promise<Record<string, { total: number; new: number; callback: number; won: number; lost: number }>> {
+  if (listIds.length === 0) return {};
+
+  const { data, error } = await supabase.rpc("get_list_lead_counts", { list_ids: listIds });
+
+  if (error) {
+    console.error("Error fetching list counts:", error);
+    return {};
+  }
+
+  const countsMap: Record<string, { total: number; new: number; callback: number; won: number; lost: number }> = {};
+  
+  // Initialize all lists with zero counts
+  listIds.forEach(id => {
+    countsMap[id] = { total: 0, new: 0, callback: 0, won: 0, lost: 0 };
+  });
+
+  // Fill in actual counts
+  (data || []).forEach((count: { 
+    list_id: string; 
+    total: number; 
+    new_count: number; 
+    callback_count: number; 
+    won_count: number; 
+    lost_count: number 
+  }) => {
+    countsMap[count.list_id] = {
+      total: Number(count.total),
+      new: Number(count.new_count),
+      callback: Number(count.callback_count),
+      won: Number(count.won_count),
+      lost: Number(count.lost_count),
+    };
+  });
+
+  return countsMap;
+}
+
 export function useLists() {
-  const [lists, setLists] = useState<List[]>([]);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
   const { uploadProgress, setUploadProgress } = useUploadProgress();
-  const fetchLists = async () => {
-    setLoading(true);
-    try {
-      // Fetch lists
-      const { data: listsData, error: listsError } = await supabase
-        .from("lists")
-        .select("*")
-        .order("created_at", { ascending: false });
 
-      if (listsError) throw listsError;
+  // Fetch lists (fast, cached for 5 minutes, stale after 30 seconds)
+  const { 
+    data: listsData = [], 
+    isLoading: listsLoading,
+  } = useQuery({
+    queryKey: listQueryKeys.lists(),
+    queryFn: fetchListsData,
+    staleTime: 30 * 1000, // Consider stale after 30 seconds
+    gcTime: 5 * 60 * 1000, // Keep in cache for 5 minutes
+  });
 
-      // Build stats map with defaults
-      const listIds = (listsData || []).map(l => l.id);
-      const statsMap: Record<string, { total: number; new: number; callback: number; won: number; lost: number }> = {};
-      listIds.forEach(id => {
-        statsMap[id] = { total: 0, new: 0, callback: 0, won: 0, lost: 0 };
-      });
+  // Fetch counts separately (can be slower, updates in background)
+  const { 
+    data: countsData = {},
+    isLoading: countsLoading 
+  } = useQuery({
+    queryKey: listQueryKeys.counts(),
+    queryFn: () => fetchListCounts(listsData.map(l => l.id)),
+    enabled: listsData.length > 0,
+    staleTime: 30 * 1000,
+    gcTime: 5 * 60 * 1000,
+  });
 
-      // Use efficient RPC function to get counts - no row limit, server-side aggregation
-      if (listIds.length > 0) {
-        const { data: countsData, error: countsError } = await supabase
-          .rpc("get_list_lead_counts", { list_ids: listIds });
+  // Combine lists with counts
+  const lists: List[] = listsData.map((list) => ({
+    ...list,
+    ...(countsData[list.id] || { total: 0, new: 0, callback: 0, won: 0, lost: 0 }),
+  }));
 
-        if (!countsError && countsData) {
-          countsData.forEach((count: { 
-            list_id: string; 
-            total: number; 
-            new_count: number; 
-            callback_count: number; 
-            won_count: number; 
-            lost_count: number 
-          }) => {
-            if (statsMap[count.list_id]) {
-              statsMap[count.list_id] = {
-                total: Number(count.total),
-                new: Number(count.new_count),
-                callback: Number(count.callback_count),
-                won: Number(count.won_count),
-                lost: Number(count.lost_count),
-              };
-            }
-          });
-        }
-      }
-
-      // Build lists with stats
-      const listsWithStats = (listsData || []).map((list) => ({
-        ...list,
-        fields: (list.fields as unknown as ListField[]) || [],
-        settings: (list.settings as unknown as ListSettings) || {},
-        ...statsMap[list.id],
-      } as List));
-
-      setLists(listsWithStats);
-    } catch (error: unknown) {
-      console.error("Error fetching lists:", error);
-      toast.error("Failed to fetch lists");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const createList = async (
-    name: string,
-    fields: ListField[],
-    description?: string
-  ): Promise<List | null> => {
-    try {
+  // Create list mutation
+  const createListMutation = useMutation({
+    mutationFn: async ({ name, fields, description }: { name: string; fields: ListField[]; description?: string }) => {
       const { data: { user } } = await supabase.auth.getUser();
       
       const { data, error } = await supabase
@@ -130,33 +170,21 @@ export function useLists() {
         .single();
 
       if (error) throw error;
-
-      const newList = {
-        ...data,
-        fields: data.fields as unknown as ListField[],
-        settings: data.settings as unknown as ListSettings,
-        total: 0,
-        new: 0,
-        callback: 0,
-        won: 0,
-        lost: 0,
-      } as List;
-
-      setLists((prev) => [newList, ...prev]);
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: listQueryKeys.all });
       toast.success("List created successfully");
-      return newList;
-    } catch (error: unknown) {
+    },
+    onError: (error: Error) => {
       console.error("Error creating list:", error);
       toast.error("Failed to create list");
-      return null;
-    }
-  };
+    },
+  });
 
-  const updateList = async (
-    id: string,
-    updates: Partial<Pick<List, "name" | "description" | "fields" | "settings" | "status">>
-  ): Promise<boolean> => {
-    try {
+  // Update list mutation
+  const updateListMutation = useMutation({
+    mutationFn: async ({ id, updates }: { id: string; updates: Partial<Pick<List, "name" | "description" | "fields" | "settings" | "status">> }) => {
       const updateData: Record<string, unknown> = {};
       if (updates.name !== undefined) updateData.name = updates.name;
       if (updates.description !== undefined) updateData.description = updates.description;
@@ -170,49 +198,45 @@ export function useLists() {
         .eq("id", id);
 
       if (error) throw error;
-
-      setLists((prev) =>
-        prev.map((list) =>
-          list.id === id ? { ...list, ...updates } : list
-        )
+      return { id, updates };
+    },
+    onSuccess: ({ id, updates }) => {
+      // Optimistically update the cache
+      queryClient.setQueryData(listQueryKeys.lists(), (old: typeof listsData | undefined) => 
+        (old || []).map(list => list.id === id ? { ...list, ...updates } : list)
       );
       toast.success("List updated successfully");
-      return true;
-    } catch (error: unknown) {
+    },
+    onError: (error: Error) => {
       console.error("Error updating list:", error);
       toast.error("Failed to update list");
-      return false;
-    }
-  };
+    },
+  });
 
-  const deleteList = async (id: string): Promise<boolean> => {
-    try {
+  // Delete list mutation
+  const deleteListMutation = useMutation({
+    mutationFn: async (id: string) => {
       // First delete all leads associated with this list
-      const { error: leadsError } = await supabase
-        .from("leads")
-        .delete()
-        .eq("list_id", id);
-
-      if (leadsError) {
-        console.error("Error deleting leads:", leadsError);
-        // Continue anyway to try deleting the list
-      }
-
-      // Now delete the list
+      await supabase.from("leads").delete().eq("list_id", id);
+      
       const { error } = await supabase.from("lists").delete().eq("id", id);
-
       if (error) throw error;
-
-      setLists((prev) => prev.filter((list) => list.id !== id));
+      return id;
+    },
+    onSuccess: (id) => {
+      // Remove from cache
+      queryClient.setQueryData(listQueryKeys.lists(), (old: typeof listsData | undefined) => 
+        (old || []).filter(list => list.id !== id)
+      );
       toast.success("List and all its leads deleted successfully");
-      return true;
-    } catch (error: unknown) {
+    },
+    onError: (error: Error) => {
       console.error("Error deleting list:", error);
       toast.error("Failed to delete list");
-      return false;
-    }
-  };
+    },
+  });
 
+  // Import leads function
   const importLeadsFromData = async (
     listId: string,
     rows: Record<string, string>[]
@@ -252,7 +276,6 @@ export function useLists() {
         if (error) {
           console.error("Batch insert error at batch starting", i, ":", error);
           failed += batch.length;
-          // Continue with next batch instead of failing completely
           continue;
         }
         inserted += data?.length || batch.length;
@@ -266,7 +289,8 @@ export function useLists() {
         toast.success(`Imported ${inserted.toLocaleString()} leads successfully`);
       }
       
-      fetchLists(); // Refresh stats
+      // Invalidate counts cache to refresh
+      queryClient.invalidateQueries({ queryKey: listQueryKeys.counts() });
       
       // Small delay to show completion
       setTimeout(() => {
@@ -282,13 +306,58 @@ export function useLists() {
     }
   };
 
-  useEffect(() => {
-    fetchLists();
-  }, []);
+  // Wrapper functions to maintain backward compatibility
+  const createList = async (
+    name: string,
+    fields: ListField[],
+    description?: string
+  ): Promise<List | null> => {
+    try {
+      const data = await createListMutation.mutateAsync({ name, fields, description });
+      return {
+        ...data,
+        fields: data.fields as unknown as ListField[],
+        settings: data.settings as unknown as ListSettings,
+        total: 0,
+        new: 0,
+        callback: 0,
+        won: 0,
+        lost: 0,
+      } as List;
+    } catch {
+      return null;
+    }
+  };
+
+  const updateList = async (
+    id: string,
+    updates: Partial<Pick<List, "name" | "description" | "fields" | "settings" | "status">>
+  ): Promise<boolean> => {
+    try {
+      await updateListMutation.mutateAsync({ id, updates });
+      return true;
+    } catch {
+      return false;
+    }
+  };
+
+  const deleteList = async (id: string): Promise<boolean> => {
+    try {
+      await deleteListMutation.mutateAsync(id);
+      return true;
+    } catch {
+      return false;
+    }
+  };
+
+  const fetchLists = () => {
+    queryClient.invalidateQueries({ queryKey: listQueryKeys.all });
+  };
 
   return {
     lists,
-    loading,
+    loading: listsLoading,
+    countsLoading,
     uploadProgress,
     fetchLists,
     createList,
