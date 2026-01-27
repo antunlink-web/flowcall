@@ -74,6 +74,7 @@ import { CreateListDialog } from "@/components/lists/CreateListDialog";
 import { FieldsEditor } from "@/components/lists/FieldsEditor";
 import { ImportLeadsDialog } from "@/components/lists/ImportLeadsDialog";
 import { EmailTemplateEditor } from "@/components/lists/EmailTemplateEditor";
+import { ListTableSkeleton } from "@/components/lists/ListTableSkeleton";
 
 import { format } from "date-fns";
 import {
@@ -1856,9 +1857,15 @@ export default function ManageLists() {
               </Button>
             </div>
 
-            {activeTab === "active" && renderListsTable(activeLists)}
-            {activeTab === "archived" && renderListsTable(archivedLists)}
-            {activeTab === "blocklists" && renderListsTable(blocklists)}
+            {loading ? (
+              <ListTableSkeleton />
+            ) : (
+              <>
+                {activeTab === "active" && renderListsTable(activeLists)}
+                {activeTab === "archived" && renderListsTable(archivedLists)}
+                {activeTab === "blocklists" && renderListsTable(blocklists)}
+              </>
+            )}
           </div>
         </div>
 
