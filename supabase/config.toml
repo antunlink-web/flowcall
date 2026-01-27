@@ -18,5 +18,8 @@ verify_jwt = false
 [functions.send-email]
 verify_jwt = false
 
+[functions.send-password-reset]
+verify_jwt = false
+
 [functions.verify-vat]
 verify_jwt = false
