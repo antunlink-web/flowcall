@@ -1,9 +1,8 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import {
@@ -24,6 +23,7 @@ import {
   ChevronRight,
   Loader2,
 } from "lucide-react";
+import { ListField } from "@/hooks/useLists";
 
 const subNavItems = [
   { label: "Lists", href: "/manage/lists" },
@@ -45,49 +45,49 @@ interface Lead {
 interface List {
   id: string;
   name: string;
+  fields: ListField[];
 }
 
 interface DuplicateGroup {
   key: string;
-  matchType: "phone" | "mokėtojo_kodas" | "both";
+  matchFields: string[];
   matchValue: string;
   leads: Lead[];
 }
 
-// Normalize phone number for comparison
-const normalizePhone = (phone: string): string => {
-  if (!phone) return "";
-  return phone.replace(/[\s\-\(\)\+]/g, "").replace(/^00/, "").replace(/^370/, "");
-};
-
-// Extract phone from lead data
-const getLeadPhone = (data: Record<string, any>): string => {
-  const phoneFields = ["phone", "telefonas", "tel", "mobile", "mobilus"];
-  for (const field of phoneFields) {
-    const value = data[field] || data[field.toLowerCase()] || data[field.toUpperCase()];
-    if (value) return String(value);
+// Normalize value for comparison based on field type
+const normalizeValue = (value: string, fieldName: string): string => {
+  if (!value) return "";
+  const lowerName = fieldName.toLowerCase();
+  
+  // Phone normalization
+  if (lowerName.includes("phone") || lowerName.includes("tel") || lowerName.includes("mobile") || lowerName.includes("mobilus")) {
+    return value.replace(/[\s\-\(\)\+]/g, "").replace(/^00/, "").replace(/^370/, "");
   }
-  return "";
-};
-
-// Extract mokėtojo kodas from lead data
-const getMoketojoKodas = (data: Record<string, any>): string => {
-  const codeFields = ["mokėtojo kodas", "moketojo kodas", "mokėtojo_kodas", "moketojo_kodas", "company_code", "imones_kodas", "įmonės kodas"];
-  for (const field of codeFields) {
-    const value = data[field] || data[field.toLowerCase()] || data[field.toUpperCase()];
-    if (value) return String(value);
+  
+  // Email normalization (lowercase)
+  if (lowerName.includes("email") || lowerName.includes("mail")) {
+    return value.toLowerCase().trim();
   }
-  return "";
+  
+  // Default: trim and lowercase for comparison
+  return String(value).toLowerCase().trim();
 };
 
 // Get display name for lead
 const getLeadDisplayName = (data: Record<string, any>): string => {
-  return data.company || data.name || data.pavadinimas || data.įmonė || data.imone || "Unknown";
+  return data.company || data.name || data.pavadinimas || data.įmonė || data.imone || 
+         data.first_name || data.firstname || "Unknown";
 };
 
 // Get lead email
 const getLeadEmail = (data: Record<string, any>): string => {
   return data.email || data.el_pastas || data["el. paštas"] || "";
+};
+
+// Get lead phone
+const getLeadPhone = (data: Record<string, any>): string => {
+  return data.phone || data.telefonas || data.tel || data.mobile || data.mobilus || "";
 };
 
 // Get lead website
@@ -119,28 +119,73 @@ export default function ManageDuplicates() {
   const [loading, setLoading] = useState(false);
   const [hasSearched, setHasSearched] = useState(false);
   
+  // Field selection for deduplication
+  const [selectedFields, setSelectedFields] = useState<string[]>([]);
+  
   // Bulk handling states
   const [bulkListId, setBulkListId] = useState<string>("all");
   const [dedupeStrategy, setDedupeStrategy] = useState("keep_new");
   const [dedupeMethod, setDedupeMethod] = useState("dry_run");
   const [runningBulk, setRunningBulk] = useState(false);
 
+  // Get all unique fields across all lists or from selected list
+  const availableFields = useMemo(() => {
+    const fieldSet = new Map<string, ListField>();
+    
+    const listsToCheck = selectedListId === "all" 
+      ? lists 
+      : lists.filter(l => l.id === selectedListId);
+    
+    listsToCheck.forEach(list => {
+      if (list.fields && Array.isArray(list.fields)) {
+        list.fields.forEach(field => {
+          if (!fieldSet.has(field.name)) {
+            fieldSet.set(field.name, field);
+          }
+        });
+      }
+    });
+    
+    return Array.from(fieldSet.values());
+  }, [lists, selectedListId]);
+
   useEffect(() => {
     fetchLists();
   }, []);
 
+  // Reset selected fields when list changes
+  useEffect(() => {
+    setSelectedFields([]);
+  }, [selectedListId]);
+
   const fetchLists = async () => {
     const { data, error } = await supabase
       .from("lists")
-      .select("id, name")
+      .select("id, name, fields")
       .eq("status", "active");
     
     if (!error && data) {
-      setLists(data);
+      setLists(data.map(list => ({
+        ...list,
+        fields: (list.fields as unknown as ListField[]) || []
+      })));
     }
   };
 
+  const toggleField = (fieldName: string) => {
+    setSelectedFields(prev => 
+      prev.includes(fieldName) 
+        ? prev.filter(f => f !== fieldName)
+        : [...prev, fieldName]
+    );
+  };
+
   const findDuplicates = async () => {
+    if (selectedFields.length === 0) {
+      toast.error("Please select at least one field to compare");
+      return;
+    }
+
     setLoading(true);
     setHasSearched(true);
     
@@ -162,33 +207,36 @@ export default function ManageDuplicates() {
         return;
       }
 
-      // Group by phone number
-      const phoneGroups: Record<string, Lead[]> = {};
-      // Group by mokėtojo kodas
-      const codeGroups: Record<string, Lead[]> = {};
+      // Group leads by the combination of selected fields
+      const groups: Record<string, Lead[]> = {};
 
       leads.forEach((lead) => {
         const data = (lead.data as Record<string, any>) || {};
-        const phone = normalizePhone(getLeadPhone(data));
-        const code = getMoketojoKodas(data);
-
-        if (phone && phone.length >= 6) {
-          if (!phoneGroups[phone]) phoneGroups[phone] = [];
-          phoneGroups[phone].push(lead as Lead);
-        }
-
-        if (code && code.length >= 5) {
-          if (!codeGroups[code]) codeGroups[code] = [];
-          codeGroups[code].push(lead as Lead);
+        
+        // Create a composite key from all selected fields
+        const keyParts: string[] = [];
+        selectedFields.forEach(fieldName => {
+          const value = data[fieldName];
+          if (value) {
+            const normalized = normalizeValue(String(value), fieldName);
+            if (normalized.length >= 2) { // Minimum length to avoid false positives
+              keyParts.push(`${fieldName}:${normalized}`);
+            }
+          }
+        });
+        
+        // Only group if we have at least one valid field value
+        if (keyParts.length > 0) {
+          const key = keyParts.join("|");
+          if (!groups[key]) groups[key] = [];
+          groups[key].push(lead as Lead);
         }
       });
 
       // Filter to only groups with duplicates
       const duplicates: DuplicateGroup[] = [];
-      const processedLeadIds = new Set<string>();
 
-      // Process mokėtojo kodas duplicates first (higher priority)
-      Object.entries(codeGroups).forEach(([code, groupLeads]) => {
+      Object.entries(groups).forEach(([key, groupLeads]) => {
         if (groupLeads.length > 1) {
           // Check if internal only filter applies
           if (internalOnly && selectedListId !== "all") {
@@ -196,35 +244,18 @@ export default function ManageDuplicates() {
             if (!allInSelectedList) return;
           }
           
+          // Extract the display value for the match
+          const firstLead = groupLeads[0];
+          const data = (firstLead.data as Record<string, any>) || {};
+          const matchValues = selectedFields
+            .map(f => data[f])
+            .filter(Boolean)
+            .join(", ");
+          
           duplicates.push({
-            key: `code-${code}`,
-            matchType: "mokėtojo_kodas",
-            matchValue: code,
-            leads: groupLeads,
-          });
-          groupLeads.forEach(l => processedLeadIds.add(l.id));
-        }
-      });
-
-      // Process phone duplicates
-      Object.entries(phoneGroups).forEach(([phone, groupLeads]) => {
-        if (groupLeads.length > 1) {
-          // Skip if all leads already processed
-          const unprocessedLeads = groupLeads.filter(l => !processedLeadIds.has(l.id));
-          if (unprocessedLeads.length < 2 && groupLeads.every(l => processedLeadIds.has(l.id))) {
-            return;
-          }
-
-          // Check if internal only filter applies
-          if (internalOnly && selectedListId !== "all") {
-            const allInSelectedList = groupLeads.every(l => l.list_id === selectedListId);
-            if (!allInSelectedList) return;
-          }
-
-          duplicates.push({
-            key: `phone-${phone}`,
-            matchType: "phone",
-            matchValue: phone,
+            key,
+            matchFields: selectedFields,
+            matchValue: matchValues || key,
             leads: groupLeads,
           });
         }
@@ -318,7 +349,7 @@ export default function ManageDuplicates() {
           const sorted = [...group.leads].sort((a, b) => 
             new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
           );
-          const [keep, ...remove] = sorted;
+          const [_keep, ...remove] = sorted;
           for (const lead of remove) {
             await supabase.from("leads").delete().eq("id", lead.id);
           }
@@ -327,7 +358,7 @@ export default function ManageDuplicates() {
           const sorted = [...group.leads].sort((a, b) => 
             new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
           );
-          const [keep, ...remove] = sorted;
+          const [_keep, ...remove] = sorted;
           for (const lead of remove) {
             await supabase.from("leads").delete().eq("id", lead.id);
           }
@@ -413,6 +444,53 @@ export default function ManageDuplicates() {
               <p className="text-sm text-muted-foreground">
                 Only show duplicates if they belong to one of the lists chosen.
               </p>
+
+              {/* Field Selection for Deduplication */}
+              <div className="space-y-2 pt-4 border-t border-border">
+                <Label>Fields to compare</Label>
+                <p className="text-sm text-muted-foreground mb-2">
+                  Select which fields should be used to identify duplicates.
+                </p>
+                {availableFields.length > 0 ? (
+                  <div className="grid grid-cols-2 gap-2 max-h-48 overflow-y-auto p-2 border border-border rounded-md bg-background">
+                    {availableFields.map((field) => (
+                      <div key={field.id} className="flex items-center space-x-2">
+                        <Checkbox 
+                          id={`field-${field.id}`}
+                          checked={selectedFields.includes(field.name)}
+                          onCheckedChange={() => toggleField(field.name)}
+                        />
+                        <Label 
+                          htmlFor={`field-${field.id}`}
+                          className="text-sm cursor-pointer flex items-center gap-1"
+                        >
+                          {field.name}
+                          <Badge variant="outline" className="text-xs ml-1">
+                            {field.type === "Phone" ? "📞" : 
+                             field.type === "E-mail" ? "📧" : 
+                             field.type === "Number" ? "#" : "Aa"}
+                          </Badge>
+                        </Label>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-sm text-muted-foreground italic">
+                    {selectedListId === "all" 
+                      ? "Select a list to see available fields, or no lists have fields defined."
+                      : "No fields defined for this list."}
+                  </p>
+                )}
+                {selectedFields.length > 0 && (
+                  <div className="flex flex-wrap gap-1 mt-2">
+                    {selectedFields.map(field => (
+                      <Badge key={field} variant="secondary" className="text-xs">
+                        {field}
+                      </Badge>
+                    ))}
+                  </div>
+                )}
+              </div>
 
               <Button 
                 onClick={findDuplicates} 
@@ -560,7 +638,6 @@ function DuplicateGroupCard({ group, lists, onKeep, onMerge }: DuplicateGroupCar
   };
 
   const getStatusBadge = (lead: Lead) => {
-    const isNew = lead.status === "new";
     const daysSinceCreated = Math.floor((Date.now() - new Date(lead.created_at).getTime()) / (1000 * 60 * 60 * 24));
     
     if (daysSinceCreated <= 7) {
@@ -587,24 +664,17 @@ function DuplicateGroupCard({ group, lists, onKeep, onMerge }: DuplicateGroupCar
           
           <div className="space-y-1 text-sm">
             {getLeadPhone(data) && (
-              <p className={group.matchType === "phone" || group.matchType === "both" ? "text-destructive font-medium" : ""}>
+              <p className={group.matchFields.some(f => f.toLowerCase().includes("phone") || f.toLowerCase().includes("tel")) ? "text-destructive font-medium" : ""}>
                 +370 {getLeadPhone(data)}
               </p>
-            )}
-            
-            {getMoketojoKodas(data) && (
-              <div className="flex items-start gap-2">
-                <span className="text-muted-foreground shrink-0">Mokėtojo kodas</span>
-                <span className={group.matchType === "mokėtojo_kodas" || group.matchType === "both" ? "text-destructive font-medium" : ""}>
-                  {getMoketojoKodas(data)}
-                </span>
-              </div>
             )}
             
             {getLeadEmail(data) && (
               <div className="flex items-start gap-2">
                 <span className="text-muted-foreground shrink-0">Email</span>
-                <span>{getLeadEmail(data)}</span>
+                <span className={group.matchFields.some(f => f.toLowerCase().includes("email") || f.toLowerCase().includes("mail")) ? "text-destructive font-medium" : ""}>
+                  {getLeadEmail(data)}
+                </span>
               </div>
             )}
             
@@ -641,11 +711,9 @@ function DuplicateGroupCard({ group, lists, onKeep, onMerge }: DuplicateGroupCar
           
           <div className="mt-3 pt-3 border-t border-border">
             <p className="text-sm">
-              <span className="font-medium text-destructive">Matching: </span>
+              <span className="font-medium text-destructive">Matching fields: </span>
               <span className="text-primary">
-                {group.matchType === "phone" ? `Telefonas (${group.leads.length})` : 
-                 group.matchType === "mokėtojo_kodas" ? `Mokėtojo kodas (${group.leads.length})` :
-                 `Both (${group.leads.length})`}
+                {group.matchFields.join(", ")} ({group.leads.length} duplicates)
               </span>
             </p>
             <p className="text-xs text-muted-foreground mt-1">
@@ -732,7 +800,7 @@ function DuplicateGroupCard({ group, lists, onKeep, onMerge }: DuplicateGroupCar
                     <div>
                       <p className="font-medium">{getLeadDisplayName(leadData)}</p>
                       <p className="text-sm text-muted-foreground">
-                        {getLeadPhone(leadData)} • {getMoketojoKodas(leadData)}
+                        {getLeadPhone(leadData)} {getLeadEmail(leadData) && `• ${getLeadEmail(leadData)}`}
                       </p>
                     </div>
                     <Button
