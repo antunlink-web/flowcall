@@ -3,6 +3,9 @@ project_id = "pbnkrtybgtjotopdobam"
 [functions.approve-tenant]
 verify_jwt = false
 
+[functions.email-hook]
+verify_jwt = false
+
 [functions.invite-user]
 verify_jwt = false
 

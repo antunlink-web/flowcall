@@ -68,6 +68,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const resetPassword = async (email: string) => {
+    // Use the current origin for the redirect URL
+    // This ensures it works on any subdomain (e.g., geravalia.flowcall.eu/reset-password)
     const redirectUrl = `${window.location.origin}/reset-password`;
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
       redirectTo: redirectUrl,
