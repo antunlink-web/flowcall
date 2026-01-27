@@ -28,8 +28,7 @@ const menuItems = [
     title: "Duplicates",
     description: "Review and merge or delete duplicate leads",
     href: "/manage/duplicates",
-    disabled: true,
-    comingSoon: true,
+    disabled: false,
   },
   {
     icon: Flag,
@@ -65,13 +64,8 @@ export default function Manage() {
               >
                 <item.icon className="h-6 w-6 text-foreground mt-0.5 shrink-0" />
                 <div>
-                  <h3 className="text-primary font-medium flex items-center gap-2">
+                  <h3 className="text-primary font-medium">
                     {item.title}
-                    {item.comingSoon && (
-                      <span className="text-xs bg-muted text-muted-foreground px-2 py-0.5 rounded-full font-normal">
-                        Coming soon
-                      </span>
-                    )}
                   </h3>
                   <p className="text-muted-foreground text-sm">
                     {item.description}
