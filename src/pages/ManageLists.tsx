@@ -257,13 +257,20 @@ export default function ManageLists() {
     name: string,
     fields: ListField[],
     description: string,
-    data: { headers: string[]; rows: Record<string, string>[] }
+    data: { headers: string[]; rows: Record<string, string>[] } | null
   ) => {
     const newList = await createList(name, fields, description);
-    if (newList && data.rows.length > 0) {
-      await importLeadsFromData(newList.id, data.rows);
+    if (newList) {
+      // Import leads if data was provided
+      if (data && data.rows.length > 0) {
+        await importLeadsFromData(newList.id, data.rows);
+      }
+      setShowCreateDialog(false);
+      // Automatically open fields configuration for the new list
+      handleConfigureList(newList);
+    } else {
+      setShowCreateDialog(false);
     }
-    setShowCreateDialog(false);
   };
 
   const handleConfigureList = (list: List) => {

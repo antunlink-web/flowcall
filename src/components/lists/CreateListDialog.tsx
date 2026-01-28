@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Upload, FileText, FileSpreadsheet } from "lucide-react";
+import { Upload, FileText, FileSpreadsheet, Plus } from "lucide-react";
 import { ListField } from "@/hooks/useLists";
 import * as XLSX from "xlsx";
 
@@ -21,7 +21,7 @@ interface CreateListDialogProps {
     name: string,
     fields: ListField[],
     description: string,
-    data: { headers: string[]; rows: Record<string, string>[] }
+    data: { headers: string[]; rows: Record<string, string>[] } | null
   ) => void;
 }
 
@@ -195,9 +195,16 @@ export function CreateListDialog({
     setIsLoading(false);
   };
 
-  const handleSubmit = () => {
+  const handleSubmitWithFile = () => {
     if (!name.trim() || extractedFields.length === 0 || !parsedData) return;
     onCreateList(name, extractedFields, description, parsedData);
+    resetForm();
+  };
+
+  const handleSubmitEmpty = () => {
+    if (!name.trim()) return;
+    // Create empty list with no fields - user will configure them later
+    onCreateList(name, [], description, null);
     resetForm();
   };
 
@@ -212,6 +219,7 @@ export function CreateListDialog({
 
   const isExcelFile = fileName.endsWith(".xlsx") || fileName.endsWith(".xls");
   const rowCount = parsedData?.rows.length || 0;
+  const hasFile = parsedData && extractedFields.length > 0;
 
   return (
     <Dialog open={open} onOpenChange={(v) => { onOpenChange(v); if (!v) resetForm(); }}>
@@ -243,7 +251,7 @@ export function CreateListDialog({
           </div>
 
           <div className="space-y-2">
-            <Label>Upload CSV or Excel File *</Label>
+            <Label>Upload CSV or Excel File (optional)</Label>
             <input
               type="file"
               ref={fileInputRef}
@@ -265,7 +273,7 @@ export function CreateListDialog({
               {isLoading ? "Reading file..." : fileName || "Choose CSV or Excel file"}
             </Button>
             <p className="text-xs text-muted-foreground">
-              Supports .csv, .xlsx, and .xls files
+              You can create an empty list and add contacts later, or upload a file now.
             </p>
           </div>
 
@@ -295,16 +303,26 @@ export function CreateListDialog({
           )}
         </div>
 
-        <DialogFooter>
+        <DialogFooter className="flex-col sm:flex-row gap-2">
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             Cancel
           </Button>
-          <Button
-            onClick={handleSubmit}
-            disabled={!name.trim() || extractedFields.length === 0 || !parsedData || isLoading}
-          >
-            Create List & Import {rowCount > 0 ? `${rowCount.toLocaleString()} ` : ""}Leads
-          </Button>
+          {hasFile ? (
+            <Button
+              onClick={handleSubmitWithFile}
+              disabled={!name.trim() || isLoading}
+            >
+              Create List & Import {rowCount > 0 ? `${rowCount.toLocaleString()} ` : ""}Leads
+            </Button>
+          ) : (
+            <Button
+              onClick={handleSubmitEmpty}
+              disabled={!name.trim() || isLoading}
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              Create Empty List
+            </Button>
+          )}
         </DialogFooter>
       </DialogContent>
     </Dialog>
