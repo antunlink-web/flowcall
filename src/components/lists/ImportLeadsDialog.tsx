@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import {
   Dialog,
   DialogContent,
@@ -7,8 +7,9 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Upload, FileText, AlertCircle, FileSpreadsheet } from "lucide-react";
+import { Upload, FileText, AlertCircle, FileSpreadsheet, Settings2 } from "lucide-react";
 import { ListField } from "@/hooks/useLists";
+import { FieldMappingRow } from "./FieldMappingRow";
 import * as XLSX from "xlsx";
 
 interface ImportLeadsDialogProps {
@@ -30,7 +31,24 @@ export function ImportLeadsDialog({
   const [fileName, setFileName] = useState("");
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [showFieldMapping, setShowFieldMapping] = useState(false);
+  // Maps CSV header -> list field ID
+  const [fieldMappings, setFieldMappings] = useState<Record<string, string | null>>({});
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Auto-match fields when file is parsed
+  useEffect(() => {
+    if (parsedData && listFields.length > 0) {
+      const autoMappings: Record<string, string | null> = {};
+      parsedData.headers.forEach((header) => {
+        const matchedField = listFields.find(
+          (f) => f.name.toLowerCase() === header.toLowerCase()
+        );
+        autoMappings[header] = matchedField?.id || null;
+      });
+      setFieldMappings(autoMappings);
+    }
+  }, [parsedData, listFields]);
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -191,7 +209,32 @@ export function ImportLeadsDialog({
       setError("Please select a valid file with data");
       return;
     }
-    onImport(parsedData);
+
+    // Apply field mappings to transform the data
+    if (listFields.length > 0 && Object.values(fieldMappings).some((v) => v !== null)) {
+      const mappedRows = parsedData.rows.map((row) => {
+        const mappedRow: Record<string, string> = {};
+        Object.entries(fieldMappings).forEach(([csvHeader, fieldId]) => {
+          if (fieldId) {
+            const field = listFields.find((f) => f.id === fieldId);
+            if (field) {
+              mappedRow[field.name] = row[csvHeader] || "";
+            }
+          }
+        });
+        return mappedRow;
+      });
+      
+      const mappedHeaders = Object.entries(fieldMappings)
+        .filter(([, fieldId]) => fieldId !== null)
+        .map(([, fieldId]) => listFields.find((f) => f.id === fieldId)?.name || "")
+        .filter((name) => name.length > 0);
+      
+      onImport({ headers: mappedHeaders, rows: mappedRows });
+    } else {
+      onImport(parsedData);
+    }
+    
     resetForm();
     onOpenChange(false);
   };
@@ -201,18 +244,16 @@ export function ImportLeadsDialog({
     setFileName("");
     setError("");
     setIsLoading(false);
+    setShowFieldMapping(false);
+    setFieldMappings({});
   };
 
   const headers = parsedData?.headers || [];
   const rowCount = parsedData?.rows.length || 0;
 
-  const matchedFields = headers.filter((h) =>
-    listFields.some((f) => f.name.toLowerCase() === h.toLowerCase())
-  );
-
-  const unmatchedFields = headers.filter(
-    (h) => !listFields.some((f) => f.name.toLowerCase() === h.toLowerCase())
-  );
+  const matchedFields = headers.filter((h) => fieldMappings[h] !== null);
+  const unmatchedFields = headers.filter((h) => fieldMappings[h] === null);
+  const usedFieldIds = new Set(Object.values(fieldMappings).filter((v): v is string => v !== null));
 
   const isExcelFile = fileName.endsWith(".xlsx") || fileName.endsWith(".xls");
 
@@ -259,49 +300,90 @@ export function ImportLeadsDialog({
 
           {parsedData && headers.length > 0 && (
             <div className="space-y-4">
-              <div className="p-3 bg-muted rounded-md">
+              <div className="p-3 bg-muted rounded-md flex items-center justify-between">
                 <p className="text-sm font-medium">
                   Found {rowCount.toLocaleString()} leads with {headers.length} fields
                 </p>
+                {listFields.length > 0 && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setShowFieldMapping(!showFieldMapping)}
+                    className="gap-1"
+                  >
+                    <Settings2 className="h-4 w-4" />
+                    {showFieldMapping ? "Hide" : "Map Fields"}
+                  </Button>
+                )}
               </div>
 
-              <div className="space-y-2">
-                <p className="text-sm font-medium text-green-600">
-                  Matched Fields ({matchedFields.length})
-                </p>
-                <div className="flex flex-wrap gap-2">
-                  {matchedFields.map((header) => (
-                    <span
-                      key={header}
-                      className="inline-flex items-center gap-1 px-2 py-1 rounded bg-green-50 border border-green-200 text-sm text-green-700"
-                    >
-                      <FileText className="h-3 w-3" />
-                      {header}
-                    </span>
-                  ))}
-                </div>
-              </div>
-
-              {unmatchedFields.length > 0 && (
+              {showFieldMapping && listFields.length > 0 ? (
                 <div className="space-y-2">
-                  <p className="text-sm font-medium text-orange-600">
-                    New Fields ({unmatchedFields.length})
+                  <p className="text-sm font-medium">
+                    Map CSV columns to list fields
                   </p>
-                  <div className="flex flex-wrap gap-2">
-                    {unmatchedFields.map((header) => (
-                      <span
+                  <div className="border rounded-md p-3 max-h-64 overflow-y-auto bg-muted/30">
+                    {headers.map((header) => (
+                      <FieldMappingRow
                         key={header}
-                        className="inline-flex items-center gap-1 px-2 py-1 rounded bg-orange-50 border border-orange-200 text-sm text-orange-700"
-                      >
-                        <FileText className="h-3 w-3" />
-                        {header}
-                      </span>
+                        csvHeader={header}
+                        listFields={listFields}
+                        selectedFieldId={fieldMappings[header] || null}
+                        usedFieldIds={usedFieldIds}
+                        onSelect={(fieldId) =>
+                          setFieldMappings((prev) => ({ ...prev, [header]: fieldId }))
+                        }
+                      />
                     ))}
                   </div>
                   <p className="text-xs text-muted-foreground">
-                    These fields will be stored in lead data but won't appear in list fields.
+                    Unmapped columns will be skipped. Matched: {matchedFields.length}/{headers.length}
                   </p>
                 </div>
+              ) : (
+                <>
+                  <div className="space-y-2">
+                    <p className="text-sm font-medium text-green-600">
+                      Matched Fields ({matchedFields.length})
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+                      {matchedFields.map((header) => (
+                        <span
+                          key={header}
+                          className="inline-flex items-center gap-1 px-2 py-1 rounded bg-green-50 border border-green-200 text-sm text-green-700"
+                        >
+                          <FileText className="h-3 w-3" />
+                          {header}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+
+                  {unmatchedFields.length > 0 && (
+                    <div className="space-y-2">
+                      <p className="text-sm font-medium text-orange-600">
+                        Unmapped Fields ({unmatchedFields.length})
+                      </p>
+                      <div className="flex flex-wrap gap-2">
+                        {unmatchedFields.map((header) => (
+                          <span
+                            key={header}
+                            className="inline-flex items-center gap-1 px-2 py-1 rounded bg-orange-50 border border-orange-200 text-sm text-orange-700"
+                          >
+                            <FileText className="h-3 w-3" />
+                            {header}
+                          </span>
+                        ))}
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        {listFields.length > 0 
+                          ? "Click 'Map Fields' to manually match these columns to existing fields."
+                          : "These fields will be stored in lead data but won't appear in list fields."
+                        }
+                      </p>
+                    </div>
+                  )}
+                </>
               )}
             </div>
           )}
