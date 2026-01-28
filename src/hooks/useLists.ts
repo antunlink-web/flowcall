@@ -157,6 +157,16 @@ export function useLists() {
   const createListMutation = useMutation({
     mutationFn: async ({ name, fields, description }: { name: string; fields: ListField[]; description?: string }) => {
       const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("User not authenticated");
+      
+      // Get user's tenant_id from their profile
+      const { data: profile, error: profileError } = await supabase
+        .from("profiles")
+        .select("tenant_id")
+        .eq("id", user.id)
+        .single();
+      
+      if (profileError) throw profileError;
       
       const { data, error } = await supabase
         .from("lists")
@@ -164,7 +174,8 @@ export function useLists() {
           name,
           description,
           fields: JSON.parse(JSON.stringify(fields)),
-          created_by: user?.id,
+          created_by: user.id,
+          tenant_id: profile.tenant_id,
         }])
         .select()
         .single();
