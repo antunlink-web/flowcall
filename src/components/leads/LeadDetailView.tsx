@@ -497,12 +497,21 @@ export function LeadDetailView({ leadId, onClose }: LeadDetailViewProps) {
     );
   };
 
-  // Get primary display info - prioritize company name fields
+  // Get primary display info - use first field from list configuration
   const getDisplayName = () => {
     if (!lead?.data) return "Unknown";
-    const entries = Object.entries(lead.data);
     
-    // Prioritize company name fields (Pavadinimas, Company, etc.)
+    // If list has defined fields, use the first field as the display name
+    if (list?.fields && list.fields.length > 0) {
+      const firstFieldName = list.fields[0].name;
+      const firstFieldValue = lead.data[firstFieldName];
+      if (typeof firstFieldValue === "string" && firstFieldValue.trim()) {
+        return firstFieldValue;
+      }
+    }
+    
+    // Fallback: prioritize company name fields (Pavadinimas, Company, etc.)
+    const entries = Object.entries(lead.data);
     const companyFields = ["pavadinimas", "company", "company name", "įmonė", "firma"];
     for (const [key, value] of entries) {
       if (companyFields.includes(key.toLowerCase()) && typeof value === "string" && value.trim()) {
