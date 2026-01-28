@@ -87,13 +87,6 @@ import {
 } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 
-const subNavItems = [
-  { label: "Lists", href: "/manage/lists" },
-  { label: "Users", href: "/manage/users" },
-  { label: "Duplicates", href: "/manage/duplicates" },
-  { label: "Claims", href: "/manage/claims" },
-  { label: "Account", href: "/manage/account" },
-];
 
 const configSidebarItems = [
   { icon: LayoutGrid, label: "Fields", id: "fields" },
@@ -1489,24 +1482,6 @@ export default function ManageLists() {
   if (configureList) {
     return (
       <DashboardLayout>
-          <div className="border-b border-border bg-background">
-          <div className="flex gap-6 px-6">
-            {subNavItems.map((item) => (
-              <Link
-                key={item.label}
-                to={item.href}
-                className={`py-3 text-sm font-medium border-b-2 transition-colors ${
-                  location.pathname === item.href
-                    ? "border-primary text-foreground"
-                    : "border-transparent text-muted-foreground hover:text-foreground"
-                }`}
-              >
-                {item.label}
-              </Link>
-            ))}
-          </div>
-        </div>
-
         <div className="flex min-h-[calc(100vh-120px)]">
           <div className="w-56 border-r border-border bg-background">
             <nav className="p-2">
@@ -1804,24 +1779,6 @@ export default function ManageLists() {
 
   return (
     <DashboardLayout>
-        <div className="border-b border-border bg-background">
-          <div className="flex gap-6 px-6">
-            {subNavItems.map((item) => (
-              <Link
-                key={item.label}
-                to={item.href}
-                className={`py-3 text-sm font-medium border-b-2 transition-colors ${
-                  location.pathname === item.href
-                    ? "border-primary text-foreground"
-                    : "border-transparent text-muted-foreground hover:text-foreground"
-                }`}
-              >
-                {item.label}
-              </Link>
-            ))}
-          </div>
-        </div>
-
         <div className="p-8">
           <div className="max-w-6xl">
             <div className="mb-8">
