@@ -261,8 +261,23 @@ export function useLists() {
         return 0;
       }
 
+      // Fetch the list's tenant_id to ensure leads inherit proper tenant association
+      const { data: listData, error: listError } = await supabase
+        .from("lists")
+        .select("tenant_id")
+        .eq("id", listId)
+        .single();
+
+      if (listError || !listData?.tenant_id) {
+        console.error("Failed to fetch list tenant_id:", listError);
+        toast.error("Failed to import: could not determine tenant");
+        setUploadProgress({ isUploading: false, progress: 0, message: "" });
+        return 0;
+      }
+
       const leads = rows.map((data) => ({
         list_id: listId,
+        tenant_id: listData.tenant_id,
         data,
         status: "new",
       }));
