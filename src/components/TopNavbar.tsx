@@ -87,16 +87,49 @@ export function TopNavbar() {
         
         if (error) throw error;
 
-        const results = (data || []).slice(0, 20).map((lead: any) => {
+        const leads = (data || []).slice(0, 20);
+        
+        // Fetch list configurations for unique list_ids to get field definitions
+        const uniqueListIds = [...new Set(leads.map((l: any) => l.list_id).filter(Boolean))] as string[];
+        let listsMap: Record<string, { fields: { name: string }[] }> = {};
+        
+        if (uniqueListIds.length > 0) {
+          const { data: listsData } = await supabase
+            .from("lists")
+            .select("id, fields")
+            .in("id", uniqueListIds);
+          
+          if (listsData) {
+            listsMap = listsData.reduce((acc, list) => {
+              acc[list.id] = { fields: (list.fields as { name: string }[]) || [] };
+              return acc;
+            }, {} as Record<string, { fields: { name: string }[] }>);
+          }
+        }
+
+        const results = leads.map((lead: any) => {
           const leadData = lead.data || {};
           const entries = Object.entries(leadData);
+          const listConfig = lead.list_id ? listsMap[lead.list_id] : null;
           
+          // Use first field from list configuration as display name
           let displayName = "Unknown";
-          const companyFields = ["pavadinimas", "company", "company name", "įmonė", "firma"];
-          for (const [key, value] of entries) {
-            if (companyFields.includes(key.toLowerCase()) && typeof value === 'string' && value.trim()) {
-              displayName = value;
-              break;
+          if (listConfig?.fields && listConfig.fields.length > 0) {
+            const firstFieldName = listConfig.fields[0].name;
+            const firstFieldValue = leadData[firstFieldName];
+            if (typeof firstFieldValue === 'string' && firstFieldValue.trim()) {
+              displayName = firstFieldValue;
+            }
+          }
+          
+          // Fallback to company fields or first non-empty value
+          if (displayName === "Unknown") {
+            const companyFields = ["pavadinimas", "company", "company name", "įmonė", "firma"];
+            for (const [key, value] of entries) {
+              if (companyFields.includes(key.toLowerCase()) && typeof value === 'string' && value.trim()) {
+                displayName = value;
+                break;
+              }
             }
           }
           if (displayName === "Unknown") {
