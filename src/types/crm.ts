@@ -24,7 +24,16 @@ export function getLeadField(lead: Lead, field: string): string {
 }
 
 // Helper to get display name for a lead
-export function getLeadDisplayName(lead: Lead): string {
+// If listFields are provided, uses the first field as the display name
+export function getLeadDisplayName(lead: Lead, listFields?: { name: string }[]): string {
+  // If list has defined fields, use the first field as the display name
+  if (listFields && listFields.length > 0) {
+    const firstFieldName = listFields[0].name;
+    const firstFieldValue = getLeadField(lead, firstFieldName);
+    if (firstFieldValue) return firstFieldValue;
+  }
+  
+  // Fall back to common name field patterns
   const firstName = getLeadField(lead, "first_name") || getLeadField(lead, "firstname") || getLeadField(lead, "name");
   const lastName = getLeadField(lead, "last_name") || getLeadField(lead, "lastname");
   return [firstName, lastName].filter(Boolean).join(" ") || "Unknown";
