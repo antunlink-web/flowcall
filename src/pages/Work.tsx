@@ -54,7 +54,7 @@ export default function Work() {
     const now = new Date().toISOString();
 
     // Run all initial queries in parallel
-    const [listUserResult, scheduledResult, claimedResult] = await Promise.all([
+    const [listUserResult, scheduledResult, claimedResult, userRolesResult] = await Promise.all([
       supabase.from("list_users").select("list_id").eq("user_id", user.id),
       supabase
         .from("leads")
@@ -71,9 +71,12 @@ export default function Work() {
         .not("status", "in", '("won","lost","archived")')
         .order("claimed_at", { ascending: false })
         .limit(100),
+      supabase.from("user_roles").select("role").eq("user_id", user.id),
     ]);
 
     const userListIds = (listUserResult.data || []).map((lu) => lu.list_id);
+    const roles = (userRolesResult.data || []).map((r) => r.role);
+    const isOwnerOrManager = roles.includes("owner") || roles.includes("account_manager");
 
     // Set scheduled and claimed leads immediately
     setScheduledLeads((scheduledResult.data || []).map((l) => ({
@@ -86,18 +89,23 @@ export default function Work() {
       data: (l.data as Record<string, unknown>) || {},
     })) as Lead[]);
 
-    if (userListIds.length === 0) {
-      setLists([]);
-      setLoading(false);
-      return;
-    }
-
-    // Fetch list details
-    const { data: listsData } = await supabase
+    // Fetch list details - owners/managers see all lists, agents see assigned lists
+    let listsQuery = supabase
       .from("lists")
       .select("id, name, status")
-      .in("id", userListIds)
       .eq("status", "active");
+    
+    // If not owner/manager, filter to assigned lists only
+    if (!isOwnerOrManager) {
+      if (userListIds.length === 0) {
+        setLists([]);
+        setLoading(false);
+        return;
+      }
+      listsQuery = listsQuery.in("id", userListIds);
+    }
+
+    const { data: listsData } = await listsQuery;
 
     if (!listsData || listsData.length === 0) {
       setLists([]);
