@@ -50,8 +50,9 @@ export default function ManageAccount() {
   const { isOwner } = useUserRole();
   const { branding, refetch: refetchBranding } = useBranding();
   const [activeSection, setActiveSection] = useState<string | null>(null);
-  const [seats, setSeats] = useState("4");
+  const [seats, setSeats] = useState("1");
   const [usedSeats, setUsedSeats] = useState(0);
+  const [tenantId, setTenantId] = useState<string | null>(null);
   const [topUpTo, setTopUpTo] = useState("0");
   const [balanceFallsBelow, setBalanceFallsBelow] = useState("0");
   const [showEntries, setShowEntries] = useState("25");
@@ -91,18 +92,40 @@ export default function ManageAccount() {
 
   useEffect(() => {
     const fetchAccountData = async () => {
-      // Fetch account settings including billing info
+      // Get current user and their tenant
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("tenant_id")
+        .eq("id", user.id)
+        .single();
+
+      if (!profile?.tenant_id) return;
+      
+      setTenantId(profile.tenant_id);
+
+      // Fetch tenant data for seat_count - CRITICAL: Uses tenant_id for isolation
+      const { data: tenantData } = await supabase
+        .from("tenants")
+        .select("seat_count, max_seats")
+        .eq("id", profile.tenant_id)
+        .single();
+
+      if (tenantData) {
+        setSeats(String(tenantData.seat_count || 1));
+      }
+
+      // Fetch account settings (billing info, subscription) filtered by tenant
       const { data: settingsData } = await supabase
         .from("account_settings")
         .select("setting_key, setting_value")
-        .in("setting_key", ["seats", "subscription_plan", "billing_info"]);
+        .eq("tenant_id", profile.tenant_id)
+        .in("setting_key", ["subscription_plan", "billing_info"]);
       
       if (settingsData) {
         settingsData.forEach((setting) => {
-          if (setting.setting_key === "seats") {
-            const value = setting.setting_value as { total?: number };
-            setSeats(String(value.total || 4));
-          }
           if (setting.setting_key === "subscription_plan") {
             const value = setting.setting_value as { plan?: string };
             setCurrentPlan(value.plan || "basic");
@@ -132,10 +155,11 @@ export default function ManageAccount() {
         });
       }
 
-      // Fetch user count
+      // Fetch user count for THIS tenant only - CRITICAL for tenant isolation
       const { count } = await supabase
         .from("profiles")
-        .select("*", { count: "exact", head: true });
+        .select("*", { count: "exact", head: true })
+        .eq("tenant_id", profile.tenant_id);
       
       setUsedSeats(count || 0);
     };
@@ -207,12 +231,21 @@ export default function ManageAccount() {
   };
 
   const handleSaveSeats = async () => {
+    if (!tenantId) {
+      toast.error("Unable to identify your organization");
+      return;
+    }
+
+    const newSeatCount = parseInt(seats) || 1;
+    
+    // Update seat_count in tenants table - CRITICAL: Uses tenant_id for isolation
     const { error } = await supabase
-      .from("account_settings")
-      .update({ setting_value: { total: parseInt(seats) || 4 } })
-      .eq("setting_key", "seats");
+      .from("tenants")
+      .update({ seat_count: newSeatCount })
+      .eq("id", tenantId);
 
     if (error) {
+      console.error("Failed to update seats:", error);
       toast.error("Failed to update seats");
     } else {
       toast.success("Seats updated successfully");
