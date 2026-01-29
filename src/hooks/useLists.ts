@@ -227,9 +227,48 @@ export function useLists() {
   // Delete list mutation
   const deleteListMutation = useMutation({
     mutationFn: async (id: string) => {
-      // First delete all leads associated with this list
-      await supabase.from("leads").delete().eq("list_id", id);
+      // Delete leads in batches to avoid timeout on large lists
+      let deletedCount = 0;
+      const batchSize = 500;
       
+      // Keep deleting in batches until no more leads remain
+      while (true) {
+        // First, get a batch of lead IDs to delete
+        const { data: leadsToDelete, error: fetchError } = await supabase
+          .from("leads")
+          .select("id")
+          .eq("list_id", id)
+          .limit(batchSize);
+        
+        if (fetchError) {
+          console.error("Error fetching leads to delete:", fetchError);
+          throw fetchError;
+        }
+        
+        // If no more leads, break out of loop
+        if (!leadsToDelete || leadsToDelete.length === 0) break;
+        
+        const leadIds = leadsToDelete.map(l => l.id);
+        
+        // Delete this batch of leads by ID
+        const { error: deleteError } = await supabase
+          .from("leads")
+          .delete()
+          .in("id", leadIds);
+        
+        if (deleteError) {
+          console.error("Error deleting leads batch:", deleteError);
+          throw deleteError;
+        }
+        
+        deletedCount += leadIds.length;
+        console.log(`Deleted ${deletedCount} leads from list ${id}...`);
+        
+        // If we got fewer than batchSize, we're done
+        if (leadsToDelete.length < batchSize) break;
+      }
+      
+      // Now delete the list itself
       const { error } = await supabase.from("lists").delete().eq("id", id);
       if (error) throw error;
       return id;
