@@ -64,6 +64,22 @@ serve(async (req: Request) => {
       );
     }
 
+    // Get the requesting user's tenant_id - CRITICAL for tenant isolation
+    const { data: inviterProfile } = await supabaseAdmin
+      .from("profiles")
+      .select("tenant_id")
+      .eq("id", requestingUser.id)
+      .single();
+
+    if (!inviterProfile?.tenant_id) {
+      return new Response(
+        JSON.stringify({ error: "Your account is not associated with an organization" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const inviterTenantId = inviterProfile.tenant_id;
+
     // Parse the request body
     const { email, role, fullName }: InviteRequest = await req.json();
 
@@ -128,12 +144,13 @@ serve(async (req: Request) => {
     const origin = req.headers.get("origin") || "https://lovable.dev";
     const redirectTo = `${origin}/accept-invite`;
 
-    // Invite the user using Supabase admin API
+    // Invite the user using Supabase admin API with tenant_id in metadata
     const { data: inviteData, error: inviteError } = await supabaseAdmin.auth.admin.inviteUserByEmail(email, {
       redirectTo,
       data: {
         full_name: fullName || email.split("@")[0],
         invited_role: role,
+        invited_tenant_id: inviterTenantId, // CRITICAL: Pass tenant_id for profile creation
       },
     });
 
@@ -145,7 +162,7 @@ serve(async (req: Request) => {
       );
     }
 
-    // Record the invitation in our table
+    // Record the invitation in our table WITH tenant_id - CRITICAL for tenant isolation
     const { error: recordError } = await supabaseAdmin
       .from("user_invitations")
       .upsert({
@@ -153,6 +170,7 @@ serve(async (req: Request) => {
         invited_by: requestingUser.id,
         role,
         full_name: fullName,
+        tenant_id: inviterTenantId, // Associate invitation with inviter's tenant
       }, {
         onConflict: "email"
       });

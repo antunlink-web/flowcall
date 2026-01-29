@@ -102,7 +102,31 @@ export default function Team() {
 
   const fetchTeam = async () => {
     setLoading(true);
-    const { data: profiles } = await supabase.from("profiles").select("*");
+    
+    // Get current user's tenant_id first
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      setLoading(false);
+      return;
+    }
+    
+    const { data: currentProfile } = await supabase
+      .from("profiles")
+      .select("tenant_id")
+      .eq("id", user.id)
+      .single();
+    
+    if (!currentProfile?.tenant_id) {
+      setLoading(false);
+      return;
+    }
+    
+    // Only fetch profiles from the same tenant - CRITICAL for tenant isolation
+    const { data: profiles } = await supabase
+      .from("profiles")
+      .select("*")
+      .eq("tenant_id", currentProfile.tenant_id);
+    
     const { data: allRoles } = await supabase.from("user_roles").select("*");
 
     const teamMembers = (profiles || []).map((p) => {
