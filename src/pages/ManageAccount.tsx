@@ -238,6 +238,13 @@ export default function ManageAccount() {
 
     const newSeatCount = parseInt(seats) || 1;
     
+    // Prevent reducing seats below current user count
+    if (newSeatCount < usedSeats) {
+      toast.error(`Cannot set seats below current user count (${usedSeats}). Please remove users first.`);
+      setSeats(String(usedSeats)); // Reset to minimum valid value
+      return;
+    }
+    
     // Update seat_count in tenants table - CRITICAL: Uses tenant_id for isolation
     const { error } = await supabase
       .from("tenants")
@@ -1007,10 +1014,12 @@ export default function ManageAccount() {
         );
 
       case "seats":
-        const totalSeatsNum = parseInt(seats) || 4;
+        const totalSeatsNum = parseInt(seats) || 1;
         const availableSeats = Math.max(0, totalSeatsNum - usedSeats);
-        const usedPercent = totalSeatsNum > 0 ? (usedSeats / totalSeatsNum) * 100 : 0;
-        const availablePercent = totalSeatsNum > 0 ? (availableSeats / totalSeatsNum) * 100 : 0;
+        const isOverLimit = usedSeats > totalSeatsNum;
+        // When over limit, show 100% used (red). Otherwise calculate normally
+        const usedPercent = isOverLimit ? 100 : (totalSeatsNum > 0 ? (usedSeats / totalSeatsNum) * 100 : 0);
+        const availablePercent = isOverLimit ? 0 : (totalSeatsNum > 0 ? (availableSeats / totalSeatsNum) * 100 : 0);
         
         return (
           <div className="space-y-8">
@@ -1021,9 +1030,17 @@ export default function ManageAccount() {
 
             {renderAccountInfoCard()}
 
+            {isOverLimit && (
+              <div className="bg-destructive/10 border border-destructive rounded-lg p-4 text-center">
+                <p className="text-destructive font-medium">
+                  ⚠️ You have more users ({usedSeats}) than seats ({totalSeatsNum}). Please add more seats or remove users.
+                </p>
+              </div>
+            )}
+
             <div className="text-center mb-6">
               <p className="text-xl">
-                You currently have <span className="font-bold text-primary">{usedSeats}</span> users and <span className="font-bold text-primary">{availableSeats}</span> available seats.
+                You currently have <span className="font-bold text-primary">{usedSeats}</span> users and <span className={`font-bold ${isOverLimit ? 'text-destructive' : 'text-primary'}`}>{availableSeats}</span> available seats.
               </p>
             </div>
 
@@ -1031,10 +1048,10 @@ export default function ManageAccount() {
               <div className="flex rounded-md overflow-hidden h-8">
                 {usedSeats > 0 && (
                   <div
-                    className="bg-primary flex items-center justify-center text-primary-foreground text-sm font-medium"
+                    className={`${isOverLimit ? 'bg-destructive' : 'bg-primary'} flex items-center justify-center text-primary-foreground text-sm font-medium`}
                     style={{ width: `${usedPercent}%` }}
                   >
-                    {usedSeats} Used
+                    {usedSeats} Used {isOverLimit && `(${usedSeats - totalSeatsNum} over limit)`}
                   </div>
                 )}
                 {availableSeats > 0 && (
@@ -1064,10 +1081,15 @@ export default function ManageAccount() {
                   onChange={(e) => setSeats(e.target.value)}
                   className="w-20"
                   type="number"
-                  min="1"
+                  min={usedSeats} // Minimum is current user count
                 />
                 <Button onClick={handleSaveSeats} className="bg-destructive hover:bg-destructive/90">Submit</Button>
               </div>
+              {isOverLimit && (
+                <p className="text-sm text-destructive">
+                  Minimum seats required: {usedSeats} (based on current user count)
+                </p>
+              )}
             </div>
           </div>
         );
