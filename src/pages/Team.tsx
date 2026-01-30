@@ -72,7 +72,8 @@ export default function Team() {
   const [editingMember, setEditingMember] = useState<TeamMember | null>(null);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [inviteDialogOpen, setInviteDialogOpen] = useState(false);
-  const [totalSeats, setTotalSeats] = useState(4);
+  const [totalSeats, setTotalSeats] = useState(1);
+  const [tenantId, setTenantId] = useState<string | null>(null);
   
   // Invite form state
   const [inviteEmail, setInviteEmail] = useState("");
@@ -83,20 +84,34 @@ export default function Team() {
   const { toast } = useToast();
   const { isOwner } = useUserRole();
 
-  const usedSeats = members.length;
+  const usedSeats = members.filter(m => m.status === "active").length;
   const availableSeats = Math.max(0, totalSeats - usedSeats);
   const pendingInvitations = invitations.filter(i => !i.accepted_at);
 
   const fetchSeats = async () => {
-    const { data } = await supabase
-      .from("account_settings")
-      .select("setting_value")
-      .eq("setting_key", "seats")
-      .maybeSingle();
+    // Get current user's tenant_id first
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
     
-    if (data?.setting_value) {
-      const value = data.setting_value as { total?: number };
-      setTotalSeats(value.total || 4);
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("tenant_id")
+      .eq("id", user.id)
+      .single();
+    
+    if (!profile?.tenant_id) return;
+    
+    setTenantId(profile.tenant_id);
+    
+    // Fetch seat_count from tenants table - CRITICAL: Use tenants.seat_count for consistency
+    const { data: tenant } = await supabase
+      .from("tenants")
+      .select("seat_count")
+      .eq("id", profile.tenant_id)
+      .single();
+    
+    if (tenant) {
+      setTotalSeats(tenant.seat_count || 1);
     }
   };
 
