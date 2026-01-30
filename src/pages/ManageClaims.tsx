@@ -2,11 +2,9 @@ import { useState, useEffect } from "react";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
   Select,
@@ -27,14 +25,6 @@ import {
   Loader2
 } from "lucide-react";
 
-const subNavItems = [
-  { label: "Lists", href: "/manage/lists" },
-  { label: "Users", href: "/manage/users" },
-  { label: "Duplicates", href: "/manage/duplicates" },
-  { label: "Claims", href: "/manage/claims" },
-  { label: "Settings", href: "/manage/settings" },
-  { label: "Account", href: "/manage/account" },
-];
 
 interface ClaimStats {
   onSchedule: number;
@@ -269,24 +259,6 @@ export default function ManageClaims() {
 
   return (
     <DashboardLayout>
-      {/* Sub Navigation */}
-      <div className="border-b border-border bg-background">
-        <div className="flex gap-6 px-6">
-          {subNavItems.map((item) => (
-            <Link
-              key={item.label}
-              to={item.href}
-              className={`py-3 text-sm font-medium border-b-2 transition-colors ${
-                item.label === "Claims"
-                  ? "border-primary text-primary"
-                  : "border-transparent text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              {item.label}
-            </Link>
-          ))}
-        </div>
-      </div>
 
       <div className="p-8">
         <div className="flex items-center justify-between mb-6">

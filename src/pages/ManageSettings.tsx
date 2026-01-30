@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { DashboardLayout } from "@/components/DashboardLayout";
-import { Link, useLocation } from "react-router-dom";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -27,13 +26,6 @@ import {
   ChevronRight,
 } from "lucide-react";
 
-const subNavItems = [
-  { label: "Lists", href: "/manage/lists" },
-  { label: "Users", href: "/manage/users" },
-  { label: "Duplicates", href: "/manage/duplicates" },
-  { label: "Claims", href: "/manage/claims" },
-  { label: "Account", href: "/manage/account" },
-];
 
 const sidebarItems = [
   { icon: Workflow, label: "Workflow Settings", id: "workflow" },
@@ -47,7 +39,6 @@ const sidebarItems = [
 ];
 
 export default function ManageSettings() {
-  const location = useLocation();
   const [activeSection, setActiveSection] = useState("workflow");
 
   // Workflow Settings State
@@ -677,24 +668,6 @@ export default function ManageSettings() {
 
   return (
     <DashboardLayout>
-      {/* Sub Navigation */}
-      <div className="border-b border-border bg-background">
-        <div className="flex gap-6 px-6">
-          {subNavItems.map((item) => (
-            <Link
-              key={item.label}
-              to={item.href}
-              className={`py-3 text-sm font-medium border-b-2 transition-colors ${
-                location.pathname === item.href
-                  ? "border-primary text-foreground"
-                  : "border-transparent text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              {item.label}
-            </Link>
-          ))}
-        </div>
-      </div>
 
       {/* Main Content with Sidebar */}
       <div className="flex min-h-[calc(100vh-120px)]">

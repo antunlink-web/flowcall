@@ -1,6 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
 import { DashboardLayout } from "@/components/DashboardLayout";
-import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -25,13 +24,6 @@ import {
 } from "lucide-react";
 import { ListField } from "@/hooks/useLists";
 
-const subNavItems = [
-  { label: "Lists", href: "/manage/lists" },
-  { label: "Users", href: "/manage/users" },
-  { label: "Duplicates", href: "/manage/duplicates" },
-  { label: "Claims", href: "/manage/claims" },
-  { label: "Account", href: "/manage/account" },
-];
 
 interface Lead {
   id: string;
@@ -385,24 +377,6 @@ export default function ManageDuplicates() {
 
   return (
     <DashboardLayout>
-      {/* Sub Navigation */}
-      <div className="border-b border-border bg-background">
-        <div className="flex gap-6 px-6">
-          {subNavItems.map((item) => (
-            <Link
-              key={item.label}
-              to={item.href}
-              className={`py-3 text-sm font-medium border-b-2 transition-colors ${
-                item.label === "Duplicates"
-                  ? "border-primary text-primary"
-                  : "border-transparent text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              {item.label}
-            </Link>
-          ))}
-        </div>
-      </div>
 
       {/* Main Content */}
       <div className="p-8">
