@@ -156,12 +156,13 @@ export function SmtpSettingsPanel() {
         },
       });
 
-      if (response.error) {
-        throw new Error(response.error.message || "Test failed");
-      }
-
+      // Check for SMTP-specific error first (more informative)
       if (response.data?.error) {
         throw new Error(response.data.error);
+      }
+
+      if (response.error) {
+        throw new Error(response.error.message || "Test failed");
       }
 
       toast({
