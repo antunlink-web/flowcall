@@ -50,7 +50,7 @@ Deno.serve(async (req) => {
     // For port 587: use STARTTLS (tls: false, the library handles upgrade)
     const useImplicitTls = port === 465;
     
-    console.log(`Connection config: port=${port}, implicitTLS=${useImplicitTls}, configuredTLS=${use_tls}`);
+    console.log(`Connection config: port=${port}, implicitTLS=${useImplicitTls}`);
 
     const client = new SMTPClient({
       connection: {
@@ -61,9 +61,6 @@ Deno.serve(async (req) => {
           username: username,
           password: password,
         },
-      },
-      debug: {
-        log: true,
       },
     });
 
