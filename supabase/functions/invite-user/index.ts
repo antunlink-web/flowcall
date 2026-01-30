@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { SMTPClient } from "https://deno.land/x/denomailer@1.6.0/mod.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -10,6 +11,104 @@ interface InviteRequest {
   email: string;
   role: "owner" | "account_manager" | "agent";
   fullName?: string;
+}
+
+interface SmtpConfig {
+  host: string;
+  port: number;
+  username: string;
+  password: string;
+  from_email: string;
+}
+
+async function getSmtpConfig(supabase: any): Promise<SmtpConfig | null> {
+  // Fetch platform-level SMTP settings (tenant_id is null)
+  const { data, error } = await supabase
+    .from("account_settings")
+    .select("setting_key, setting_value")
+    .is("tenant_id", null)
+    .in("setting_key", [
+      "smtp_host", 
+      "smtp_port", 
+      "smtp_username", 
+      "smtp_password", 
+      "smtp_from_email"
+    ]);
+
+  if (error || !data) {
+    console.error("Error fetching SMTP settings:", error);
+    return null;
+  }
+
+  const settingsMap: Record<string, any> = {};
+  data.forEach((row: any) => {
+    settingsMap[row.setting_key] = row.setting_value;
+  });
+
+  if (!settingsMap.smtp_host || !settingsMap.smtp_username || !settingsMap.smtp_password || !settingsMap.smtp_from_email) {
+    console.error("Incomplete SMTP configuration in account_settings");
+    return null;
+  }
+
+  return {
+    host: settingsMap.smtp_host,
+    port: parseInt(settingsMap.smtp_port) || 587,
+    username: settingsMap.smtp_username,
+    password: settingsMap.smtp_password,
+    from_email: settingsMap.smtp_from_email,
+  };
+}
+
+async function sendInviteEmail(smtpConfig: SmtpConfig, to: string, inviteLink: string, fullName: string): Promise<void> {
+  const useTls = smtpConfig.port === 465;
+
+  console.log(`Sending invite email via ${smtpConfig.host}:${smtpConfig.port} (TLS: ${useTls})`);
+
+  const client = new SMTPClient({
+    connection: {
+      hostname: smtpConfig.host,
+      port: smtpConfig.port,
+      tls: useTls,
+      auth: {
+        username: smtpConfig.username,
+        password: smtpConfig.password,
+      },
+    },
+  });
+
+  const html = `
+    <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 40px 20px;">
+      <div style="text-align: center; margin-bottom: 30px;">
+        <h1 style="color: #0369a1; margin: 0;">FlowCall</h1>
+      </div>
+      <h2 style="margin-bottom: 20px;">You've Been Invited!</h2>
+      <p>Hello ${fullName},</p>
+      <p>You have been invited to join FlowCall. Click the button below to accept your invitation and set up your account:</p>
+      <div style="text-align: center; margin: 30px 0;">
+        <a href="${inviteLink}" 
+           style="background-color: #0369a1; color: white; padding: 14px 28px; text-decoration: none; border-radius: 6px; display: inline-block; font-weight: 600;">
+          Accept Invitation
+        </a>
+      </div>
+      <p style="color: #666; font-size: 14px;">
+        This invitation link will expire in 7 days. If you didn't expect this invitation, you can safely ignore this email.
+      </p>
+      <hr style="border: none; border-top: 1px solid #eee; margin: 30px 0;" />
+      <p style="color: #999; font-size: 12px; text-align: center;">
+        FlowCall CRM - Cold calling made simple for teams
+      </p>
+    </div>
+  `;
+
+  await client.send({
+    from: `FlowCall <${smtpConfig.from_email}>`,
+    to: to,
+    subject: "You've been invited to FlowCall",
+    content: "auto",
+    html,
+  });
+
+  await client.close();
 }
 
 serve(async (req: Request) => {
@@ -90,6 +189,17 @@ serve(async (req: Request) => {
       );
     }
 
+    // Get SMTP settings from database
+    const smtpConfig = await getSmtpConfig(supabaseAdmin);
+    
+    if (!smtpConfig) {
+      console.error("SMTP not configured - cannot send invitation email");
+      return new Response(
+        JSON.stringify({ error: "Email configuration not complete. Please configure SMTP settings." }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     // Check if user already exists in auth.users
     const { data: authUsers } = await supabaseAdmin.auth.admin.listUsers();
     const existingAuthUser = authUsers?.users?.find(u => u.email?.toLowerCase() === email.toLowerCase());
@@ -144,23 +254,41 @@ serve(async (req: Request) => {
     const origin = req.headers.get("origin") || "https://lovable.dev";
     const redirectTo = `${origin}/accept-invite`;
 
-    // Invite the user using Supabase admin API with tenant_id in metadata
-    const { data: inviteData, error: inviteError } = await supabaseAdmin.auth.admin.inviteUserByEmail(email, {
-      redirectTo,
-      data: {
-        full_name: fullName || email.split("@")[0],
-        invited_role: role,
-        invited_tenant_id: inviterTenantId, // CRITICAL: Pass tenant_id for profile creation
+    const displayName = fullName || email.split("@")[0];
+
+    // Generate invite link using Supabase admin API
+    const { data: inviteData, error: inviteError } = await supabaseAdmin.auth.admin.generateLink({
+      type: "invite",
+      email,
+      options: {
+        redirectTo,
+        data: {
+          full_name: displayName,
+          invited_role: role,
+          invited_tenant_id: inviterTenantId,
+        },
       },
     });
 
     if (inviteError) {
-      console.error("Invite error:", inviteError);
+      console.error("Invite link generation error:", inviteError);
       return new Response(
         JSON.stringify({ error: inviteError.message }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
+
+    const inviteLink = inviteData.properties?.action_link;
+    if (!inviteLink) {
+      throw new Error("No invite link generated");
+    }
+
+    console.log(`Generated invite link for ${email}`);
+
+    // Send invitation email via custom SMTP
+    await sendInviteEmail(smtpConfig, email, inviteLink, displayName);
+
+    console.log(`Invitation email sent to ${email}`);
 
     // Record the invitation in our table WITH tenant_id - CRITICAL for tenant isolation
     const { error: recordError } = await supabaseAdmin

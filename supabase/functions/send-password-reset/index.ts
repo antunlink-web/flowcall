@@ -7,6 +7,52 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+interface SmtpConfig {
+  host: string;
+  port: number;
+  username: string;
+  password: string;
+  from_email: string;
+}
+
+async function getSmtpConfig(supabase: any): Promise<SmtpConfig | null> {
+  // Fetch platform-level SMTP settings (tenant_id is null)
+  const { data, error } = await supabase
+    .from("account_settings")
+    .select("setting_key, setting_value")
+    .is("tenant_id", null)
+    .in("setting_key", [
+      "smtp_host", 
+      "smtp_port", 
+      "smtp_username", 
+      "smtp_password", 
+      "smtp_from_email"
+    ]);
+
+  if (error || !data) {
+    console.error("Error fetching SMTP settings:", error);
+    return null;
+  }
+
+  const settingsMap: Record<string, any> = {};
+  data.forEach((row: any) => {
+    settingsMap[row.setting_key] = row.setting_value;
+  });
+
+  if (!settingsMap.smtp_host || !settingsMap.smtp_username || !settingsMap.smtp_password || !settingsMap.smtp_from_email) {
+    console.error("Incomplete SMTP configuration in account_settings");
+    return null;
+  }
+
+  return {
+    host: settingsMap.smtp_host,
+    port: parseInt(settingsMap.smtp_port) || 587,
+    username: settingsMap.smtp_username,
+    password: settingsMap.smtp_password,
+    from_email: settingsMap.smtp_from_email,
+  };
+}
+
 serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -21,11 +67,19 @@ serve(async (req: Request) => {
 
     console.log(`Processing password reset for: ${email}`);
 
-    // Create admin client to generate the reset link
+    // Create admin client
     const supabaseAdmin = createClient(
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
+
+    // Get SMTP settings from database
+    const smtpConfig = await getSmtpConfig(supabaseAdmin);
+    
+    if (!smtpConfig) {
+      console.error("SMTP not configured");
+      throw new Error("Email configuration not complete");
+    }
 
     // Generate the password reset link
     const { data, error: linkError } = await supabaseAdmin.auth.admin.generateLink({
@@ -48,30 +102,20 @@ serve(async (req: Request) => {
 
     console.log(`Reset link generated for ${email}`);
 
-    // Get SMTP settings
-    const smtpHost = Deno.env.get("SMTP_HOST");
-    const smtpPort = parseInt(Deno.env.get("SMTP_PORT") || "587");
-    const smtpUsername = Deno.env.get("SMTP_USERNAME");
-    const smtpPassword = Deno.env.get("SMTP_PASSWORD");
-    const fromEmail = "accounts@flowcall.eu";
-    const fromName = "FlowCall";
+    // Determine TLS setting based on port
+    const useTls = smtpConfig.port === 465;
 
-    if (!smtpHost || !smtpUsername || !smtpPassword) {
-      console.error("Missing SMTP configuration");
-      throw new Error("SMTP settings not configured");
-    }
-
-    console.log(`Sending password reset email via ${smtpHost}:${smtpPort}`);
+    console.log(`Sending password reset email via ${smtpConfig.host}:${smtpConfig.port} (TLS: ${useTls})`);
 
     // Create SMTP client
     const client = new SMTPClient({
       connection: {
-        hostname: smtpHost,
-        port: smtpPort,
-        tls: smtpPort === 465,
+        hostname: smtpConfig.host,
+        port: smtpConfig.port,
+        tls: useTls,
         auth: {
-          username: smtpUsername,
-          password: smtpPassword,
+          username: smtpConfig.username,
+          password: smtpConfig.password,
         },
       },
     });
@@ -102,7 +146,7 @@ serve(async (req: Request) => {
 
     // Send email
     await client.send({
-      from: `${fromName} <${fromEmail}>`,
+      from: `FlowCall <${smtpConfig.from_email}>`,
       to: email,
       subject: "Reset your FlowCall password",
       content: "auto",
