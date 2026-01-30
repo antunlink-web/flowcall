@@ -144,6 +144,9 @@ serve(async (req: Request) => {
       </div>
     `;
 
+    // Generate RFC 5322 compliant Message-ID
+    const messageId = `<${crypto.randomUUID()}@flowcall.eu>`;
+
     // Send email
     await client.send({
       from: `FlowCall <${smtpConfig.from_email}>`,
@@ -151,6 +154,9 @@ serve(async (req: Request) => {
       subject: "Reset your FlowCall password",
       content: "auto",
       html,
+      headers: {
+        "Message-ID": messageId,
+      },
     });
 
     await client.close();
