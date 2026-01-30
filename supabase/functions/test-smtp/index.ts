@@ -46,11 +46,17 @@ Deno.serve(async (req) => {
     console.log(`Testing SMTP: ${host}:${port} (TLS: ${use_tls})`);
     console.log(`From: ${from_email} -> To: ${toEmail}`);
 
+    // For port 465: use implicit TLS (tls: true)
+    // For port 587: use STARTTLS (tls: false, the library handles upgrade)
+    const useImplicitTls = port === 465;
+    
+    console.log(`Connection config: port=${port}, implicitTLS=${useImplicitTls}, configuredTLS=${use_tls}`);
+
     const client = new SMTPClient({
       connection: {
         hostname: host,
         port: port,
-        tls: use_tls,
+        tls: useImplicitTls,
         auth: {
           username: username,
           password: password,
