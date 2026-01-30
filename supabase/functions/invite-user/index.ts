@@ -100,12 +100,18 @@ async function sendInviteEmail(smtpConfig: SmtpConfig, to: string, inviteLink: s
     </div>
   `;
 
+  // Generate RFC 5322 compliant Message-ID
+  const messageId = `<${crypto.randomUUID()}@flowcall.eu>`;
+
   await client.send({
     from: `FlowCall <${smtpConfig.from_email}>`,
     to: to,
     subject: "You've been invited to FlowCall",
     content: "auto",
     html,
+    headers: {
+      "Message-ID": messageId,
+    },
   });
 
   await client.close();

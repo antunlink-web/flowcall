@@ -147,12 +147,18 @@ Deno.serve(async (req) => {
       </div>
     `;
 
+    // Generate RFC 5322 compliant Message-ID
+    const messageId = `<${crypto.randomUUID()}@flowcall.eu>`;
+
     await client.send({
       from: smtpConfig.from_email,
       to: smtpConfig.admin_email,
       subject: `[FlowCall] New Registration: ${companyName}`,
       content: "auto",
       html: emailHtml,
+      headers: {
+        "Message-ID": messageId,
+      },
     });
 
     await client.close();
