@@ -11,7 +11,8 @@ import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
-import { Building2, Users, FileText, BarChart3, Search, Eye, ExternalLink, RefreshCw, CheckCircle, XCircle, Clock, AlertCircle } from "lucide-react";
+import { Building2, Users, FileText, BarChart3, Search, Eye, ExternalLink, RefreshCw, CheckCircle, XCircle, Clock, AlertCircle, Mail } from "lucide-react";
+import { SmtpSettingsPanel } from "@/components/admin/SmtpSettingsPanel";
 import { format } from "date-fns";
 
 interface Tenant {
@@ -343,6 +344,10 @@ export default function ProductOwnerDashboard() {
               )}
             </TabsTrigger>
             <TabsTrigger value="all">All Organizations</TabsTrigger>
+            <TabsTrigger value="smtp" className="gap-2">
+              <Mail className="w-4 h-4" />
+              SMTP Settings
+            </TabsTrigger>
           </TabsList>
 
           {/* Pending Approvals Tab */}
@@ -538,6 +543,11 @@ export default function ProductOwnerDashboard() {
                 </Table>
               </CardContent>
             </Card>
+          </TabsContent>
+
+          {/* SMTP Settings Tab */}
+          <TabsContent value="smtp">
+            <SmtpSettingsPanel />
           </TabsContent>
         </Tabs>
       </div>
