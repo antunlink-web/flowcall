@@ -2,6 +2,7 @@ import Joyride, { CallBackProps, STATUS, Step, ACTIONS } from "react-joyride";
 import { useTour } from "@/hooks/useTour";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
+import { useAuth } from "@/hooks/useAuth";
 
 const tourSteps: Step[] = [
   // Welcome
@@ -69,21 +70,22 @@ const tourSteps: Step[] = [
 
 export function TourGuide() {
   const { runTour, endTour, hasSeenTour, startTour } = useTour();
+  const { user } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
   const [stepIndex, setStepIndex] = useState(0);
   const [isReady, setIsReady] = useState(false);
 
-  // Auto-start tour for new users on control panel
+  // Auto-start tour for new users on control panel - ONLY when logged in
   useEffect(() => {
-    if (!hasSeenTour && location.pathname === "/" && !runTour) {
+    if (user && !hasSeenTour && location.pathname === "/" && !runTour) {
       // Small delay to let the page render
       const timer = setTimeout(() => {
         startTour();
       }, 1000);
       return () => clearTimeout(timer);
     }
-  }, [hasSeenTour, location.pathname, runTour, startTour]);
+  }, [user, hasSeenTour, location.pathname, runTour, startTour]);
 
   // Ensure we're on the control panel for the tour
   useEffect(() => {
