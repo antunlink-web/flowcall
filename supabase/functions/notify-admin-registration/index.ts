@@ -1,4 +1,5 @@
 import { SMTPClient } from "https://deno.land/x/denomailer@1.6.0/mod.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -13,24 +14,76 @@ interface NotificationRequest {
   tenantId: string;
 }
 
+interface SmtpConfig {
+  host: string;
+  port: number;
+  username: string;
+  password: string;
+  from_email: string;
+  admin_email: string;
+  use_tls: boolean;
+}
+
+async function getSmtpConfig(): Promise<SmtpConfig | null> {
+  const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+  const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+  
+  const supabase = createClient(supabaseUrl, supabaseServiceKey);
+  
+  // Fetch platform-level SMTP settings (tenant_id is null)
+  const { data, error } = await supabase
+    .from("account_settings")
+    .select("setting_key, setting_value")
+    .is("tenant_id", null)
+    .in("setting_key", [
+      "smtp_host", 
+      "smtp_port", 
+      "smtp_username", 
+      "smtp_password", 
+      "smtp_from_email", 
+      "admin_notification_email", 
+      "smtp_use_tls"
+    ]);
+
+  if (error || !data) {
+    console.error("Error fetching SMTP settings:", error);
+    return null;
+  }
+
+  const settingsMap: Record<string, any> = {};
+  data.forEach(row => {
+    settingsMap[row.setting_key] = row.setting_value;
+  });
+
+  if (!settingsMap.smtp_host || !settingsMap.smtp_username || !settingsMap.smtp_password || !settingsMap.smtp_from_email) {
+    console.error("Incomplete SMTP configuration in account_settings");
+    return null;
+  }
+
+  return {
+    host: settingsMap.smtp_host,
+    port: parseInt(settingsMap.smtp_port) || 587,
+    username: settingsMap.smtp_username,
+    password: settingsMap.smtp_password,
+    from_email: settingsMap.smtp_from_email,
+    admin_email: settingsMap.admin_notification_email || settingsMap.smtp_from_email,
+    use_tls: settingsMap.smtp_use_tls === true,
+  };
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const smtpHost = Deno.env.get("SMTP_HOST");
-    const smtpPort = parseInt(Deno.env.get("SMTP_PORT") || "587");
-    const smtpUsername = Deno.env.get("SMTP_USERNAME");
-    const smtpPassword = Deno.env.get("SMTP_PASSWORD");
-    const smtpFromEmail = Deno.env.get("SMTP_FROM_EMAIL");
-    const adminEmail = Deno.env.get("ADMIN_NOTIFICATION_EMAIL");
-
-    if (!smtpHost || !smtpUsername || !smtpPassword || !smtpFromEmail || !adminEmail) {
-      console.error("Missing SMTP configuration");
+    const smtpConfig = await getSmtpConfig();
+    
+    if (!smtpConfig) {
+      console.error("SMTP not configured - skipping admin notification");
       return new Response(
-        JSON.stringify({ error: "Email configuration not complete" }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        JSON.stringify({ error: "Email configuration not complete", skipped: true }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
@@ -39,24 +92,19 @@ Deno.serve(async (req) => {
     console.log(`Sending admin notification for new registration: ${companyName}`);
 
     // Determine TLS setting based on port
-    // Port 465 = implicit TLS (connect with TLS)
-    // Port 587 = STARTTLS (connect plain, upgrade to TLS)
-    const useTls = smtpPort === 465;
+    const useTls = smtpConfig.port === 465;
 
-    console.log(`Connecting to SMTP: ${smtpHost}:${smtpPort} (TLS: ${useTls})`);
+    console.log(`Connecting to SMTP: ${smtpConfig.host}:${smtpConfig.port} (TLS: ${useTls})`);
 
     const client = new SMTPClient({
       connection: {
-        hostname: smtpHost,
-        port: smtpPort,
+        hostname: smtpConfig.host,
+        port: smtpConfig.port,
         tls: useTls,
         auth: {
-          username: smtpUsername,
-          password: smtpPassword,
+          username: smtpConfig.username,
+          password: smtpConfig.password,
         },
-      },
-      debug: {
-        log: true,
       },
     });
 
@@ -100,8 +148,8 @@ Deno.serve(async (req) => {
     `;
 
     await client.send({
-      from: smtpFromEmail,
-      to: adminEmail,
+      from: smtpConfig.from_email,
+      to: smtpConfig.admin_email,
       subject: `[FlowCall] New Registration: ${companyName}`,
       content: "auto",
       html: emailHtml,
