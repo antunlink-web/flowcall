@@ -236,14 +236,7 @@ export default function ManageAccount() {
       return;
     }
 
-    const newSeatCount = parseInt(seats) || 1;
-    
-    // Prevent reducing seats below current user count
-    if (newSeatCount < usedSeats) {
-      toast.error(`Cannot set seats below current user count (${usedSeats}). Please remove users first.`);
-      setSeats(String(usedSeats)); // Reset to minimum valid value
-      return;
-    }
+    const newSeatCount = Math.max(1, parseInt(seats) || 1); // Minimum 1 seat
     
     // Update seat_count in tenants table - CRITICAL: Uses tenant_id for isolation
     const { error } = await supabase
@@ -1031,9 +1024,9 @@ export default function ManageAccount() {
             {renderAccountInfoCard()}
 
             {isOverLimit && (
-              <div className="bg-destructive/10 border border-destructive rounded-lg p-4 text-center">
-                <p className="text-destructive font-medium">
-                  ⚠️ You have more users ({usedSeats}) than seats ({totalSeatsNum}). Please add more seats or remove users.
+              <div className="bg-amber-500/10 border border-amber-500 rounded-lg p-4 text-center">
+                <p className="text-amber-600 font-medium">
+                  ℹ️ You have {usedSeats} users but only {totalSeatsNum} seat(s). To invite more agents, add more seats below.
                 </p>
               </div>
             )}
@@ -1081,15 +1074,10 @@ export default function ManageAccount() {
                   onChange={(e) => setSeats(e.target.value)}
                   className="w-20"
                   type="number"
-                  min={usedSeats} // Minimum is current user count
+                  min="1"
                 />
                 <Button onClick={handleSaveSeats} className="bg-destructive hover:bg-destructive/90">Submit</Button>
               </div>
-              {isOverLimit && (
-                <p className="text-sm text-destructive">
-                  Minimum seats required: {usedSeats} (based on current user count)
-                </p>
-              )}
             </div>
           </div>
         );
