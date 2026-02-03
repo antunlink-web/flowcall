@@ -73,6 +73,7 @@ import { useListTemplates, EmailTemplate, SmsTemplate, CallScript, ListEmailConf
 import { CreateListDialog } from "@/components/lists/CreateListDialog";
 import { FieldsEditor } from "@/components/lists/FieldsEditor";
 import { ImportLeadsDialog } from "@/components/lists/ImportLeadsDialog";
+import { AddContactDialog } from "@/components/lists/AddContactDialog";
 import { EmailTemplateEditor } from "@/components/lists/EmailTemplateEditor";
 import { ListTableSkeleton } from "@/components/lists/ListTableSkeleton";
 
@@ -122,6 +123,7 @@ export default function ManageLists() {
   const [editedFields, setEditedFields] = useState<ListField[]>([]);
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [showImportDialog, setShowImportDialog] = useState(false);
+  const [showAddContactDialog, setShowAddContactDialog] = useState(false);
   const [listName, setListName] = useState("");
   const [listSettings, setListSettings] = useState(configureList?.settings || {});
   const [previewLead, setPreviewLead] = useState<Record<string, string> | null>(null);
@@ -457,6 +459,55 @@ export default function ManageLists() {
     await importLeadsFromData(configureList.id, data.rows);
   };
 
+  const handleAddContact = async (data: Record<string, string>) => {
+    if (!configureList) return;
+    
+    // Fetch the list's tenant_id
+    const { data: listData, error: listError } = await supabase
+      .from("lists")
+      .select("tenant_id")
+      .eq("id", configureList.id)
+      .single();
+    
+    if (listError || !listData?.tenant_id) {
+      toast({ title: "Error", description: "Could not determine tenant", variant: "destructive" });
+      return;
+    }
+    
+    const { error } = await supabase
+      .from("leads")
+      .insert({
+        list_id: configureList.id,
+        tenant_id: listData.tenant_id,
+        data,
+        status: "new",
+      });
+    
+    if (error) {
+      toast({ title: "Error adding contact", description: error.message, variant: "destructive" });
+      return;
+    }
+    
+    toast({ title: "Contact added successfully" });
+    
+    // Update configureList to reflect new count
+    const updatedList = { ...configureList, total: (configureList.total || 0) + 1, new: (configureList.new || 0) + 1 };
+    setConfigureList(updatedList);
+    
+    // Also fetch the new lead to update preview
+    const { data: newLead } = await supabase
+      .from("leads")
+      .select("data")
+      .eq("list_id", configureList.id)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    
+    if (newLead?.data) {
+      setPreviewLead(newLead.data as Record<string, string>);
+    }
+  };
+
   const renderBadge = (value: number, color: string) => (
     <span className={`inline-flex items-center justify-center px-2.5 py-0.5 rounded-full text-xs font-medium text-white ${color}`}>
       {value.toLocaleString()}
@@ -544,9 +595,12 @@ export default function ManageLists() {
                           <Eye className="h-4 w-4 mr-2" />
                           View all leads
                         </DropdownMenuItem>
-                        <DropdownMenuItem className="cursor-pointer">
+                        <DropdownMenuItem className="cursor-pointer" onClick={() => {
+                          handleConfigureList(list);
+                          setShowAddContactDialog(true);
+                        }}>
                           <UserPlus className="h-4 w-4 mr-2" />
-                          Add new, empty lead to list
+                          Add contact manually
                         </DropdownMenuItem>
                         <DropdownMenuSeparator />
                         <DropdownMenuItem className="cursor-pointer" onClick={() => handleConfigureList(list)}>
@@ -1516,13 +1570,31 @@ export default function ManageLists() {
             <div className="flex gap-8">
               <div className="flex-1">
                 <div className="mb-6">
-                  <div className="flex items-center gap-2 mb-2">
+                  <div className="flex items-center justify-between mb-2">
                     <button
                       onClick={() => setConfigureList(null)}
                       className="text-primary hover:underline"
                     >
                       ← Back to Lists
                     </button>
+                    <div className="flex items-center gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setShowAddContactDialog(true)}
+                      >
+                        <UserPlus className="h-4 w-4 mr-2" />
+                        Add Contact
+                      </Button>
+                      <Button
+                        size="sm"
+                        className="bg-destructive hover:bg-destructive/90"
+                        onClick={() => setShowImportDialog(true)}
+                      >
+                        <Upload className="h-4 w-4 mr-2" />
+                        Import Leads
+                      </Button>
+                    </div>
                   </div>
                   <h1 className="text-3xl font-light text-primary italic">
                     Configure "{configureList.name}"
@@ -1658,14 +1730,23 @@ export default function ManageLists() {
                     ) : (
                       <div className="p-8 text-center text-muted-foreground">
                         <p className="text-sm">No leads in this list yet.</p>
-                        <p className="text-xs mt-1">Import leads to see a preview.</p>
-                        <Button 
-                          className="bg-destructive hover:bg-destructive/90 mt-4"
-                          onClick={() => setShowImportDialog(true)}
-                        >
-                          <Plus className="h-4 w-4 mr-2" />
-                          Add leads
-                        </Button>
+                        <p className="text-xs mt-1">Import leads or add a contact manually.</p>
+                        <div className="flex items-center justify-center gap-2 mt-4">
+                          <Button 
+                            variant="outline"
+                            onClick={() => setShowAddContactDialog(true)}
+                          >
+                            <UserPlus className="h-4 w-4 mr-2" />
+                            Add Contact
+                          </Button>
+                          <Button 
+                            className="bg-destructive hover:bg-destructive/90"
+                            onClick={() => setShowImportDialog(true)}
+                          >
+                            <Upload className="h-4 w-4 mr-2" />
+                            Import leads
+                          </Button>
+                        </div>
                       </div>
                     )}
                   </div>
@@ -1681,6 +1762,13 @@ export default function ManageLists() {
           listName={configureList.name}
           listFields={editedFields}
           onImport={handleImportLeads}
+        />
+
+        <AddContactDialog
+          open={showAddContactDialog}
+          onOpenChange={setShowAddContactDialog}
+          fields={editedFields}
+          onSubmit={handleAddContact}
         />
 
         {/* SMS Template Dialog */}
