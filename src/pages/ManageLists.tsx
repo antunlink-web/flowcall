@@ -1767,7 +1767,7 @@ export default function ManageLists() {
         <AddContactDialog
           open={showAddContactDialog}
           onOpenChange={setShowAddContactDialog}
-          fields={editedFields}
+          fields={configureList.fields}
           onSubmit={handleAddContact}
         />
 
