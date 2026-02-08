@@ -40,6 +40,21 @@ export default function Auth() {
       if (isRootDomain()) {
         setRedirecting(true);
         try {
+          // Check if user is a product owner - they should stay on root domain
+          const { data: roleData } = await supabase
+            .from("user_roles")
+            .select("role")
+            .eq("user_id", user.id);
+          
+          const isProductOwner = roleData?.some(r => r.role === "product_owner");
+          
+          if (isProductOwner) {
+            // Product owners stay on root domain, go to admin dashboard
+            navigate("/aiculedssul");
+            setRedirecting(false);
+            return;
+          }
+
           // Get user's tenant subdomain
           const { data: profile, error: profileError } = await supabase
             .from("profiles")
