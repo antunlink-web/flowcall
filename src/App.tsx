@@ -90,6 +90,8 @@ function LandingRoutes() {
       <Route path="/register" element={<Register />} />
       <Route path="/registration-pending" element={<RegistrationPending />} />
       <Route path="/reset-password" element={<ResetPassword />} />
+      <Route path="/accept-invite" element={<AcceptInvite />} />
+      <Route path="/aiculedssul" element={<ProtectedRoute><ProductOwnerDashboard /></ProtectedRoute>} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );
