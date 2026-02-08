@@ -109,6 +109,7 @@ function AppContent() {
   return (
     <SubdomainRouter>
       <CrmApp />
+      <TourGuide />
     </SubdomainRouter>
   );
 }
@@ -124,7 +125,6 @@ const App = () => (
               <Sonner />
               <BrowserRouter>
                 <AppContent />
-                <TourGuide />
               </BrowserRouter>
               <GlobalUploadProgressBar />
             </TourProvider>
