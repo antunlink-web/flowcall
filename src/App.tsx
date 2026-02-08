@@ -11,6 +11,7 @@ import { UploadProgressBar } from "@/components/UploadProgressBar";
 import { TourGuide } from "@/components/TourGuide";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { SubdomainRouter } from "@/components/SubdomainRouter";
+import { TenantProvider } from "@/hooks/useTenant";
 import Auth from "./pages/Auth";
 import ResetPassword from "./pages/ResetPassword";
 import AcceptInvite from "./pages/AcceptInvite";
@@ -91,7 +92,13 @@ function LandingRoutes() {
       <Route path="/registration-pending" element={<RegistrationPending />} />
       <Route path="/reset-password" element={<ResetPassword />} />
       <Route path="/accept-invite" element={<AcceptInvite />} />
-      <Route path="/aiculedssul" element={<ProtectedRoute><ProductOwnerDashboard /></ProtectedRoute>} />
+      <Route path="/aiculedssul" element={
+        <TenantProvider>
+          <ProtectedRoute>
+            <ProductOwnerDashboard />
+          </ProtectedRoute>
+        </TenantProvider>
+      } />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );
