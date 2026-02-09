@@ -2,7 +2,10 @@ import { ReactNode } from "react";
 import { useLocation } from "react-router-dom";
 import { getCurrentSubdomain } from "@/hooks/useTenant";
 import LandingPage from "@/pages/LandingPage";
-import { TenantProvider } from "@/hooks/useTenant";
+import { TenantProvider, useTenant } from "@/hooks/useTenant";
+import { SubscriptionProvider, useSubscription } from "@/hooks/useSubscription";
+import { TrialPaywall } from "@/components/TrialPaywall";
+import { isPast, parseISO } from "date-fns";
 
 interface SubdomainRouterProps {
   children: ReactNode;
@@ -10,6 +13,41 @@ interface SubdomainRouterProps {
 
 // Auth-related paths that should always render the CRM app (even on root domain)
 const AUTH_PATHS = ["/auth", "/register", "/reset-password", "/accept-invite"];
+
+/**
+ * Renders the paywall when trial expired + no subscription,
+ * otherwise renders children (the CRM app).
+ */
+function PaywallGate({ children }: { children: ReactNode }) {
+  const { tenant, loading: tenantLoading } = useTenant();
+  const { subscribed, loading: subLoading } = useSubscription();
+
+  // While loading, children will show their own loading states
+  if (tenantLoading || subLoading) return <>{children}</>;
+
+  // Has subscription — allow access
+  if (subscribed) return <>{children}</>;
+
+  // No trial end date — allow access (shouldn't happen but safe fallback)
+  if (!tenant?.trial_end_date) return <>{children}</>;
+
+  // Trial not expired — allow access
+  const endDate = parseISO(tenant.trial_end_date);
+  if (!isPast(endDate)) return <>{children}</>;
+
+  // Trial expired + no subscription — show paywall
+  return <TrialPaywall />;
+}
+
+function CrmWithPaywall({ children }: { children: ReactNode }) {
+  return (
+    <TenantProvider>
+      <SubscriptionProvider>
+        <PaywallGate>{children}</PaywallGate>
+      </SubscriptionProvider>
+    </TenantProvider>
+  );
+}
 
 /**
  * Routes based on subdomain:
@@ -22,14 +60,11 @@ export function SubdomainRouter({ children }: SubdomainRouterProps) {
   const hostname = window.location.hostname;
   const location = useLocation();
   
-  // Debug logging for mobile app
   console.log("[SubdomainRouter] hostname:", hostname);
   console.log("[SubdomainRouter] pathname:", location.pathname);
   
-  // Check if we're on the root domain (flowcall.eu without subdomain)
   const isRootDomain = hostname === "flowcall.eu" || hostname === "www.flowcall.eu";
   
-  // For local development, Lovable preview URLs, or Capacitor (localhost), show CRM
   const isDevOrPreview = 
     hostname === "localhost" || 
     hostname.includes("lovable.app") ||
@@ -38,10 +73,8 @@ export function SubdomainRouter({ children }: SubdomainRouterProps) {
   
   console.log("[SubdomainRouter] isRootDomain:", isRootDomain, "isDevOrPreview:", isDevOrPreview);
   
-  // Check if current path is an auth-related path
   const isAuthPath = AUTH_PATHS.some(path => location.pathname.startsWith(path));
   
-  // If on root domain but on an auth path, render the CRM app for auth
   if (isRootDomain && isAuthPath) {
     return (
       <TenantProvider>
@@ -50,20 +83,17 @@ export function SubdomainRouter({ children }: SubdomainRouterProps) {
     );
   }
   
-  // If on root domain (not subdomain), show landing page
   if (isRootDomain) {
     return <LandingPage />;
   }
   
-  // For subdomains (demo.flowcall.eu, tenant.flowcall.eu) or dev/preview, show CRM
   const subdomain = getCurrentSubdomain();
   
-  // If we're on a subdomain or in dev/preview mode, render the CRM app
   if (subdomain || isDevOrPreview) {
     return (
-      <TenantProvider>
+      <CrmWithPaywall>
         {children}
-      </TenantProvider>
+      </CrmWithPaywall>
     );
   }
   

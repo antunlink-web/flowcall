@@ -23,3 +23,18 @@ verify_jwt = false
 
 [functions.verify-vat]
 verify_jwt = false
+
+[functions.create-checkout]
+verify_jwt = false
+
+[functions.check-subscription]
+verify_jwt = false
+
+[functions.customer-portal]
+verify_jwt = false
+
+[functions.delete-tenant]
+verify_jwt = false
+
+[functions.test-smtp]
+verify_jwt = false
