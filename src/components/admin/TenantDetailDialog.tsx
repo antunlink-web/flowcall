@@ -140,28 +140,13 @@ export function TenantDetailDialog({ tenant, open, onOpenChange, onUpdated }: Te
     if (!tenant) return;
     setDeleting(true);
     try {
-      // Delete in order due to FK constraints
-      await supabase.from("email_logs").delete().eq("tenant_id", tenant.id);
-      await supabase.from("sms_logs").delete().eq("tenant_id", tenant.id);
-      await supabase.from("call_logs").delete().eq("tenant_id", tenant.id);
-      await supabase.from("sms_requests").delete().eq("tenant_id", tenant.id);
-      await supabase.from("dial_requests").delete().eq("tenant_id", tenant.id);
-      await supabase.from("leads").delete().eq("tenant_id", tenant.id);
-      await supabase.from("list_users").delete().eq("tenant_id", tenant.id);
-      await supabase.from("email_templates").delete().eq("tenant_id", tenant.id);
-      await supabase.from("sms_templates").delete().eq("tenant_id", tenant.id);
-      await supabase.from("call_scripts").delete().eq("tenant_id", tenant.id);
-      await supabase.from("lists").delete().eq("tenant_id", tenant.id);
-      await supabase.from("campaigns").delete().eq("tenant_id", tenant.id);
-      await supabase.from("smtp_settings").delete().eq("tenant_id", tenant.id);
-      await supabase.from("branding_settings").delete().eq("tenant_id", tenant.id);
-      await supabase.from("account_settings").delete().eq("tenant_id", tenant.id);
-      await supabase.from("user_devices").delete().eq("tenant_id", tenant.id);
-      await supabase.from("user_invitations").delete().eq("tenant_id", tenant.id);
-      await supabase.from("profiles").delete().eq("tenant_id", tenant.id);
-      
-      const { error } = await supabase.from("tenants").delete().eq("id", tenant.id);
-      if (error) throw error;
+      const response = await supabase.functions.invoke("delete-tenant", {
+        body: { tenantId: tenant.id },
+      });
+
+      if (response.error) throw new Error(response.error.message || "Failed to delete tenant");
+      const data = response.data;
+      if (data?.error) throw new Error(data.error);
 
       toast({ title: "Organization deleted", description: `${tenant.name} has been permanently removed.` });
       onOpenChange(false);
