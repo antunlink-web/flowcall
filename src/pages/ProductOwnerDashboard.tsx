@@ -13,6 +13,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { Building2, Users, FileText, BarChart3, Search, Eye, ExternalLink, RefreshCw, CheckCircle, XCircle, Clock, AlertCircle, Mail } from "lucide-react";
 import { SmtpSettingsPanel } from "@/components/admin/SmtpSettingsPanel";
+import { TenantDetailDialog } from "@/components/admin/TenantDetailDialog";
 import { format } from "date-fns";
 
 interface Tenant {
@@ -550,6 +551,14 @@ export default function ProductOwnerDashboard() {
             <SmtpSettingsPanel />
           </TabsContent>
         </Tabs>
+
+        {/* Tenant Detail Dialog */}
+        <TenantDetailDialog
+          tenant={selectedTenant}
+          open={!!selectedTenant}
+          onOpenChange={(open) => { if (!open) setSelectedTenant(null); }}
+          onUpdated={() => { fetchTenants(); fetchPendingTenants(); }}
+        />
       </div>
     </DashboardLayout>
   );
