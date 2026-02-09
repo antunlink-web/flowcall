@@ -58,7 +58,7 @@ function CrmApp() {
       <Route path="/registration-pending" element={<RegistrationPending />} />
       <Route path="/reset-password" element={<ResetPassword />} />
       <Route path="/accept-invite" element={<AcceptInvite />} />
-      <Route path="/aiculedssul" element={<ProtectedRoute><ProductOwnerDashboard /></ProtectedRoute>} />
+      <Route path="/aiculedssul" element={<ProtectedRoute requiredRoles={["product_owner"]}><ProductOwnerDashboard /></ProtectedRoute>} />
       <Route path="/" element={<ProtectedRoute><ControlPanel /></ProtectedRoute>} />
       <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
       <Route path="/control-panel" element={<Navigate to="/" replace />} />
