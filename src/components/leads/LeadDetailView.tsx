@@ -104,7 +104,7 @@ interface List {
 
 interface ActivityItem {
   id: string;
-  type: "call" | "email" | "sms" | "claimed";
+  type: "call" | "email" | "sms" | "claimed" | "comment";
   created_at: string;
   user_name: string | null;
   outcome?: string;
@@ -113,6 +113,7 @@ interface ActivityItem {
   body?: string;
   message?: string;
   duration_seconds?: number;
+  content?: string;
 }
 
 export function LeadDetailView({ leadId, onClose }: LeadDetailViewProps) {
@@ -254,6 +255,34 @@ export function LeadDetailView({ leadId, onClose }: LeadDetailViewProps) {
     setSmsCount(count || 0);
   };
 
+  const handlePostComment = async () => {
+    if (!lead || !user || !comment.trim()) return;
+    
+    // Get tenant from profile
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("tenant_id")
+      .eq("id", user.id)
+      .single();
+    
+    const { error } = await supabase
+      .from("lead_comments")
+      .insert({
+        lead_id: lead.id,
+        user_id: user.id,
+        content: comment,
+        tenant_id: profile?.tenant_id || null,
+      });
+
+    if (error) {
+      toast({ title: "Failed to post comment", variant: "destructive" });
+    } else {
+      toast({ title: "Comment added" });
+      setComment("");
+      fetchActivity();
+    }
+  };
+
   const fetchActivity = async () => {
     setActivityLoading(true);
     
@@ -278,6 +307,13 @@ export function LeadDetailView({ leadId, onClose }: LeadDetailViewProps) {
       .eq("lead_id", leadId)
       .order("created_at", { ascending: false });
 
+    // Fetch comments
+    const { data: comments } = await supabase
+      .from("lead_comments")
+      .select("id, created_at, content, user_id")
+      .eq("lead_id", leadId)
+      .order("created_at", { ascending: false });
+
     // Fetch lead info for claimed activity
     const { data: leadData } = await supabase
       .from("leads")
@@ -290,6 +326,7 @@ export function LeadDetailView({ leadId, onClose }: LeadDetailViewProps) {
     callLogs?.forEach(l => userIds.add(l.user_id));
     emailLogs?.forEach(l => userIds.add(l.user_id));
     smsLogs?.forEach(l => userIds.add(l.user_id));
+    comments?.forEach(c => userIds.add(c.user_id));
     if (leadData?.claimed_by) {
       userIds.add(leadData.claimed_by);
     }
@@ -349,6 +386,16 @@ export function LeadDetailView({ leadId, onClose }: LeadDetailViewProps) {
         created_at: log.created_at,
         user_name: userMap[log.user_id] || "Unknown",
         message: log.message,
+      });
+    });
+
+    comments?.forEach(c => {
+      items.push({
+        id: c.id,
+        type: "comment",
+        created_at: c.created_at,
+        user_name: userMap[c.user_id] || "Unknown",
+        content: c.content,
       });
     });
 
@@ -874,6 +921,20 @@ export function LeadDetailView({ leadId, onClose }: LeadDetailViewProps) {
                   className="min-h-[120px] resize-none"
                 />
                 
+                {/* Post standalone comment */}
+                <div className="flex justify-end">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="gap-1"
+                    disabled={!comment.trim()}
+                    onClick={handlePostComment}
+                  >
+                    <MessageSquare className="w-3 h-3" />
+                    Post Comment
+                  </Button>
+                </div>
+                
                 {/* Follow-up Section */}
                 <div className="flex items-center gap-2 pt-2 border-t">
                   {/* Delegate Button */}
@@ -1239,6 +1300,8 @@ export function LeadDetailView({ leadId, onClose }: LeadDetailViewProps) {
                             ? "bg-green-100"
                             : item.type === "claimed"
                             ? "bg-indigo-100"
+                            : item.type === "comment"
+                            ? "bg-purple-100"
                             : "bg-gray-100"
                         }`}>
                           {item.type === "call" ? (
@@ -1255,6 +1318,8 @@ export function LeadDetailView({ leadId, onClose }: LeadDetailViewProps) {
                             <MessageSquare className="w-5 h-5 text-green-600" />
                           ) : item.type === "claimed" ? (
                             <Flag className="w-5 h-5 text-indigo-600" />
+                          ) : item.type === "comment" ? (
+                            <MessageSquare className="w-5 h-5 text-purple-600" />
                           ) : null}
                         </div>
                         <div className="flex-1 min-w-0">
@@ -1284,6 +1349,12 @@ export function LeadDetailView({ leadId, onClose }: LeadDetailViewProps) {
                                 <span className="text-muted-foreground font-normal"> by {item.user_name}</span>
                               </>
                             )}
+                            {item.type === "comment" && (
+                              <>
+                                <span className="font-semibold">Comment</span>
+                                <span className="text-muted-foreground font-normal"> by {item.user_name}</span>
+                              </>
+                            )}
                           </p>
                           {item.type === "call" && item.duration_seconds !== undefined && item.duration_seconds > 0 && (
                             <p className="text-sm text-muted-foreground mt-1 flex items-center gap-1">
@@ -1310,6 +1381,11 @@ export function LeadDetailView({ leadId, onClose }: LeadDetailViewProps) {
                           {item.message && (
                             <p className="text-sm text-muted-foreground mt-1 break-words">
                               <span className="text-lg leading-none mr-1">❝</span>{item.message}
+                            </p>
+                          )}
+                          {item.content && (
+                            <p className="text-sm text-muted-foreground mt-1 break-words">
+                              <span className="text-lg leading-none mr-1">❝</span>{item.content}
                             </p>
                           )}
                           <p className="text-xs text-muted-foreground mt-2">
