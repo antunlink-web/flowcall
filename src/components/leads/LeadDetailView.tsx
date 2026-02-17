@@ -452,6 +452,22 @@ export function LeadDetailView({ leadId, onClose }: LeadDetailViewProps) {
       console.error("Failed to log call:", logError);
     }
 
+    // Also post comment as a lead_comment if there's a comment
+    if (comment.trim()) {
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("tenant_id")
+        .eq("id", user.id)
+        .single();
+
+      await supabase.from("lead_comments").insert({
+        lead_id: lead.id,
+        user_id: user.id,
+        content: comment,
+        tenant_id: profile?.tenant_id || null,
+      });
+    }
+
     toast({ title: subcategory || `Status changed to ${newStatus}` });
     setComment(""); // Clear comment after submission
     fetchLead();
