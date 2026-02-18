@@ -93,8 +93,17 @@ export function SubdomainRouter({ children }: SubdomainRouterProps) {
   
   const subdomain = getCurrentSubdomain();
   
-  // Native app, subdomain, or dev/preview → always show CRM
-  if (isNativeApp || subdomain || isDevOrPreview) {
+  // Dev/preview → skip paywall entirely (for development purposes)
+  if (isDevOrPreview) {
+    return (
+      <TenantProvider>
+        {children}
+      </TenantProvider>
+    );
+  }
+
+  // Native app or subdomain → show CRM with paywall
+  if (isNativeApp || subdomain) {
     return (
       <CrmWithPaywall>
         {children}
