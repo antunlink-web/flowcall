@@ -438,6 +438,15 @@ export function LeadDetailView({ leadId, onClose }: LeadDetailViewProps) {
       return;
     }
 
+    // Get tenant_id for logging
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("tenant_id")
+      .eq("id", user.id)
+      .single();
+
+    const tenantId = profile?.tenant_id || null;
+
     // Log the call with comment
     const { error: logError } = await supabase
       .from("call_logs")
@@ -446,6 +455,7 @@ export function LeadDetailView({ leadId, onClose }: LeadDetailViewProps) {
         lead_id: lead.id,
         outcome: subcategory || newStatus,
         notes: comment || null,
+        tenant_id: tenantId,
       });
 
     if (logError) {
@@ -454,17 +464,11 @@ export function LeadDetailView({ leadId, onClose }: LeadDetailViewProps) {
 
     // Also post comment as a lead_comment if there's a comment
     if (comment.trim()) {
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("tenant_id")
-        .eq("id", user.id)
-        .single();
-
       await supabase.from("lead_comments").insert({
         lead_id: lead.id,
         user_id: user.id,
         content: comment,
-        tenant_id: profile?.tenant_id || null,
+        tenant_id: tenantId,
       });
     }
 
