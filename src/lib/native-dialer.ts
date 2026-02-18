@@ -15,9 +15,20 @@
  */
 
 // Check if we're running in a Capacitor native context
+// Falls back to user-agent detection in case Capacitor bridge isn't ready yet
 export const isNativeApp = (): boolean => {
-  return typeof (window as any).Capacitor !== 'undefined' && 
-         (window as any).Capacitor.isNativePlatform();
+  // Primary: Capacitor bridge (most reliable when available)
+  if (typeof (window as any).Capacitor !== 'undefined') {
+    try {
+      if ((window as any).Capacitor.isNativePlatform()) return true;
+    } catch { /* ignore */ }
+  }
+  // Fallback: Capacitor sets this custom UA segment in native WebViews
+  if (typeof navigator !== 'undefined') {
+    const ua = navigator.userAgent || '';
+    if (ua.includes('CapacitorApp') || ua.includes('app.lovable.flowcall')) return true;
+  }
+  return false;
 };
 
 // Check if we're on Android
