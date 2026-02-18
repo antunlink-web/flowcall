@@ -96,9 +96,19 @@ export default function Auth() {
               return;
             }
             
-            if (tenant?.subdomain) {
-              // Redirect to tenant subdomain
-              window.location.href = `https://${tenant.subdomain}.flowcall.eu`;
+          if (tenant?.subdomain) {
+              // Get current session tokens to pass to subdomain (localStorage is per-origin)
+              const { data: { session: currentSession } } = await supabase.auth.getSession();
+              if (currentSession) {
+                const params = new URLSearchParams({
+                  access_token: currentSession.access_token,
+                  refresh_token: currentSession.refresh_token,
+                  token_type: currentSession.token_type || 'bearer',
+                });
+                window.location.href = `https://${tenant.subdomain}.flowcall.eu/auth/callback?${params.toString()}`;
+              } else {
+                window.location.href = `https://${tenant.subdomain}.flowcall.eu`;
+              }
               return;
             }
           }
