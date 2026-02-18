@@ -153,22 +153,26 @@ const App = () => (
   <ErrorBoundary>
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
-        <AuthProvider>
-          <BrandingProvider>
-            <UploadProgressProvider>
-              <TourProvider>
-                <Toaster />
-                <Sonner />
-                <BrowserRouter>
-                  <ErrorBoundary>
-                    <AppContent />
-                  </ErrorBoundary>
-                </BrowserRouter>
-                <GlobalUploadProgressBar />
-              </TourProvider>
-            </UploadProgressProvider>
-          </BrandingProvider>
-        </AuthProvider>
+        <ErrorBoundary>
+          <AuthProvider>
+            <ErrorBoundary>
+              <BrandingProvider>
+                <UploadProgressProvider>
+                  <TourProvider>
+                    <Toaster />
+                    <Sonner />
+                    <BrowserRouter>
+                      <ErrorBoundary>
+                        <AppContent />
+                      </ErrorBoundary>
+                    </BrowserRouter>
+                    <GlobalUploadProgressBar />
+                  </TourProvider>
+                </UploadProgressProvider>
+              </BrandingProvider>
+            </ErrorBoundary>
+          </AuthProvider>
+        </ErrorBoundary>
       </TooltipProvider>
     </QueryClientProvider>
   </ErrorBoundary>
