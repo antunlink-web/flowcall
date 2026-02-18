@@ -97,7 +97,9 @@ export function TenantProvider({ children }: { children: ReactNode }) {
 export function useTenant() {
   const context = useContext(TenantContext);
   if (context === undefined) {
-    throw new Error("useTenant must be used within a TenantProvider");
+    console.error("[useTenant] Called outside TenantProvider! Stack:", new Error().stack);
+    // Return safe fallback instead of throwing to prevent silent crash
+    return { tenant: null, loading: false, error: "No TenantProvider", refetch: async () => {} };
   }
   return context;
 }
