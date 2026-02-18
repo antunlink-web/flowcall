@@ -14,6 +14,8 @@ const config: CapacitorConfig = {
   android: {
     // Allow cleartext traffic for development
     allowMixedContent: true,
+    // Append custom string to User-Agent so isNativeApp() can detect the WebView reliably
+    appendUserAgent: 'CapacitorApp/app.lovable.flowcall',
   },
 };
 
