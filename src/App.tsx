@@ -50,7 +50,12 @@ function GlobalUploadProgressBar() {
   );
 }
 
+import { usePhoneHeartbeat } from "@/hooks/usePhoneHeartbeat";
+
 function CrmApp() {
+  // Register this device and keep heartbeat alive if running natively (Android/iOS)
+  usePhoneHeartbeat();
+
   return (
     <Routes>
       <Route path="/auth" element={<Auth />} />
