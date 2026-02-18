@@ -66,6 +66,7 @@ jobs:
 
       - name: Inject app icon (FlowCall logo)
         run: |
+          pip install Pillow --quiet
           python3 - <<'EOF'
           from PIL import Image
           import os
