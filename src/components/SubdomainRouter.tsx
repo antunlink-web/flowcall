@@ -93,12 +93,12 @@ export function SubdomainRouter({ children }: SubdomainRouterProps) {
   
   const subdomain = getCurrentSubdomain();
   
-  // Dev/preview → skip paywall entirely (for development purposes)
+  // Dev/preview → include full provider stack (same as production subdomain)
   if (isDevOrPreview) {
     return (
-      <TenantProvider>
+      <CrmWithPaywall>
         {children}
-      </TenantProvider>
+      </CrmWithPaywall>
     );
   }
 

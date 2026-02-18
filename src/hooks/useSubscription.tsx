@@ -104,7 +104,18 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
 export function useSubscription() {
   const context = useContext(SubscriptionContext);
   if (!context) {
-    throw new Error("useSubscription must be used within a SubscriptionProvider");
+    console.error("[useSubscription] Called outside SubscriptionProvider!");
+    // Return safe fallback instead of throwing to prevent silent crash
+    return {
+      subscribed: false,
+      productId: null,
+      subscriptionEnd: null,
+      loading: false,
+      plan: null as "basic" | "plus" | null,
+      checkSubscription: async () => {},
+      createCheckout: async (_priceId: string, _quantity?: number) => {},
+      openCustomerPortal: async () => {},
+    };
   }
   return context;
 }
