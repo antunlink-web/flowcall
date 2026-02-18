@@ -155,7 +155,12 @@ export default function Dialer() {
 
   // Log completed call to call_logs
   const logCall = useCallback(async (request: DialRequest, outcome: string = "dialed") => {
-    if (!user || !request.lead_id) return;
+    if (!user) return;
+    // Skip logging if no lead_id (can't satisfy foreign key constraint)
+    if (!request.lead_id) {
+      loadHistory();
+      return;
+    }
     
     try {
       // Get tenant_id from profile
