@@ -60,8 +60,12 @@ export function SubdomainRouter({ children }: SubdomainRouterProps) {
   const hostname = window.location.hostname;
   const location = useLocation();
   
+  // Detect native Capacitor app
+  const isNativeApp = !!(window as any).Capacitor?.isNativePlatform?.();
+  
   console.log("[SubdomainRouter] hostname:", hostname);
   console.log("[SubdomainRouter] pathname:", location.pathname);
+  console.log("[SubdomainRouter] isNativeApp:", isNativeApp);
   
   const isRootDomain = hostname === "flowcall.eu" || hostname === "www.flowcall.eu";
   
@@ -69,15 +73,13 @@ export function SubdomainRouter({ children }: SubdomainRouterProps) {
     hostname === "localhost" || 
     hostname.includes("lovable.app") ||
     hostname.includes("lovableproject.com") ||
-    hostname.includes("127.0.0.1") ||
-    // Also treat the published URL as CRM (used by native Android/iOS app)
-    hostname === "flowcall.lovable.app";
+    hostname.includes("127.0.0.1");
   
   console.log("[SubdomainRouter] isRootDomain:", isRootDomain, "isDevOrPreview:", isDevOrPreview);
   
   const isAuthPath = AUTH_PATHS.some(path => location.pathname.startsWith(path));
   
-  if (isRootDomain && isAuthPath) {
+  if (!isNativeApp && isRootDomain && isAuthPath) {
     return (
       <TenantProvider>
         {children}
@@ -85,13 +87,14 @@ export function SubdomainRouter({ children }: SubdomainRouterProps) {
     );
   }
   
-  if (isRootDomain) {
+  if (!isNativeApp && isRootDomain) {
     return <LandingPage />;
   }
   
   const subdomain = getCurrentSubdomain();
   
-  if (subdomain || isDevOrPreview) {
+  // Native app, subdomain, or dev/preview → always show CRM
+  if (isNativeApp || subdomain || isDevOrPreview) {
     return (
       <CrmWithPaywall>
         {children}

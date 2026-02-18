@@ -5,7 +5,7 @@ const config: CapacitorConfig = {
   appName: 'flowcall',
   webDir: 'dist',
   server: {
-    url: 'https://flowcall.lovable.app',
+    url: 'https://flowcall.eu',
     cleartext: true,
   },
   plugins: {
