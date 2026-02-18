@@ -29,15 +29,17 @@ export class ErrorBoundary extends Component<Props, State> {
   render() {
     if (this.state.hasError) {
       return this.props.fallback ?? (
-        <div className="min-h-screen flex items-center justify-center bg-background p-8">
-          <div className="max-w-lg w-full space-y-4 text-center">
-            <h2 className="text-2xl font-bold text-foreground">Something went wrong</h2>
-            <p className="text-muted-foreground text-sm font-mono bg-muted p-3 rounded text-left break-all">
+        <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "#fff", padding: "32px" }}>
+          <div style={{ maxWidth: "600px", width: "100%", textAlign: "center" }}>
+            <h2 style={{ fontSize: "24px", fontWeight: "bold", marginBottom: "16px", color: "#111" }}>Something went wrong</h2>
+            <pre style={{ background: "#f5f5f5", padding: "16px", borderRadius: "8px", textAlign: "left", fontSize: "12px", overflowX: "auto", whiteSpace: "pre-wrap", wordBreak: "break-all", color: "#c00", marginBottom: "16px" }}>
               {this.state.error?.message}
-            </p>
+              {"\n\n"}
+              {this.state.error?.stack}
+            </pre>
             <button
               onClick={() => window.location.reload()}
-              className="px-4 py-2 bg-primary text-primary-foreground rounded hover:opacity-90"
+              style={{ padding: "8px 24px", background: "#2563eb", color: "#fff", border: "none", borderRadius: "6px", cursor: "pointer", fontSize: "14px" }}
             >
               Reload page
             </button>

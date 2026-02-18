@@ -4,6 +4,8 @@ import { useAuth } from "@/hooks/useAuth";
 import { useUserRole } from "@/hooks/useUserRole";
 import { Loader2 } from "lucide-react";
 
+
+
 interface ProtectedRouteProps {
   children: ReactNode;
   requiredRoles?: string[];
