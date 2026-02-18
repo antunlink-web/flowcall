@@ -20,6 +20,11 @@ const isRootDomain = () => {
   return hostname === "flowcall.eu" || hostname === "www.flowcall.eu";
 };
 
+// Detect if running inside a Capacitor native app (Android/iOS)
+const isNativeApp = () => {
+  return !!(window as any).Capacitor?.isNativePlatform?.();
+};
+
 export default function Auth() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -36,8 +41,8 @@ export default function Auth() {
     const redirectAfterLogin = async () => {
       if (!user) return;
       
-      // If on root domain, redirect to tenant subdomain
-      if (isRootDomain()) {
+      // If on root domain AND not in native app, redirect to tenant subdomain
+      if (isRootDomain() && !isNativeApp()) {
         setRedirecting(true);
         try {
           // Check if user is a product owner - they should stay on root domain

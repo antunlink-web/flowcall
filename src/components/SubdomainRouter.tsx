@@ -69,7 +69,9 @@ export function SubdomainRouter({ children }: SubdomainRouterProps) {
     hostname === "localhost" || 
     hostname.includes("lovable.app") ||
     hostname.includes("lovableproject.com") ||
-    hostname.includes("127.0.0.1");
+    hostname.includes("127.0.0.1") ||
+    // Also treat the published URL as CRM (used by native Android/iOS app)
+    hostname === "flowcall.lovable.app";
   
   console.log("[SubdomainRouter] isRootDomain:", isRootDomain, "isDevOrPreview:", isDevOrPreview);
   
