@@ -107,14 +107,18 @@ function LandingRoutes() {
 function AppContent() {
   const hostname = window.location.hostname;
   
+  // Detect if running inside a Capacitor native app (Android/iOS)
+  const isNativeApp = !!(window as any).Capacitor?.isNativePlatform?.();
+  
   // Check if we're on the root domain (flowcall.eu without subdomain)
   const isRootDomain = hostname === "flowcall.eu" || hostname === "www.flowcall.eu";
   
-  if (isRootDomain) {
+  // Native app always gets the CRM regardless of domain
+  if (!isNativeApp && isRootDomain) {
     return <LandingRoutes />;
   }
   
-  // For subdomains or dev/preview, show CRM
+  // For subdomains, dev/preview, or native app → show CRM
   return (
     <SubdomainRouter>
       <CrmApp />
