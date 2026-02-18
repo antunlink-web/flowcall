@@ -51,10 +51,13 @@ function GlobalUploadProgressBar() {
 }
 
 import { usePhoneHeartbeat } from "@/hooks/usePhoneHeartbeat";
+import { useCompanionService } from "@/hooks/useCompanionService";
 
 function CrmApp() {
   // Register this device and keep heartbeat alive if running natively (Android/iOS)
   usePhoneHeartbeat();
+  // Start the background foreground service on Android
+  useCompanionService();
 
   return (
     <Routes>
