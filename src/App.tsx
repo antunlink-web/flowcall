@@ -11,6 +11,7 @@ import { UploadProgressBar } from "@/components/UploadProgressBar";
 import { TourGuide } from "@/components/TourGuide";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { SubdomainRouter } from "@/components/SubdomainRouter";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { TenantProvider } from "@/hooks/useTenant";
 import { isNativeApp } from "@/lib/native-dialer";
 import Auth from "./pages/Auth";
@@ -149,24 +150,28 @@ function AppContent() {
 
 
 const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <AuthProvider>
-        <BrandingProvider>
-          <UploadProgressProvider>
-            <TourProvider>
-              <Toaster />
-              <Sonner />
-              <BrowserRouter>
-                <AppContent />
-              </BrowserRouter>
-              <GlobalUploadProgressBar />
-            </TourProvider>
-          </UploadProgressProvider>
-        </BrandingProvider>
-      </AuthProvider>
-    </TooltipProvider>
-  </QueryClientProvider>
+  <ErrorBoundary>
+    <QueryClientProvider client={queryClient}>
+      <TooltipProvider>
+        <AuthProvider>
+          <BrandingProvider>
+            <UploadProgressProvider>
+              <TourProvider>
+                <Toaster />
+                <Sonner />
+                <BrowserRouter>
+                  <ErrorBoundary>
+                    <AppContent />
+                  </ErrorBoundary>
+                </BrowserRouter>
+                <GlobalUploadProgressBar />
+              </TourProvider>
+            </UploadProgressProvider>
+          </BrandingProvider>
+        </AuthProvider>
+      </TooltipProvider>
+    </QueryClientProvider>
+  </ErrorBoundary>
 );
 
 export default App;
