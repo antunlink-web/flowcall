@@ -27,6 +27,9 @@ import { format } from "date-fns";
 import { useDueCallbacks } from "@/hooks/useDueCallbacks";
 import { TrialBadge } from "@/components/TrialBadge";
 import { useTour } from "@/hooks/useTour";
+import { useConnectedDevices } from "@/hooks/useConnectedDevices";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { Smartphone } from "lucide-react";
 
 interface SearchResult {
   id: string;
@@ -51,6 +54,7 @@ export function TopNavbar() {
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [mobileOpen, setMobileOpen] = useState(false);
   const { dueCount } = useDueCallbacks();
+  const { hasOnlinePhone, onlineDevices, loading: devicesLoading } = useConnectedDevices();
 
   const isOnDashboard = location.pathname === "/dashboard";
   const isOnControlPanel = location.pathname === "/";
@@ -306,6 +310,34 @@ export function TopNavbar() {
 
         {/* Right Section - Trial Badge, Help & User */}
         <div className="flex items-center ml-auto gap-2">
+
+          {/* Phone Companion Status Indicator */}
+          {!devicesLoading && (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  onClick={() => navigate("/preferences")}
+                  className="relative flex items-center gap-1.5 px-2 py-1 rounded-md hover:bg-sidebar-accent transition-colors"
+                  title="Phone companion status"
+                >
+                  <Smartphone className="w-4 h-4 text-sidebar-foreground/70" />
+                  <span
+                    className={`w-2 h-2 rounded-full ${
+                      hasOnlinePhone
+                        ? "bg-green-400 shadow-[0_0_6px_1px_rgba(74,222,128,0.7)]"
+                        : "bg-gray-500"
+                    }`}
+                  />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent side="bottom" className="text-xs">
+                {hasOnlinePhone
+                  ? `Phone connected · ${onlineDevices[0]?.device_name ?? "companion"}`
+                  : "Phone not connected — open the companion app"}
+              </TooltipContent>
+            </Tooltip>
+          )}
+
           {/* Trial Badge */}
           <div data-tour="trial-badge">
             <TrialBadge />
