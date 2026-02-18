@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import flowcallLogo from "@/assets/flowcall-logo.png";
@@ -7,38 +7,64 @@ import flowcallLogo from "@/assets/flowcall-logo.png";
  * Handles cross-subdomain session transfer.
  * When logging in on flowcall.eu and redirecting to tenant.flowcall.eu,
  * localStorage doesn't transfer between origins, so we pass tokens in the URL.
+ * 
+ * After setSession(), we wait for the onAuthStateChange event to confirm
+ * the session is active before navigating — this prevents the race condition
+ * where the app renders with a stale null-user state and crashes.
  */
 export default function AuthCallback() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
+  const handled = useRef(false);
 
   useEffect(() => {
-    const restoreSession = async () => {
-      const accessToken = searchParams.get("access_token");
-      const refreshToken = searchParams.get("refresh_token");
+    if (handled.current) return;
+    handled.current = true;
 
-      if (accessToken && refreshToken) {
-        // Set the session on this subdomain's Supabase client
-        const { error } = await supabase.auth.setSession({
-          access_token: accessToken,
-          refresh_token: refreshToken,
-        });
+    const accessToken = searchParams.get("access_token");
+    const refreshToken = searchParams.get("refresh_token");
 
-        if (error) {
-          console.error("[AuthCallback] Failed to restore session:", error);
-          navigate("/auth", { replace: true });
-          return;
-        }
+    if (!accessToken || !refreshToken) {
+      // No tokens — go to auth
+      navigate("/auth", { replace: true });
+      return;
+    }
 
-        // Session restored — go to app
-        navigate("/", { replace: true });
-      } else {
-        // No tokens — just go to auth
+    // Listen for auth state change FIRST, then call setSession.
+    // This guarantees we navigate only after the AuthProvider has
+    // processed the new session and user is non-null everywhere.
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === "SIGNED_IN" && session) {
+        subscription.unsubscribe();
+        // Small timeout to let React flush the AuthProvider state update
+        setTimeout(() => {
+          navigate("/", { replace: true });
+        }, 50);
+      }
+    });
+
+    // Now restore the session — this will fire the listener above
+    supabase.auth.setSession({
+      access_token: accessToken,
+      refresh_token: refreshToken,
+    }).then(({ error }) => {
+      if (error) {
+        console.error("[AuthCallback] Failed to restore session:", error);
+        subscription.unsubscribe();
         navigate("/auth", { replace: true });
       }
-    };
+    });
 
-    restoreSession();
+    // Safety timeout: if auth never fires within 5s, redirect to auth
+    const timeout = setTimeout(() => {
+      subscription.unsubscribe();
+      navigate("/auth", { replace: true });
+    }, 5000);
+
+    return () => {
+      clearTimeout(timeout);
+      subscription.unsubscribe();
+    };
   }, []);
 
   return (
@@ -50,3 +76,4 @@ export default function AuthCallback() {
     </div>
   );
 }
+
