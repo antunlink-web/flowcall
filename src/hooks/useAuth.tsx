@@ -21,21 +21,32 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Set up auth state listener first
+    let initialized = false;
+
+    // Check for existing session FIRST to avoid null-user flicker
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (!initialized) {
+        setSession(session);
+        setUser(session?.user ?? null);
+        setLoading(false);
+        initialized = true;
+      }
+    });
+
+    // Then set up listener for future changes (sign in, sign out, token refresh)
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
         setSession(session);
         setUser(session?.user ?? null);
-        setLoading(false);
+        // Mark loading done if not already done by getSession
+        if (!initialized) {
+          setLoading(false);
+          initialized = true;
+        } else {
+          setLoading(false);
+        }
       }
     );
-
-    // Then check for existing session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      setLoading(false);
-    });
 
     return () => subscription.unsubscribe();
   }, []);
