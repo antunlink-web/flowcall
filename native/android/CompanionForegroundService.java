@@ -24,6 +24,9 @@ import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.ArrayList;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -36,13 +39,15 @@ import org.json.JSONObject;
  * executes them natively (call / SMS), then marks them as completed.
  *
  * Auth credentials are passed in via SharedPreferences by CompanionServicePlugin.
+ *
+ * IMPORTANT: All network calls run on a background thread via ScheduledExecutorService.
  */
 public class CompanionForegroundService extends Service {
 
     private static final String TAG = "CompanionService";
     private static final String CHANNEL_ID = "flowcall_companion";
     private static final int NOTIFICATION_ID = 1001;
-    private static final long POLL_INTERVAL_MS = 5000; // 5 seconds
+    private static final long POLL_INTERVAL_SECONDS = 5;
 
     public static final String PREFS_NAME = "flowcall_companion";
     public static final String KEY_SUPABASE_URL = "supabase_url";
@@ -50,16 +55,17 @@ public class CompanionForegroundService extends Service {
     public static final String KEY_ACCESS_TOKEN = "access_token";
     public static final String KEY_USER_ID = "user_id";
 
-    private Handler handler;
-    private Runnable pollRunnable;
-    private boolean running = false;
+    // Use a background executor — never run network on main thread
+    private ScheduledExecutorService executor;
+    private Handler mainHandler;
 
     // ── Lifecycle ──────────────────────────────────────────────────────────────
 
     @Override
     public void onCreate() {
         super.onCreate();
-        handler = new Handler(Looper.getMainLooper());
+        mainHandler = new Handler(Looper.getMainLooper());
+        executor = Executors.newSingleThreadScheduledExecutor();
         createNotificationChannel();
     }
 
@@ -67,7 +73,7 @@ public class CompanionForegroundService extends Service {
     public int onStartCommand(Intent intent, int flags, int startId) {
         startForeground(NOTIFICATION_ID, buildNotification("Ready — waiting for requests"));
         startPolling();
-        return START_STICKY; // Restart if killed
+        return START_STICKY;
     }
 
     @Override
@@ -77,80 +83,83 @@ public class CompanionForegroundService extends Service {
 
     @Override
     public void onDestroy() {
-        running = false;
-        if (handler != null && pollRunnable != null) {
-            handler.removeCallbacks(pollRunnable);
+        if (executor != null && !executor.isShutdown()) {
+            executor.shutdownNow();
         }
         super.onDestroy();
     }
 
-    // ── Polling ────────────────────────────────────────────────────────────────
+    // ── Polling (background thread) ────────────────────────────────────────────
 
     private void startPolling() {
-        if (running) return;
-        running = true;
-
-        pollRunnable = new Runnable() {
-            @Override
-            public void run() {
-                if (!running) return;
-                try {
-                    pollRequests();
-                } catch (Exception e) {
-                    Log.e(TAG, "Poll error", e);
-                }
-                handler.postDelayed(this, POLL_INTERVAL_MS);
-            }
-        };
-
-        handler.post(pollRunnable);
+        executor.scheduleWithFixedDelay(
+            this::pollRequests,
+            0,
+            POLL_INTERVAL_SECONDS,
+            TimeUnit.SECONDS
+        );
     }
 
-    private void pollRequests() throws Exception {
+    private void pollRequests() {
         SharedPreferences prefs = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
-        String supabaseUrl   = prefs.getString(KEY_SUPABASE_URL, "");
-        String anonKey       = prefs.getString(KEY_ANON_KEY, "");
-        String accessToken   = prefs.getString(KEY_ACCESS_TOKEN, "");
-        String userId        = prefs.getString(KEY_USER_ID, "");
+        String supabaseUrl  = prefs.getString(KEY_SUPABASE_URL, "");
+        String anonKey      = prefs.getString(KEY_ANON_KEY, "");
+        String accessToken  = prefs.getString(KEY_ACCESS_TOKEN, "");
+        String userId       = prefs.getString(KEY_USER_ID, "");
 
         if (supabaseUrl.isEmpty() || accessToken.isEmpty() || userId.isEmpty()) {
             Log.w(TAG, "Credentials not set — skipping poll");
             return;
         }
 
-        // Poll dial_requests
-        JSONArray dialRequests = fetchPendingRequests(
-            supabaseUrl + "/rest/v1/dial_requests?user_id=eq." + userId + "&status=eq.pending&select=id,phone_number",
-            anonKey, accessToken
-        );
-        for (int i = 0; i < dialRequests.length(); i++) {
-            JSONObject req = dialRequests.getJSONObject(i);
-            String id = req.getString("id");
-            String phone = req.getString("phone_number");
-            makeCall(phone);
-            markDone(supabaseUrl + "/rest/v1/dial_requests?id=eq." + id, anonKey, accessToken);
-            updateNotification("Called " + phone);
-        }
+        try {
+            // Poll dial_requests
+            JSONArray dialRequests = fetchPendingRequests(
+                supabaseUrl + "/rest/v1/dial_requests?user_id=eq." + userId
+                    + "&status=eq.pending&select=id,phone_number",
+                anonKey, accessToken
+            );
+            for (int i = 0; i < dialRequests.length(); i++) {
+                JSONObject req = dialRequests.getJSONObject(i);
+                String id    = req.getString("id");
+                String phone = req.getString("phone_number");
+                // Calls must be dispatched on the main thread
+                final String finalPhone = phone;
+                mainHandler.post(() -> makeCall(finalPhone));
+                markDone(
+                    supabaseUrl + "/rest/v1/dial_requests?id=eq." + id,
+                    anonKey, accessToken
+                );
+                postNotification("Called " + phone);
+            }
 
-        // Poll sms_requests
-        JSONArray smsRequests = fetchPendingRequests(
-            supabaseUrl + "/rest/v1/sms_requests?user_id=eq." + userId + "&status=eq.pending&select=id,phone_number,message",
-            anonKey, accessToken
-        );
-        for (int i = 0; i < smsRequests.length(); i++) {
-            JSONObject req = smsRequests.getJSONObject(i);
-            String id      = req.getString("id");
-            String phone   = req.getString("phone_number");
-            String message = req.getString("message");
-            sendSms(phone, message);
-            markDone(supabaseUrl + "/rest/v1/sms_requests?id=eq." + id, anonKey, accessToken);
-            updateNotification("SMS sent to " + phone);
+            // Poll sms_requests
+            JSONArray smsRequests = fetchPendingRequests(
+                supabaseUrl + "/rest/v1/sms_requests?user_id=eq." + userId
+                    + "&status=eq.pending&select=id,phone_number,message",
+                anonKey, accessToken
+            );
+            for (int i = 0; i < smsRequests.length(); i++) {
+                JSONObject req = smsRequests.getJSONObject(i);
+                String id      = req.getString("id");
+                String phone   = req.getString("phone_number");
+                String message = req.getString("message");
+                sendSms(phone, message);
+                markDone(
+                    supabaseUrl + "/rest/v1/sms_requests?id=eq." + id,
+                    anonKey, accessToken
+                );
+                postNotification("SMS sent to " + phone);
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "Poll error", e);
         }
     }
 
     // ── HTTP helpers ───────────────────────────────────────────────────────────
 
-    private JSONArray fetchPendingRequests(String urlStr, String anonKey, String accessToken) throws Exception {
+    private JSONArray fetchPendingRequests(String urlStr, String anonKey, String accessToken)
+            throws Exception {
         URL url = new URL(urlStr);
         HttpURLConnection conn = (HttpURLConnection) url.openConnection();
         conn.setRequestMethod("GET");
@@ -162,47 +171,48 @@ public class CompanionForegroundService extends Service {
 
         int code = conn.getResponseCode();
         if (code != 200) {
-            Log.w(TAG, "Fetch returned " + code);
+            Log.w(TAG, "Fetch returned HTTP " + code + " for " + urlStr);
+            conn.disconnect();
             return new JSONArray();
         }
 
-        BufferedReader br = new BufferedReader(new InputStreamReader(conn.getInputStream()));
         StringBuilder sb = new StringBuilder();
-        String line;
-        while ((line = br.readLine()) != null) sb.append(line);
+        try (BufferedReader br = new BufferedReader(
+                new InputStreamReader(conn.getInputStream()))) {
+            String line;
+            while ((line = br.readLine()) != null) sb.append(line);
+        }
         conn.disconnect();
-
         return new JSONArray(sb.toString());
     }
 
     private void markDone(String urlStr, String anonKey, String accessToken) {
-        new Thread(() -> {
-            try {
-                URL url = new URL(urlStr);
-                HttpURLConnection conn = (HttpURLConnection) url.openConnection();
-                conn.setRequestMethod("PATCH");
-                conn.setRequestProperty("apikey", anonKey);
-                conn.setRequestProperty("Authorization", "Bearer " + accessToken);
-                conn.setRequestProperty("Content-Type", "application/json");
-                conn.setRequestProperty("Prefer", "return=minimal");
-                conn.setDoOutput(true);
-                conn.setConnectTimeout(4000);
-                conn.setReadTimeout(4000);
+        try {
+            URL url = new URL(urlStr);
+            HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+            conn.setRequestMethod("PATCH");
+            conn.setRequestProperty("apikey", anonKey);
+            conn.setRequestProperty("Authorization", "Bearer " + accessToken);
+            conn.setRequestProperty("Content-Type", "application/json");
+            conn.setRequestProperty("Prefer", "return=minimal");
+            conn.setDoOutput(true);
+            conn.setConnectTimeout(4000);
+            conn.setReadTimeout(4000);
 
-                String body = "{\"status\":\"completed\"}";
-                try (OutputStream os = conn.getOutputStream()) {
-                    os.write(body.getBytes("UTF-8"));
-                }
-                conn.getResponseCode(); // trigger request
-                conn.disconnect();
-            } catch (Exception e) {
-                Log.e(TAG, "markDone error", e);
+            byte[] body = "{\"status\":\"completed\"}".getBytes("UTF-8");
+            try (OutputStream os = conn.getOutputStream()) {
+                os.write(body);
             }
-        }).start();
+            conn.getResponseCode();
+            conn.disconnect();
+        } catch (Exception e) {
+            Log.e(TAG, "markDone error", e);
+        }
     }
 
     // ── Native call / SMS ──────────────────────────────────────────────────────
 
+    /** Must be called on the main thread — startActivity requires it */
     private void makeCall(String phone) {
         try {
             Intent callIntent = new Intent(Intent.ACTION_CALL);
@@ -215,6 +225,7 @@ public class CompanionForegroundService extends Service {
         }
     }
 
+    /** SMS is safe to call from background thread */
     private void sendSms(String phone, String message) {
         try {
             SmsManager smsManager;
@@ -224,13 +235,18 @@ public class CompanionForegroundService extends Service {
                 smsManager = SmsManager.getDefault();
             }
 
+            if (smsManager == null) {
+                Log.e(TAG, "SmsManager is null");
+                return;
+            }
+
             if (message.length() > 160) {
                 ArrayList<String> parts = smsManager.divideMessage(message);
                 smsManager.sendMultipartTextMessage(phone, null, parts, null, null);
             } else {
                 smsManager.sendTextMessage(phone, null, message, null, null);
             }
-            Log.i(TAG, "SMS sent: " + phone);
+            Log.i(TAG, "SMS sent to " + phone);
         } catch (Exception e) {
             Log.e(TAG, "sendSms error", e);
         }
@@ -270,7 +286,7 @@ public class CompanionForegroundService extends Service {
             .build();
     }
 
-    private void updateNotification(String text) {
+    private void postNotification(String text) {
         NotificationManager nm = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
         if (nm != null) nm.notify(NOTIFICATION_ID, buildNotification(text));
     }
