@@ -3,7 +3,7 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-import { AuthProvider } from "@/hooks/useAuth";
+import { AuthProvider, useAuth } from "@/hooks/useAuth";
 import { BrandingProvider } from "@/hooks/useBranding";
 import { UploadProgressProvider, useUploadProgress } from "@/hooks/useUploadProgress";
 import { TourProvider } from "@/hooks/useTour";
@@ -12,6 +12,7 @@ import { TourGuide } from "@/components/TourGuide";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { SubdomainRouter } from "@/components/SubdomainRouter";
 import { TenantProvider } from "@/hooks/useTenant";
+import { isNativeApp } from "@/lib/native-dialer";
 import Auth from "./pages/Auth";
 import ResetPassword from "./pages/ResetPassword";
 import AcceptInvite from "./pages/AcceptInvite";
@@ -23,7 +24,6 @@ import Campaigns from "./pages/Campaigns";
 import Reports from "./pages/Reports";
 import Team from "./pages/Team";
 import Manage from "./pages/Manage";
-
 import ManageAccount from "./pages/ManageAccount";
 import ManageLists from "./pages/ManageLists";
 import ManageClaims from "./pages/ManageClaims";
@@ -36,6 +36,9 @@ import Register from "./pages/Register";
 import ProductOwnerDashboard from "./pages/ProductOwnerDashboard";
 import LandingPage from "./pages/LandingPage";
 import RegistrationPending from "./pages/RegistrationPending";
+import CompanionApp from "./pages/CompanionApp";
+import { usePhoneHeartbeat } from "@/hooks/usePhoneHeartbeat";
+import { useCompanionService } from "@/hooks/useCompanionService";
 
 const queryClient = new QueryClient();
 
@@ -50,15 +53,23 @@ function GlobalUploadProgressBar() {
   );
 }
 
-import { usePhoneHeartbeat } from "@/hooks/usePhoneHeartbeat";
-import { useCompanionService } from "@/hooks/useCompanionService";
+/** Shown only on the native Android/iOS app — a focused companion UI */
+function CompanionRoutes() {
+  usePhoneHeartbeat();
+  useCompanionService();
+  const { user, loading } = useAuth();
+
+  if (loading) return null;
+
+  return (
+    <Routes>
+      <Route path="/auth" element={<Auth />} />
+      <Route path="*" element={user ? <CompanionApp /> : <Navigate to="/auth" replace />} />
+    </Routes>
+  );
+}
 
 function CrmApp() {
-  // Register this device and keep heartbeat alive if running natively (Android/iOS)
-  usePhoneHeartbeat();
-  // Start the background foreground service on Android
-  useCompanionService();
-
   return (
     <Routes>
       <Route path="/auth" element={<Auth />} />
@@ -114,19 +125,20 @@ function LandingRoutes() {
 
 function AppContent() {
   const hostname = window.location.hostname;
-  
-  // Detect if running inside a Capacitor native app (Android/iOS)
-  const isNativeApp = !!(window as any).Capacitor?.isNativePlatform?.();
-  
+
+  // Native app → show focused companion UI (not the full CRM)
+  if (isNativeApp()) {
+    return <CompanionRoutes />;
+  }
+
   // Check if we're on the root domain (flowcall.eu without subdomain)
   const isRootDomain = hostname === "flowcall.eu" || hostname === "www.flowcall.eu";
-  
-  // Native app always gets the CRM regardless of domain
-  if (!isNativeApp && isRootDomain) {
+
+  if (isRootDomain) {
     return <LandingRoutes />;
   }
-  
-  // For subdomains, dev/preview, or native app → show CRM
+
+  // Subdomains / dev / preview → full CRM
   return (
     <SubdomainRouter>
       <CrmApp />
@@ -134,6 +146,7 @@ function AppContent() {
     </SubdomainRouter>
   );
 }
+
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
