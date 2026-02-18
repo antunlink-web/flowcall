@@ -47,14 +47,16 @@ jobs:
         run: |
           sdkmanager --install "platforms;android-35" "build-tools;35.0.0" "platform-tools"
 
-      - name: Add Android platform
-        run: npx cap add android
-
-      - name: Sync Capacitor
-        run: npx cap sync android
+      - name: Add Android platform and sync
+        run: |
+          rm -rf android
+          npx cap add android
+          npx cap sync android
 
       - name: Make Gradle executable
-        run: chmod +x android/gradlew
+        run: |
+          find android -name "gradlew" -exec chmod +x {} \;
+          ls -la android/gradlew
 
       - name: Build debug APK
         run: |
