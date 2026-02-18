@@ -15,6 +15,7 @@ import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { TenantProvider } from "@/hooks/useTenant";
 import { isNativeApp } from "@/lib/native-dialer";
 import Auth from "./pages/Auth";
+import AuthCallback from "./pages/AuthCallback";
 import ResetPassword from "./pages/ResetPassword";
 import AcceptInvite from "./pages/AcceptInvite";
 import ControlPanel from "./pages/ControlPanel";
@@ -74,6 +75,7 @@ function CrmApp() {
   return (
     <Routes>
       <Route path="/auth" element={<Auth />} />
+      <Route path="/auth/callback" element={<AuthCallback />} />
       <Route path="/register" element={<Register />} />
       <Route path="/registration-pending" element={<RegistrationPending />} />
       <Route path="/reset-password" element={<ResetPassword />} />
