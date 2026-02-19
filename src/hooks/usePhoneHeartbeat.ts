@@ -31,19 +31,25 @@ export function usePhoneHeartbeat() {
             .update({ last_seen_at: new Date().toISOString(), is_active: true })
             .eq("id", deviceIdRef.current);
         } else {
-          // Try to find an existing device row for this user+type
+          // Try to find an existing device row for this user (any mobile type)
           const { data: existing } = await supabase
             .from("user_devices")
             .select("id")
             .eq("user_id", user.id)
-            .eq("device_type", deviceType)
+            .in("device_type", [deviceType, "mobile"])
+            .limit(1)
             .maybeSingle();
 
           if (existing) {
             deviceIdRef.current = existing.id;
             await supabase
               .from("user_devices")
-              .update({ last_seen_at: new Date().toISOString(), is_active: true })
+              .update({
+                device_name: deviceName,
+                device_type: deviceType,
+                last_seen_at: new Date().toISOString(),
+                is_active: true,
+              })
               .eq("id", existing.id);
           } else {
             // Register new device
