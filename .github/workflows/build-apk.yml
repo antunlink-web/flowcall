@@ -69,7 +69,7 @@ jobs:
           pip install Pillow --quiet
           python3 - <<'EOF'
           from PIL import Image
-          import os
+          import os, glob
 
           logo = "src/assets/flowcall-logo.png"
           res  = "android/app/src/main/res"
@@ -89,7 +89,19 @@ jobs:
             resized = img.resize((size, size), Image.LANCZOS)
             resized.save(os.path.join(out_dir, "ic_launcher.png"))
             resized.save(os.path.join(out_dir, "ic_launcher_round.png"))
+            # Also create foreground for adaptive icons
+            resized.save(os.path.join(out_dir, "ic_launcher_foreground.png"))
             print(f"Written {size}x{size} → {out_dir}")
+
+          # Remove adaptive icon XML files so Android uses our PNGs directly
+          for xml in glob.glob(os.path.join(res, "mipmap-anydpi-v26", "*.xml")):
+            os.remove(xml)
+            print(f"Removed adaptive icon XML: {xml}")
+
+          # Also remove any drawable XML that might override
+          for xml in glob.glob(os.path.join(res, "drawable*", "ic_launcher*.xml")):
+            os.remove(xml)
+            print(f"Removed drawable icon XML: {xml}")
 
           print("App icons injected successfully")
           EOF

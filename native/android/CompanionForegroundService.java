@@ -138,17 +138,21 @@ public class CompanionForegroundService extends Service {
                 String id    = req.getString("id");
                 String phone = req.getString("phone_number");
 
-                // Skip if already processed (prevents re-dial when markDone fails)
+                // Skip if already processed locally
                 if (processedDialIds.contains(id)) {
                     Log.d(TAG, "Skipping already-processed dial request: " + id);
-                    // Retry markDone in case it failed before
                     markDone(supabaseUrl + "/rest/v1/dial_requests?id=eq." + id, anonKey, accessToken);
                     continue;
                 }
 
-                // Mark as processed BEFORE dialing to prevent duplicates
+                // Mark done on server FIRST — only dial if server accepted
+                boolean marked = markDone(supabaseUrl + "/rest/v1/dial_requests?id=eq." + id, anonKey, accessToken);
                 addProcessedId(processedDialIds, id);
-                markDone(supabaseUrl + "/rest/v1/dial_requests?id=eq." + id, anonKey, accessToken);
+
+                if (!marked) {
+                    Log.w(TAG, "markDone failed for dial " + id + " — skipping call to avoid repeat");
+                    continue;
+                }
 
                 final String finalPhone = phone;
                 mainHandler.post(() -> makeCall(finalPhone));
@@ -173,8 +177,13 @@ public class CompanionForegroundService extends Service {
                     continue;
                 }
 
+                boolean marked = markDone(supabaseUrl + "/rest/v1/sms_requests?id=eq." + id, anonKey, accessToken);
                 addProcessedId(processedSmsIds, id);
-                markDone(supabaseUrl + "/rest/v1/sms_requests?id=eq." + id, anonKey, accessToken);
+
+                if (!marked) {
+                    Log.w(TAG, "markDone failed for SMS " + id + " — skipping send to avoid repeat");
+                    continue;
+                }
 
                 sendSms(phone, message);
                 postNotification("SMS sent to " + phone);
@@ -223,7 +232,8 @@ public class CompanionForegroundService extends Service {
         return new JSONArray(sb.toString());
     }
 
-    private void markDone(String urlStr, String anonKey, String accessToken) {
+    /** @return true if the server accepted the PATCH (2xx) */
+    private boolean markDone(String urlStr, String anonKey, String accessToken) {
         try {
             URL url = new URL(urlStr);
             HttpURLConnection conn = (HttpURLConnection) url.openConnection();
@@ -240,10 +250,18 @@ public class CompanionForegroundService extends Service {
             try (OutputStream os = conn.getOutputStream()) {
                 os.write(body);
             }
-            conn.getResponseCode();
+            int code = conn.getResponseCode();
             conn.disconnect();
+            if (code >= 200 && code < 300) {
+                Log.i(TAG, "markDone OK (" + code + ") for " + urlStr);
+                return true;
+            } else {
+                Log.w(TAG, "markDone FAILED HTTP " + code + " for " + urlStr);
+                return false;
+            }
         } catch (Exception e) {
-            Log.e(TAG, "markDone error", e);
+            Log.e(TAG, "markDone error for " + urlStr, e);
+            return false;
         }
     }
 
