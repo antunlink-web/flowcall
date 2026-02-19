@@ -31,6 +31,10 @@ import java.util.concurrent.TimeUnit;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
+import java.util.Collections;
+import java.util.LinkedHashSet;
+import java.util.Set;
+
 /**
  * CompanionForegroundService
  *
@@ -48,6 +52,7 @@ public class CompanionForegroundService extends Service {
     private static final String CHANNEL_ID = "flowcall_companion";
     private static final int NOTIFICATION_ID = 1001;
     private static final long POLL_INTERVAL_SECONDS = 5;
+    private static final int MAX_PROCESSED_IDS = 500;
 
     public static final String PREFS_NAME = "flowcall_companion";
     public static final String KEY_SUPABASE_URL = "supabase_url";
@@ -58,6 +63,10 @@ public class CompanionForegroundService extends Service {
     // Use a background executor — never run network on main thread
     private ScheduledExecutorService executor;
     private Handler mainHandler;
+
+    // Track processed request IDs to prevent re-execution if markDone fails
+    private final Set<String> processedDialIds = Collections.synchronizedSet(new LinkedHashSet<>());
+    private final Set<String> processedSmsIds = Collections.synchronizedSet(new LinkedHashSet<>());
 
     // ── Lifecycle ──────────────────────────────────────────────────────────────
 
@@ -128,13 +137,21 @@ public class CompanionForegroundService extends Service {
                 JSONObject req = dialRequests.getJSONObject(i);
                 String id    = req.getString("id");
                 String phone = req.getString("phone_number");
-                // Calls must be dispatched on the main thread
+
+                // Skip if already processed (prevents re-dial when markDone fails)
+                if (processedDialIds.contains(id)) {
+                    Log.d(TAG, "Skipping already-processed dial request: " + id);
+                    // Retry markDone in case it failed before
+                    markDone(supabaseUrl + "/rest/v1/dial_requests?id=eq." + id, anonKey, accessToken);
+                    continue;
+                }
+
+                // Mark as processed BEFORE dialing to prevent duplicates
+                addProcessedId(processedDialIds, id);
+                markDone(supabaseUrl + "/rest/v1/dial_requests?id=eq." + id, anonKey, accessToken);
+
                 final String finalPhone = phone;
                 mainHandler.post(() -> makeCall(finalPhone));
-                markDone(
-                    supabaseUrl + "/rest/v1/dial_requests?id=eq." + id,
-                    anonKey, accessToken
-                );
                 postNotification("Called " + phone);
             }
 
@@ -149,15 +166,30 @@ public class CompanionForegroundService extends Service {
                 String id      = req.getString("id");
                 String phone   = req.getString("phone_number");
                 String message = req.getString("message");
+
+                if (processedSmsIds.contains(id)) {
+                    Log.d(TAG, "Skipping already-processed SMS request: " + id);
+                    markDone(supabaseUrl + "/rest/v1/sms_requests?id=eq." + id, anonKey, accessToken);
+                    continue;
+                }
+
+                addProcessedId(processedSmsIds, id);
+                markDone(supabaseUrl + "/rest/v1/sms_requests?id=eq." + id, anonKey, accessToken);
+
                 sendSms(phone, message);
-                markDone(
-                    supabaseUrl + "/rest/v1/sms_requests?id=eq." + id,
-                    anonKey, accessToken
-                );
                 postNotification("SMS sent to " + phone);
             }
         } catch (Exception e) {
             Log.e(TAG, "Poll error", e);
+        }
+    }
+
+    /** Keep the processed set bounded to avoid memory leaks */
+    private void addProcessedId(Set<String> set, String id) {
+        set.add(id);
+        if (set.size() > MAX_PROCESSED_IDS) {
+            String oldest = set.iterator().next();
+            set.remove(oldest);
         }
     }
 
