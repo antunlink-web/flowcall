@@ -39,8 +39,6 @@ import ProductOwnerDashboard from "./pages/ProductOwnerDashboard";
 import LandingPage from "./pages/LandingPage";
 import RegistrationPending from "./pages/RegistrationPending";
 import CompanionApp from "./pages/CompanionApp";
-import { usePhoneHeartbeat } from "@/hooks/usePhoneHeartbeat";
-import { useCompanionService } from "@/hooks/useCompanionService";
 
 const queryClient = new QueryClient();
 
@@ -57,8 +55,6 @@ function GlobalUploadProgressBar() {
 
 /** Shown only on the native Android/iOS app — a focused companion UI */
 function CompanionRoutes() {
-  usePhoneHeartbeat();
-  useCompanionService();
   const { user, loading } = useAuth();
 
   if (loading) return null;

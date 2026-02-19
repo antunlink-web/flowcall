@@ -59,11 +59,19 @@ export function useCompanionService() {
           accessToken,
           userId: user.id,
         });
+      } catch (err) {
+        console.error("[CompanionService] setCredentials failed:", err);
+        return;
+      }
+
+      try {
         await plugin.start();
         started = true;
         console.log("[CompanionService] foreground service started");
       } catch (err) {
-        console.error("[CompanionService] failed to start service:", err);
+        // Non-fatal: foreground service may be blocked on Android 14+ without
+        // FOREGROUND_SERVICE_PHONE permission — app continues without background polling.
+        console.warn("[CompanionService] foreground service start failed (non-fatal):", err);
       }
     };
 
