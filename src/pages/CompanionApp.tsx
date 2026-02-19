@@ -52,6 +52,7 @@ function StatusBadge({ status }: { status: string }) {
 }
 
 export default function CompanionApp() {
+  console.log("[CompanionApp] rendering");
   const { user, signOut } = useAuth();
   const [dialRequests, setDialRequests] = useState<DialRequest[]>([]);
   const [smsRequests, setSmsRequests] = useState<SmsRequest[]>([]);
@@ -61,6 +62,7 @@ export default function CompanionApp() {
   // Activate heartbeat + foreground service
   usePhoneHeartbeat();
   useCompanionService();
+  console.log("[CompanionApp] hooks initialized, user:", user?.id ?? "null");
 
   const fetchHistory = useCallback(async () => {
     if (!user) return;

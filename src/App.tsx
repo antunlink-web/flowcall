@@ -57,12 +57,25 @@ function GlobalUploadProgressBar() {
 function CompanionRoutes() {
   const { user, loading } = useAuth();
 
+  console.log("[CompanionRoutes] loading:", loading, "user:", user?.id ?? "null");
+
   if (loading) return null;
 
   return (
     <Routes>
       <Route path="/auth" element={<Auth />} />
-      <Route path="*" element={user ? <CompanionApp /> : <Navigate to="/auth" replace />} />
+      <Route
+        path="*"
+        element={
+          user ? (
+            <ErrorBoundary>
+              <CompanionApp />
+            </ErrorBoundary>
+          ) : (
+            <Navigate to="/auth" replace />
+          )
+        }
+      />
     </Routes>
   );
 }
