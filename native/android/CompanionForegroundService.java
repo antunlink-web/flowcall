@@ -127,10 +127,10 @@ public class CompanionForegroundService extends Service {
         }
 
         try {
-            // Poll dial_requests
+            // Poll dial_requests (limit to 3 newest to avoid processing stale backlog)
             JSONArray dialRequests = fetchPendingRequests(
                 supabaseUrl + "/rest/v1/dial_requests?user_id=eq." + userId
-                    + "&status=eq.pending&select=id,phone_number",
+                    + "&status=eq.pending&select=id,phone_number&order=created_at.desc&limit=3",
                 anonKey, accessToken
             );
             for (int i = 0; i < dialRequests.length(); i++) {
@@ -159,10 +159,10 @@ public class CompanionForegroundService extends Service {
                 postNotification("Called " + phone);
             }
 
-            // Poll sms_requests
+            // Poll sms_requests (limit to 3 newest)
             JSONArray smsRequests = fetchPendingRequests(
                 supabaseUrl + "/rest/v1/sms_requests?user_id=eq." + userId
-                    + "&status=eq.pending&select=id,phone_number,message",
+                    + "&status=eq.pending&select=id,phone_number,message&order=created_at.desc&limit=3",
                 anonKey, accessToken
             );
             for (int i = 0; i < smsRequests.length(); i++) {

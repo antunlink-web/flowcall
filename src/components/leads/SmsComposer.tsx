@@ -109,11 +109,22 @@ export function SmsComposer({
     if (!user) return;
     
     try {
-      await supabase.from("sms_logs").insert({
+      // Get tenant_id - required by RLS policy
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("tenant_id")
+        .eq("id", user.id)
+        .single();
+
+      const { error } = await supabase.from("sms_logs").insert({
         lead_id: leadId,
         user_id: user.id,
         message: message,
+        tenant_id: profile?.tenant_id || null,
       });
+      if (error) {
+        console.error("Error logging SMS:", error);
+      }
     } catch (error) {
       console.error("Error logging SMS:", error);
     }
