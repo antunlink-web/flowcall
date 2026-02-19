@@ -71,7 +71,12 @@ public class CompanionForegroundService extends Service {
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
-        startForeground(NOTIFICATION_ID, buildNotification("Ready — waiting for requests"));
+        try {
+            startForeground(NOTIFICATION_ID, buildNotification("Ready — waiting for requests"));
+        } catch (SecurityException e) {
+            Log.e(TAG, "Cannot start foreground service — missing permission. Running without foreground.", e);
+            // Don't crash the app — just run as a regular service (may get killed by OS)
+        }
         startPolling();
         return START_STICKY;
     }
