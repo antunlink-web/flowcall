@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useMemo } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { QRCodeSVG } from "qrcode.react";
 import { useAuth } from "@/hooks/useAuth";
@@ -40,18 +40,15 @@ import { ViberIcon } from "@/components/icons/ViberIcon";
 function FlowCallSmartSection() {
   const { devices, onlineDevices, loading, isDeviceOnline } = useConnectedDevices();
   
-  // Generate QR code URL for the dialer page
-  const dialerUrl = useMemo(() => {
-    const baseUrl = window.location.origin;
-    return `${baseUrl}/dialer`;
-  }, []);
+  // QR code URL for the APK download
+  const dialerUrl = "https://flowcall.eu/flowcall.apk";
   
   return (
     <div className="p-3 bg-primary/5 border border-primary/20 rounded-md space-y-3">
       <div>
         <p className="text-sm font-medium text-primary mb-1">FlowCall Smart</p>
         <p className="text-sm text-muted-foreground">
-          Dial numbers and send SMS from your PC through your phone. Scan the QR code below with your phone to open the companion app.
+          Dial numbers and send SMS from your PC through your phone. Scan the QR code below to download the Android companion app.
         </p>
       </div>
       
@@ -109,10 +106,10 @@ function FlowCallSmartSection() {
         variant="outline"
         size="sm"
         className="w-full"
-        onClick={() => window.open("/install", "_blank")}
+        onClick={() => window.open("https://flowcall.eu/flowcall.apk", "_blank")}
       >
         <Smartphone className="w-4 h-4 mr-2" />
-        Install Companion App
+        Download Companion App
       </Button>
     </div>
   );
