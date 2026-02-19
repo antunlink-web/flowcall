@@ -5,6 +5,7 @@ import { useCompanionService } from "@/hooks/useCompanionService";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { toast } from "sonner";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
 import flowcallLogo from "@/assets/flowcall-logo.png";
@@ -18,6 +19,7 @@ import {
   RefreshCw,
   Wifi,
   WifiOff,
+  Trash2,
 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 
@@ -85,6 +87,31 @@ export default function CompanionApp() {
     if (smsRes.data) setSmsRequests(smsRes.data);
     setLoading(false);
   }, [user]);
+
+  const cancelRequest = useCallback(async (table: "dial_requests" | "sms_requests", id: string) => {
+    const { error } = await supabase.from(table).delete().eq("id", id);
+    if (error) {
+      toast.error("Failed to cancel request");
+    } else {
+      toast.success("Request cancelled");
+      fetchHistory();
+    }
+  }, [fetchHistory]);
+
+  const clearAllPending = useCallback(async (table: "dial_requests" | "sms_requests") => {
+    if (!user) return;
+    const { error } = await supabase
+      .from(table)
+      .delete()
+      .eq("user_id", user.id)
+      .eq("status", "pending");
+    if (error) {
+      toast.error("Failed to clear pending requests");
+    } else {
+      toast.success("All pending requests cleared");
+      fetchHistory();
+    }
+  }, [user, fetchHistory]);
 
   useEffect(() => {
     fetchHistory();
@@ -206,6 +233,14 @@ export default function CompanionApp() {
 
           {/* Calls tab */}
           <TabsContent value="calls" className="mt-3 space-y-0">
+            {!loading && pendingDials > 0 && (
+              <div className="flex justify-end mb-2">
+                <Button variant="outline" size="sm" className="text-xs gap-1.5" onClick={() => clearAllPending("dial_requests")}>
+                  <Trash2 className="w-3 h-3" />
+                  Clear {pendingDials} pending
+                </Button>
+              </div>
+            )}
             {loading ? (
               <div className="space-y-2 mt-2">
                 {[...Array(5)].map((_, i) => (
@@ -231,7 +266,13 @@ export default function CompanionApp() {
                         {formatDistanceToNow(new Date(req.created_at), { addSuffix: true })}
                       </p>
                     </div>
-                    <StatusBadge status={req.status} />
+                    {req.status === "pending" ? (
+                      <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive" onClick={() => cancelRequest("dial_requests", req.id)}>
+                        <XCircle className="w-4 h-4" />
+                      </Button>
+                    ) : (
+                      <StatusBadge status={req.status} />
+                    )}
                   </div>
                 ))}
               </div>
@@ -240,6 +281,14 @@ export default function CompanionApp() {
 
           {/* SMS tab */}
           <TabsContent value="sms" className="mt-3">
+            {!loading && pendingSms > 0 && (
+              <div className="flex justify-end mb-2">
+                <Button variant="outline" size="sm" className="text-xs gap-1.5" onClick={() => clearAllPending("sms_requests")}>
+                  <Trash2 className="w-3 h-3" />
+                  Clear {pendingSms} pending
+                </Button>
+              </div>
+            )}
             {loading ? (
               <div className="space-y-2 mt-2">
                 {[...Array(5)].map((_, i) => (
@@ -262,7 +311,13 @@ export default function CompanionApp() {
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between gap-2">
                         <p className="text-sm font-medium truncate">{req.phone_number}</p>
-                        <StatusBadge status={req.status} />
+                        {req.status === "pending" ? (
+                          <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive" onClick={() => cancelRequest("sms_requests", req.id)}>
+                            <XCircle className="w-4 h-4" />
+                          </Button>
+                        ) : (
+                          <StatusBadge status={req.status} />
+                        )}
                       </div>
                       <p className="text-xs text-muted-foreground truncate mt-0.5">{req.message}</p>
                       <p className="text-xs text-muted-foreground/60 mt-0.5">
