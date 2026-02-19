@@ -21,32 +21,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    let initialized = false;
-
-    // Check for existing session FIRST to avoid null-user flicker
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (!initialized) {
+    // Set up the listener FIRST so we never miss a SIGNED_IN event
+    // (e.g. from AuthCallback calling setSession before getSession resolves)
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (_event, session) => {
         setSession(session);
         setUser(session?.user ?? null);
         setLoading(false);
-        initialized = true;
-      }
-    });
-
-    // Then set up listener for future changes (sign in, sign out, token refresh)
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
-        setSession(session);
-        setUser(session?.user ?? null);
-        // Mark loading done if not already done by getSession
-        if (!initialized) {
-          setLoading(false);
-          initialized = true;
-        } else {
-          setLoading(false);
-        }
       }
     );
+
+    // Then check for an existing session (handles page refreshes / already logged-in state)
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      // Only update if onAuthStateChange hasn't already resolved loading
+      // We do this by always updating — the last write wins and that's fine
+      setSession(session);
+      setUser(session?.user ?? null);
+      setLoading(false);
+    });
 
     return () => subscription.unsubscribe();
   }, []);
