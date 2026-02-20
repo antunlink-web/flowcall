@@ -36,6 +36,59 @@ import { Badge } from "@/components/ui/badge";
 import { formatDistanceToNow } from "date-fns";
 import { WhatsAppIcon } from "@/components/icons/WhatsAppIcon";
 import { ViberIcon } from "@/components/icons/ViberIcon";
+import { Pencil, Check } from "lucide-react";
+
+// Editable device row component
+function DeviceRow({ device, online }: { device: { id: string; device_name: string; device_type: string; last_seen_at: string }; online: boolean }) {
+  const [editing, setEditing] = useState(false);
+  const [name, setName] = useState(device.device_name);
+
+  const save = async () => {
+    if (!name.trim()) return;
+    const { error } = await supabase
+      .from("user_devices")
+      .update({ device_name: name.trim() })
+      .eq("id", device.id);
+    if (error) {
+      toast.error("Failed to rename device");
+    } else {
+      toast.success("Device renamed");
+      setEditing(false);
+    }
+  };
+
+  return (
+    <div className="flex items-center justify-between">
+      <div className="flex items-center gap-2 flex-1 min-w-0">
+        <Circle className={`w-2 h-2 ${online ? "fill-green-500 text-green-500" : "fill-gray-400 text-gray-400"}`} />
+        <Smartphone className="w-4 h-4 text-muted-foreground" />
+        {editing ? (
+          <div className="flex items-center gap-1 flex-1">
+            <input
+              type="text"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              className="h-6 px-1.5 text-sm bg-background border rounded flex-1 min-w-0"
+              autoFocus
+              onKeyDown={(e) => e.key === "Enter" && save()}
+            />
+            <button onClick={save} className="p-0.5 hover:text-primary"><Check className="w-3.5 h-3.5" /></button>
+            <button onClick={() => { setEditing(false); setName(device.device_name); }} className="p-0.5 hover:text-destructive"><X className="w-3.5 h-3.5" /></button>
+          </div>
+        ) : (
+          <div className="flex items-center gap-1">
+            <span className="text-sm">{device.device_name}</span>
+            <button onClick={() => setEditing(true)} className="p-0.5 hover:text-primary"><Pencil className="w-3 h-3" /></button>
+          </div>
+        )}
+      </div>
+      <Badge variant={online ? "default" : "secondary"} className="text-xs shrink-0 ml-2">
+        {online ? "Online" : `Last seen ${formatDistanceToNow(new Date(device.last_seen_at))} ago`}
+      </Badge>
+    </div>
+  );
+}
+
 // FlowCall Smart Section Component
 function FlowCallSmartSection() {
   const { devices, onlineDevices, loading, isDeviceOnline } = useConnectedDevices();
@@ -80,16 +133,7 @@ function FlowCallSmartSection() {
             {devices.map((device) => {
               const online = isDeviceOnline(device.last_seen_at);
               return (
-                <div key={device.id} className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <Circle className={`w-2 h-2 ${online ? "fill-green-500 text-green-500" : "fill-gray-400 text-gray-400"}`} />
-                    <Smartphone className="w-4 h-4 text-muted-foreground" />
-                    <span className="text-sm">{device.device_name}</span>
-                  </div>
-                  <Badge variant={online ? "default" : "secondary"} className="text-xs">
-                    {online ? "Online" : `Last seen ${formatDistanceToNow(new Date(device.last_seen_at))} ago`}
-                  </Badge>
-                </div>
+                <DeviceRow key={device.id} device={device} online={online} />
               );
             })}
           </div>
