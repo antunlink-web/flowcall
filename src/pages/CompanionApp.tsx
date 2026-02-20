@@ -5,6 +5,7 @@ import { useCompanionService } from "@/hooks/useCompanionService";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+
 import { toast } from "sonner";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
@@ -20,6 +21,8 @@ import {
   Wifi,
   WifiOff,
   Trash2,
+  Pencil,
+  Check,
 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 
@@ -59,12 +62,50 @@ export default function CompanionApp() {
   const [dialRequests, setDialRequests] = useState<DialRequest[]>([]);
   const [smsRequests, setSmsRequests] = useState<SmsRequest[]>([]);
   const [loading, setLoading] = useState(true);
-  const serviceRunning = true; // always true when app is open and hook is running
+  const [deviceName, setDeviceName] = useState("");
+  const [editingName, setEditingName] = useState(false);
+  const [nameInput, setNameInput] = useState("");
+  const serviceRunning = true;
 
   // Activate heartbeat + foreground service
   usePhoneHeartbeat();
   useCompanionService();
   console.log("[CompanionApp] hooks initialized, user:", user?.id ?? "null");
+
+  // Fetch device name
+  useEffect(() => {
+    if (!user) return;
+    const fetchDeviceName = async () => {
+      const { data } = await supabase
+        .from("user_devices")
+        .select("device_name")
+        .eq("user_id", user.id)
+        .in("device_type", ["android", "ios", "mobile"])
+        .limit(1)
+        .maybeSingle();
+      if (data?.device_name) {
+        setDeviceName(data.device_name);
+        setNameInput(data.device_name);
+      }
+    };
+    fetchDeviceName();
+  }, [user]);
+
+  const saveDeviceName = async () => {
+    if (!user || !nameInput.trim()) return;
+    const { error } = await supabase
+      .from("user_devices")
+      .update({ device_name: nameInput.trim() })
+      .eq("user_id", user.id)
+      .in("device_type", ["android", "ios", "mobile"]);
+    if (error) {
+      toast.error("Failed to update device name");
+    } else {
+      setDeviceName(nameInput.trim());
+      setEditingName(false);
+      toast.success("Device name updated");
+    }
+  };
 
   const fetchHistory = useCallback(async () => {
     if (!user) return;
@@ -143,7 +184,7 @@ export default function CompanionApp() {
   return (
     <div className="min-h-screen bg-background flex flex-col">
       {/* Header */}
-      <header className="bg-sidebar text-sidebar-foreground px-4 pb-3 pt-[env(safe-area-inset-top,24px)] flex items-center justify-between shadow-md">
+      <header className="bg-sidebar text-sidebar-foreground px-4 pb-3 pt-[max(env(safe-area-inset-top,0px),36px)] flex items-center justify-between shadow-md">
         <div className="flex items-center gap-2">
           <img src={flowcallLogo} alt="FlowCall" className="h-7 w-7" />
           <div>
@@ -191,24 +232,55 @@ export default function CompanionApp() {
       </header>
 
       {/* Service status card */}
-      <div className="mx-4 mt-4 rounded-xl border bg-card p-4 flex items-center gap-3">
-        <div className={`w-3 h-3 rounded-full flex-shrink-0 ${serviceRunning ? "bg-emerald-500" : "bg-muted-foreground"}`} />
-
-        <div className="flex-1 min-w-0">
-          <p className="text-sm font-medium">
-            {serviceRunning ? "Companion service running" : "Companion service stopped"}
-          </p>
-          <p className="text-xs text-muted-foreground">
-            {serviceRunning
-              ? "Your phone will automatically execute calls and SMS from the desktop"
-              : "Open the app to restart the service"}
-          </p>
+      <div className="mx-4 mt-4 rounded-xl border bg-card p-4 space-y-3">
+        <div className="flex items-center gap-3">
+          <div className={`w-3 h-3 rounded-full flex-shrink-0 ${serviceRunning ? "bg-emerald-500" : "bg-muted-foreground"}`} />
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-medium">
+              {serviceRunning ? "Companion service running" : "Companion service stopped"}
+            </p>
+            <p className="text-xs text-muted-foreground">
+              {serviceRunning
+                ? "Your phone will automatically execute calls and SMS from the desktop"
+                : "Open the app to restart the service"}
+            </p>
+          </div>
+          {(pendingDials + pendingSms) > 0 && (
+            <Badge variant="destructive" className="flex-shrink-0">
+              {pendingDials + pendingSms} pending
+            </Badge>
+          )}
         </div>
-        {(pendingDials + pendingSms) > 0 && (
-          <Badge variant="destructive" className="flex-shrink-0">
-            {pendingDials + pendingSms} pending
-          </Badge>
-        )}
+
+        {/* Device name */}
+        <div className="flex items-center gap-2 pt-1 border-t">
+          <span className="text-xs text-muted-foreground shrink-0">Device name:</span>
+          {editingName ? (
+            <div className="flex items-center gap-1.5 flex-1">
+              <input
+                type="text"
+                value={nameInput}
+                onChange={(e) => setNameInput(e.target.value)}
+                className="flex-1 h-7 px-2 text-sm bg-background border rounded"
+                autoFocus
+                onKeyDown={(e) => e.key === "Enter" && saveDeviceName()}
+              />
+              <Button variant="ghost" size="icon" className="h-7 w-7" onClick={saveDeviceName}>
+                <Check className="w-3.5 h-3.5" />
+              </Button>
+              <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => { setEditingName(false); setNameInput(deviceName); }}>
+                <XCircle className="w-3.5 h-3.5" />
+              </Button>
+            </div>
+          ) : (
+            <div className="flex items-center gap-1.5 flex-1 min-w-0">
+              <span className="text-sm font-medium truncate">{deviceName || "Unnamed device"}</span>
+              <Button variant="ghost" size="icon" className="h-6 w-6 shrink-0" onClick={() => setEditingName(true)}>
+                <Pencil className="w-3 h-3" />
+              </Button>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* History tabs */}
