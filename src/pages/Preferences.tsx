@@ -196,10 +196,8 @@ export default function Preferences() {
   const [notifyInvoices, setNotifyInvoices] = useState(true);
   const [notifyBalance, setNotifyBalance] = useState(true);
 
-  // Dialling state - load from localStorage
-  const [dialler, setDialler] = useState(() => {
-    return localStorage.getItem("flowcall_dialler") || "flowcall-smart";
-  });
+  // Force FlowCall Smart as the only dialler
+  const dialler = "flowcall-smart";
 
   // Password state
   const [currentPassword, setCurrentPassword] = useState("");
@@ -595,28 +593,7 @@ export default function Preferences() {
         return (
           <div className="space-y-8">
             <div className="grid gap-4 max-w-lg">
-              <div className="grid grid-cols-[120px_1fr] items-start gap-4">
-                <Label className="text-right pt-2">Dialler</Label>
-                <div className="space-y-2">
-                  <Select value={dialler} onValueChange={setDialler}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent className="bg-popover text-popover-foreground">
-                      <SelectItem value="flowcall-smart">FlowCall Smart</SelectItem>
-                      <SelectItem value="default">Default softphone</SelectItem>
-                      <SelectItem value="skype">Skype</SelectItem>
-                      <SelectItem value="zoiper">Zoiper</SelectItem>
-                      <SelectItem value="tel">Other/tel protocol</SelectItem>
-                      <SelectItem value="sip">Other/sip protocol</SelectItem>
-                      <SelectItem value="none">None (Don't turn phone numbers into links)</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  {dialler === "flowcall-smart" && (
-                    <FlowCallSmartSection />
-                  )}
-                </div>
-              </div>
+              <FlowCallSmartSection />
               <div className="grid grid-cols-[120px_1fr] items-center gap-4">
                 <Label className="text-right">Prepend phone</Label>
                 <Input placeholder="" />

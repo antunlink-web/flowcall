@@ -7,10 +7,6 @@ export function useDialRequest() {
   const { user } = useAuth();
   const { toast } = useToast();
 
-  const getDiallerPreference = useCallback(() => {
-    return localStorage.getItem("flowcall_dialler") || "flowcall-smart";
-  }, []);
-
   const sendDialRequest = useCallback(async (phoneNumber: string, leadId?: string) => {
     if (!user) {
       toast({
@@ -19,14 +15,6 @@ export function useDialRequest() {
         description: "Please sign in to use the dialer.",
       });
       return false;
-    }
-
-    const diallerPref = getDiallerPreference();
-
-    // If not using FlowCall Smart, just use tel: link
-    if (diallerPref !== "flowcall-smart") {
-      window.location.href = `tel:${phoneNumber}`;
-      return true;
     }
 
     // Send dial request to companion phone
@@ -55,7 +43,7 @@ export function useDialRequest() {
       });
       return false;
     }
-  }, [user, toast, getDiallerPreference]);
+  }, [user, toast]);
 
-  return { sendDialRequest, getDiallerPreference };
+  return { sendDialRequest };
 }
