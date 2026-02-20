@@ -7,10 +7,6 @@ export function useSmsRequest() {
   const { user } = useAuth();
   const { toast } = useToast();
 
-  const getDiallerPreference = useCallback(() => {
-    return localStorage.getItem("flowcall_dialler") || "flowcall-smart";
-  }, []);
-
   const sendSmsRequest = useCallback(async (phoneNumber: string, message: string, leadId?: string) => {
     if (!user) {
       toast({
@@ -19,14 +15,6 @@ export function useSmsRequest() {
         description: "Please sign in to send SMS.",
       });
       return false;
-    }
-
-    const diallerPref = getDiallerPreference();
-
-    // If not using FlowCall Smart, just open SMS app
-    if (diallerPref !== "flowcall-smart") {
-      window.location.href = `sms:${phoneNumber}?body=${encodeURIComponent(message)}`;
-      return true;
     }
 
     // Send SMS request to companion phone
@@ -56,7 +44,7 @@ export function useSmsRequest() {
       });
       return false;
     }
-  }, [user, toast, getDiallerPreference]);
+  }, [user, toast]);
 
-  return { sendSmsRequest, getDiallerPreference };
+  return { sendSmsRequest };
 }

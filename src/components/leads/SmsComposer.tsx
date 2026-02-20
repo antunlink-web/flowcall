@@ -40,14 +40,13 @@ export function SmsComposer({
 }: SmsComposerProps) {
   const { user } = useAuth();
   const { toast } = useToast();
-  const { sendSmsRequest, getDiallerPreference } = useSmsRequest();
+  const { sendSmsRequest } = useSmsRequest();
   
   const [message, setMessage] = useState("");
   const [selectedPhone, setSelectedPhone] = useState(phoneNumbers[0] || "");
   const [sending, setSending] = useState(false);
 
-  const diallerPref = getDiallerPreference();
-  const isFlowCallSmart = diallerPref === "flowcall-smart";
+  const isFlowCallSmart = true;
 
   // Get lead field helpers
   const getLeadFirstName = () => {
