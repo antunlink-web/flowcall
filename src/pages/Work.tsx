@@ -60,8 +60,8 @@ export default function Work() {
         .from("leads")
         .select("id, list_id, status, data, callback_scheduled_at, claimed_at, claimed_by")
         .eq("claimed_by", user.id)
+        .eq("status", "callback")
         .not("callback_scheduled_at", "is", null)
-        .gt("callback_scheduled_at", now)
         .order("callback_scheduled_at", { ascending: true })
         .limit(100),
       supabase

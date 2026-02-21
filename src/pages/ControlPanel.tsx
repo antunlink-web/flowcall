@@ -161,6 +161,7 @@ export default function ControlPanel() {
         .from("leads")
         .select("id, data, callback_scheduled_at")
         .eq("claimed_by", user.id)
+        .eq("status", "callback")
         .not("callback_scheduled_at", "is", null)
         .order("callback_scheduled_at", { ascending: true })
         .limit(10);
