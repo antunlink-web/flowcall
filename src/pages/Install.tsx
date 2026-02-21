@@ -12,40 +12,31 @@ export default function Install() {
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [isInstalled, setIsInstalled] = useState(false);
   const [isIOS, setIsIOS] = useState(false);
+  const [isAndroid, setIsAndroid] = useState(false);
 
   useEffect(() => {
-    // Check if already installed
     if (window.matchMedia("(display-mode: standalone)").matches) {
       setIsInstalled(true);
     }
 
-    // Check if iOS
-    const isIOSDevice = /iPad|iPhone|iPod/.test(navigator.userAgent);
-    setIsIOS(isIOSDevice);
+    const ua = navigator.userAgent;
+    setIsIOS(/iPad|iPhone|iPod/.test(ua));
+    setIsAndroid(/Android/i.test(ua));
 
-    // Listen for install prompt
     const handler = (e: Event) => {
       e.preventDefault();
       setDeferredPrompt(e as BeforeInstallPromptEvent);
     };
 
     window.addEventListener("beforeinstallprompt", handler);
-
-    return () => {
-      window.removeEventListener("beforeinstallprompt", handler);
-    };
+    return () => window.removeEventListener("beforeinstallprompt", handler);
   }, []);
 
   const handleInstall = async () => {
     if (!deferredPrompt) return;
-
     deferredPrompt.prompt();
     const { outcome } = await deferredPrompt.userChoice;
-
-    if (outcome === "accepted") {
-      setIsInstalled(true);
-    }
-
+    if (outcome === "accepted") setIsInstalled(true);
     setDeferredPrompt(null);
   };
 
@@ -85,10 +76,24 @@ export default function Install() {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
+          {/* Android: direct APK download */}
+          {isAndroid && (
+            <Button
+              className="w-full gap-2"
+              size="lg"
+              asChild
+            >
+              <a href="/flowcall.apk" download>
+                <Download className="h-5 w-5" />
+                Download Native App (.apk)
+              </a>
+            </Button>
+          )}
+
           {deferredPrompt ? (
-            <Button className="w-full gap-2" size="lg" onClick={handleInstall}>
+            <Button className="w-full gap-2" size={isAndroid ? "default" : "lg"} variant={isAndroid ? "outline" : "default"} onClick={handleInstall}>
               <Download className="h-5 w-5" />
-              Install App
+              Install as PWA
             </Button>
           ) : isIOS ? (
             <div className="space-y-3">
@@ -101,7 +106,7 @@ export default function Install() {
                 <li>Tap "Add" to confirm</li>
               </ol>
             </div>
-          ) : (
+          ) : !isAndroid ? (
             <div className="space-y-3">
               <p className="text-sm text-muted-foreground text-center">
                 To install on Android:
@@ -112,7 +117,7 @@ export default function Install() {
                 <li>Confirm the installation</li>
               </ol>
             </div>
-          )}
+          ) : null}
 
           <div className="pt-4 border-t">
             <Button 
