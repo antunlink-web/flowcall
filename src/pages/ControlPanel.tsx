@@ -23,11 +23,8 @@ import {
   Bell,
   Grip,
   Briefcase,
-  ClipboardList,
   Eye,
   ListChecks,
-  FileText,
-  UserCog,
   Cog,
   Copy,
   Flag,
@@ -121,9 +118,15 @@ export default function ControlPanel() {
     else if (activeTab === "locked") fetchLockedLeads();
   }, [activeTab, user]);
 
-  const getLeadDisplayName = (data: any): string => {
+  const getLeadDisplayName = (data: any, listFields?: any[]): string => {
     if (!data) return "Unknown";
-    return data.Pavadinimas || data.pavadinimas || data.company_name || data.name || data.Company || data.Name || "Unknown";
+    // Use the first field from the list's field configuration
+    if (listFields && Array.isArray(listFields) && listFields.length > 0) {
+      const firstFieldName = listFields[0]?.name;
+      if (firstFieldName && data[firstFieldName]) return data[firstFieldName];
+    }
+    // Fallback to common field names
+    return data.Pavadinimas || data.pavadinimas || data.NAZIV || data.company_name || data.name || data.Company || data.Name || "Unknown";
   };
 
   const fetchRecentLeads = async () => {
@@ -132,7 +135,7 @@ export default function ControlPanel() {
     try {
       const { data } = await supabase
         .from("leads")
-        .select("id, data, status, last_contacted_at")
+        .select("id, data, status, last_contacted_at, list_id, lists(fields)")
         .eq("claimed_by", user.id)
         .not("last_contacted_at", "is", null)
         .order("last_contacted_at", { ascending: false })
@@ -141,7 +144,7 @@ export default function ControlPanel() {
       if (data) {
         setRecentLeads(data.map(lead => ({
           id: lead.id,
-          company_name: getLeadDisplayName(lead.data),
+          company_name: getLeadDisplayName(lead.data, (lead as any).lists?.fields),
           status: lead.status,
           updated_at: lead.last_contacted_at!
         })));
@@ -159,7 +162,7 @@ export default function ControlPanel() {
     try {
       const { data } = await supabase
         .from("leads")
-        .select("id, data, callback_scheduled_at")
+        .select("id, data, callback_scheduled_at, list_id, lists(fields)")
         .eq("claimed_by", user.id)
         .eq("status", "callback")
         .not("callback_scheduled_at", "is", null)
@@ -169,7 +172,7 @@ export default function ControlPanel() {
       if (data) {
         setScheduledLeads(data.map(lead => ({
           id: lead.id,
-          company_name: getLeadDisplayName(lead.data),
+          company_name: getLeadDisplayName(lead.data, (lead as any).lists?.fields),
           callback_scheduled_at: lead.callback_scheduled_at!
         })));
       }
@@ -186,7 +189,7 @@ export default function ControlPanel() {
     try {
       const { data } = await supabase
         .from("leads")
-        .select("id, data, claimed_at")
+        .select("id, data, claimed_at, list_id, lists(fields)")
         .eq("claimed_by", user.id)
         .not("claimed_at", "is", null)
         .order("claimed_at", { ascending: false })
@@ -195,7 +198,7 @@ export default function ControlPanel() {
       if (data) {
         setLockedLeads(data.map(lead => ({
           id: lead.id,
-          company_name: getLeadDisplayName(lead.data),
+          company_name: getLeadDisplayName(lead.data, (lead as any).lists?.fields),
           claimed_at: lead.claimed_at!
         })));
       }
