@@ -158,10 +158,7 @@ function AppContent() {
         <Route path="/" element={<LandingOrRedirect />} />
         <Route path="/auth" element={<Auth />} />
         <Route path="/auth/callback" element={<AuthCallback />} />
-        <Route path="/register" element={<Register />} />
-        <Route path="/registration-pending" element={<RegistrationPending />} />
         <Route path="/reset-password" element={<ResetPassword />} />
-        <Route path="/accept-invite" element={<AcceptInvite />} />
 
         {/* Product owner dashboard (root level, no tenant) */}
         <Route path="/aiculedssul" element={
