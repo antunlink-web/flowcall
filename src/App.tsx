@@ -166,9 +166,11 @@ function AppContent() {
         {/* Product owner dashboard (root level, no tenant) */}
         <Route path="/aiculedssul" element={
           <TenantProvider>
-            <ProtectedRoute requiredRoles={["product_owner"]}>
-              <ProductOwnerDashboard />
-            </ProtectedRoute>
+            <TourProvider>
+              <ProtectedRoute requiredRoles={["product_owner"]}>
+                <ProductOwnerDashboard />
+              </ProtectedRoute>
+            </TourProvider>
           </TenantProvider>
         } />
 
