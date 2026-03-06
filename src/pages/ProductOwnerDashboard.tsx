@@ -227,7 +227,7 @@ export default function ProductOwnerDashboard() {
       tenant.subdomain.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const activeTenants = filteredTenants.filter(t => t.status === "active");
+  
 
   const totalStats = {
     tenants: tenants.filter(t => t.status === "active").length,
