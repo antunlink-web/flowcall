@@ -155,8 +155,7 @@ export default function ProductOwnerDashboard() {
   const handleApprove = async (tenantId: string) => {
     setApprovingId(tenantId);
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      
+      await supabase.auth.getSession();
       const response = await supabase.functions.invoke("approve-tenant", {
         body: { tenantId },
       });
