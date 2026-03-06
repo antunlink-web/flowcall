@@ -412,7 +412,7 @@ export default function ControlPanel() {
             ) : (
               <div className="grid gap-3">
                 {recentLeads.map((lead) => (
-                  <Link key={lead.id} to={`/work?leadId=${lead.id}`} className="flex items-center justify-between p-4 rounded-lg border bg-card hover:bg-muted transition-colors">
+                  <Link key={lead.id} to={tPath(`/work?leadId=${lead.id}`)} className="flex items-center justify-between p-4 rounded-lg border bg-card hover:bg-muted transition-colors">
                     <div className="flex items-center gap-3">
                       <div className={`w-3 h-3 rounded-full ${getStatusColor(lead.status)}`} />
                       <div>
