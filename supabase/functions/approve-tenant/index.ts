@@ -134,7 +134,7 @@ Deno.serve(async (req) => {
           },
         });
 
-        const loginUrl = `https://${tenant.subdomain}.flowcall.eu/auth`;
+        const loginUrl = `https://flowcall.eu/t/${tenant.subdomain}/auth`;
 
         const emailHtml = `
           <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">

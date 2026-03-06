@@ -499,7 +499,7 @@ export default function ControlPanel() {
               <div className="space-y-4">
                 <div className="grid gap-3">
                   {dueCallbacks.map((callback) => (
-                    <Link key={callback.id} to={`/work?leadId=${callback.id}`} className="flex items-center justify-between p-4 rounded-lg border border-l-4 border-l-destructive bg-card hover:bg-muted transition-colors">
+                    <Link key={callback.id} to={tPath(`/work?leadId=${callback.id}`)} className="flex items-center justify-between p-4 rounded-lg border border-l-4 border-l-destructive bg-card hover:bg-muted transition-colors">
                       <div className="flex items-center gap-3">
                         <Bell className="w-5 h-5 text-destructive" />
                         <div>
