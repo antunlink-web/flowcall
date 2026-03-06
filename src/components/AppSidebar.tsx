@@ -253,7 +253,7 @@ export function AppSidebar() {
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-56">
               <DropdownMenuItem asChild>
-                <NavLink to="/preferences" className="flex items-center gap-2">
+                <NavLink to={t("/preferences")} className="flex items-center gap-2">
                   <Settings className="w-4 h-4" />
                   Settings
                 </NavLink>
