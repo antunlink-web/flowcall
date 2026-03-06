@@ -208,7 +208,7 @@ export function TopNavbar() {
         {/* Left Section - Logo, Name, Search & Home */}
         <div className="flex items-center gap-4">
           {/* Logo and Brand Name */}
-          <Link to="/" className="flex items-center gap-2">
+          <Link to={t("/")} className="flex items-center gap-2">
             <img src={flowcallLogo} alt="FlowCall" className="h-7 w-7" />
             <span className="text-lg font-semibold tracking-tight hidden sm:inline">FlowCall</span>
           </Link>
