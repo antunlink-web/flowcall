@@ -153,7 +153,7 @@ export function AppSidebar() {
                   <ChevronDown className={cn("w-4 h-4 transition-transform", manageOpen && "rotate-180")} />
                 </CollapsibleTrigger>
                 <CollapsibleContent className="pl-4 space-y-1 mt-1">
-                  {manageSubItems.map((item) => (
+                  {resolvedManageItems.map((item) => (
                     <NavLink
                       key={item.to}
                       to={item.to}
