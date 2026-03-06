@@ -32,7 +32,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Building2, Users, FileText, BarChart3, Trash2, Save, RefreshCw } from "lucide-react";
+import { Building2, Users, FileText, BarChart3, Trash2, Save, RefreshCw, Crown, CalendarOff } from "lucide-react";
 import { format } from "date-fns";
 
 interface Tenant {
