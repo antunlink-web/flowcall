@@ -334,6 +334,7 @@ export function TenantDetailDialog({ tenant, open, onOpenChange, onUpdated }: Te
             </div>
           </TabsContent>
 
+          <TabsContent value="users" className="mt-4">
             {loadingUsers ? (
               <div className="flex justify-center py-8">
                 <RefreshCw className="w-5 h-5 animate-spin text-muted-foreground" />
