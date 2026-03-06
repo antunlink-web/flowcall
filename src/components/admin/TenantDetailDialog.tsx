@@ -238,7 +238,7 @@ export function TenantDetailDialog({ tenant, open, onOpenChange, onUpdated }: Te
                 </div>
                 <div>
                   <span className="text-muted-foreground">Subdomain</span>
-                  <p className="font-medium">{tenant.subdomain}.flowcall.eu</p>
+                  <p className="font-medium">flowcall.eu/t/{tenant.subdomain}</p>
                 </div>
                 <div>
                   <span className="text-muted-foreground">Status</span>
