@@ -563,6 +563,13 @@ export default function ProductOwnerDashboard() {
           onOpenChange={(open) => { if (!open) setSelectedTenant(null); }}
           onUpdated={() => { fetchTenants(); fetchPendingTenants(); }}
         />
+
+        {/* Create Tenant Dialog */}
+        <CreateTenantDialog
+          open={showCreateDialog}
+          onOpenChange={setShowCreateDialog}
+          onCreated={() => { fetchTenants(); fetchPendingTenants(); }}
+        />
       </div>
     </AdminLayout>
   );
