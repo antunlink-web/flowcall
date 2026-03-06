@@ -250,7 +250,7 @@ export function TopNavbar() {
                       return (
                         <Link
                           key={result.id}
-                          to={`/leads?id=${result.id}`}
+                          to={t(`/leads?id=${result.id}`)}
                           className="block px-3 py-2 hover:bg-muted border-b last:border-b-0"
                           onClick={() => setSearchQuery("")}
                         >
