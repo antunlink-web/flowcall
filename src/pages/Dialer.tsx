@@ -62,7 +62,7 @@ interface PermissionState {
 export default function Dialer() {
   const { user, loading: authLoading } = useAuth();
   const { toast } = useToast();
-  const navigate = useNavigate();
+  const navigate = useTenantNavigate();
   const [isConnected, setIsConnected] = useState(false);
   const [currentRequest, setCurrentRequest] = useState<DialRequest | null>(null);
   const [currentSmsRequest, setCurrentSmsRequest] = useState<SmsRequest | null>(null);
