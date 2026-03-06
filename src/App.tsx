@@ -24,7 +24,7 @@ import { useAuth } from "@/hooks/useAuth";
 const Auth = lazy(() => import("./pages/Auth"));
 const AuthCallback = lazy(() => import("./pages/AuthCallback"));
 const ResetPassword = lazy(() => import("./pages/ResetPassword"));
-const AcceptInvite = lazy(() => import("./pages/AcceptInvite"));
+
 const ControlPanel = lazy(() => import("./pages/ControlPanel"));
 const Dashboard = lazy(() => import("./pages/Dashboard"));
 const Work = lazy(() => import("./pages/Work"));
@@ -33,7 +33,7 @@ const Campaigns = lazy(() => import("./pages/Campaigns"));
 const Reports = lazy(() => import("./pages/Reports"));
 const Team = lazy(() => import("./pages/Team"));
 const Manage = lazy(() => import("./pages/Manage"));
-const ManageAccount = lazy(() => import("./pages/ManageAccount"));
+
 const ManageLists = lazy(() => import("./pages/ManageLists"));
 const ManageClaims = lazy(() => import("./pages/ManageClaims"));
 const ManageDuplicates = lazy(() => import("./pages/ManageDuplicates"));
@@ -41,10 +41,10 @@ const Preferences = lazy(() => import("./pages/Preferences"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 const Dialer = lazy(() => import("./pages/Dialer"));
 const Install = lazy(() => import("./pages/Install"));
-const Register = lazy(() => import("./pages/Register"));
+
 const ProductOwnerDashboard = lazy(() => import("./pages/ProductOwnerDashboard"));
 // LandingPage is lazy-loaded inside LandingOrRedirect
-const RegistrationPending = lazy(() => import("./pages/RegistrationPending"));
+
 const CompanionApp = lazy(() => import("./pages/CompanionApp"));
 
 function PageLoader() {
@@ -112,7 +112,7 @@ function CrmRoutes() {
       <Route path="manage/users" element={<ProtectedRoute><Team /></ProtectedRoute>} />
       <Route path="manage/lists" element={<ProtectedRoute><ManageLists /></ProtectedRoute>} />
       <Route path="manage/settings" element={<Navigate to="../preferences" replace />} />
-      <Route path="manage/account" element={<ProtectedRoute><ManageAccount /></ProtectedRoute>} />
+      <Route path="manage/account" element={<Navigate to="../preferences" replace />} />
       <Route path="manage/claims" element={<ProtectedRoute><ManageClaims /></ProtectedRoute>} />
       <Route path="manage/duplicates" element={<ProtectedRoute><ManageDuplicates /></ProtectedRoute>} />
       <Route path="preferences" element={<ProtectedRoute><Preferences /></ProtectedRoute>} />
@@ -158,10 +158,7 @@ function AppContent() {
         <Route path="/" element={<LandingOrRedirect />} />
         <Route path="/auth" element={<Auth />} />
         <Route path="/auth/callback" element={<AuthCallback />} />
-        <Route path="/register" element={<Register />} />
-        <Route path="/registration-pending" element={<RegistrationPending />} />
         <Route path="/reset-password" element={<ResetPassword />} />
-        <Route path="/accept-invite" element={<AcceptInvite />} />
 
         {/* Product owner dashboard (root level, no tenant) */}
         <Route path="/aiculedssul" element={
