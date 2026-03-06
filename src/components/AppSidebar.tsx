@@ -60,12 +60,18 @@ export function AppSidebar() {
   const { roles, primaryRole } = useUserRole();
   const { branding } = useBranding();
   const location = useLocation();
+  const t = useTenantLinkPath();
+  const { basePath } = useTenantPath();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [manageOpen, setManageOpen] = useState(
-    location.pathname.startsWith("/manage") || 
-    location.pathname === "/team" || 
-    location.pathname === "/preferences"
+    location.pathname.includes("/manage") || 
+    location.pathname.endsWith("/team") || 
+    location.pathname.endsWith("/preferences")
   );
+
+  // Resolve nav items to tenant-scoped paths
+  const resolvedNavItems = navItems.map(item => ({ ...item, to: t(item.to) }));
+  const resolvedManageItems = manageSubItems.map(item => ({ ...item, to: t(item.to) }));
 
   const appName = branding?.app_name || "FlowCall";
   const logoUrl = branding?.logo_url || flowcallLogo;
