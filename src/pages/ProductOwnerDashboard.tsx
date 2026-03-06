@@ -260,7 +260,7 @@ export default function ProductOwnerDashboard() {
         <div className="flex items-center justify-center h-64">
           <RefreshCw className="w-8 h-8 animate-spin text-muted-foreground" />
         </div>
-      </DashboardLayout>
+      </AdminLayout>
     );
   }
 
