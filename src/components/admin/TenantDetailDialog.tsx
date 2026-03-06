@@ -32,7 +32,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Building2, Users, FileText, BarChart3, Trash2, Save, RefreshCw } from "lucide-react";
+import { Building2, Users, FileText, BarChart3, Trash2, Save, RefreshCw, Crown, CalendarOff } from "lucide-react";
 import { format } from "date-fns";
 
 interface Tenant {
@@ -193,6 +193,7 @@ export function TenantDetailDialog({ tenant, open, onOpenChange, onUpdated }: Te
         <Tabs defaultValue="details" className="mt-2">
           <TabsList className="w-full">
             <TabsTrigger value="details" className="flex-1">Details</TabsTrigger>
+            <TabsTrigger value="plan" className="flex-1">Plan</TabsTrigger>
             <TabsTrigger value="users" className="flex-1">Users ({users.length})</TabsTrigger>
             <TabsTrigger value="stats" className="flex-1">Stats</TabsTrigger>
           </TabsList>
@@ -259,6 +260,78 @@ export function TenantDetailDialog({ tenant, open, onOpenChange, onUpdated }: Te
                 )}
               </div>
             )}
+          </TabsContent>
+
+          <TabsContent value="plan" className="space-y-4 mt-4">
+            <div className="space-y-3">
+              <div className="flex items-center justify-between rounded-lg border p-4">
+                <div>
+                  <p className="font-medium flex items-center gap-2">
+                    <Crown className="w-4 h-4 text-yellow-500" />
+                    Trial Status
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    {tenant.trial_end_date 
+                      ? new Date(tenant.trial_end_date) > new Date('2090-01-01')
+                        ? "Unlimited (free plan)"
+                        : `Expires: ${format(new Date(tenant.trial_end_date), "MMM d, yyyy")}`
+                      : "No trial set"}
+                  </p>
+                </div>
+                <div className="flex gap-2">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={async () => {
+                      const newEnd = new Date();
+                      newEnd.setDate(newEnd.getDate() + 14);
+                      await supabase.from("tenants").update({ trial_end_date: newEnd.toISOString() }).eq("id", tenant.id);
+                      toast({ title: "Trial extended", description: "14-day trial has been reset." });
+                      onUpdated();
+                    }}
+                  >
+                    Reset 14 days
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={async () => {
+                      await supabase.from("tenants").update({ trial_end_date: "2099-12-31T23:59:59Z" }).eq("id", tenant.id);
+                      toast({ title: "Free plan activated", description: "Trial set to unlimited (2099)." });
+                      onUpdated();
+                    }}
+                  >
+                    <Crown className="w-4 h-4 mr-1" />
+                    Unlimited
+                  </Button>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between rounded-lg border p-4">
+                <div>
+                  <p className="font-medium flex items-center gap-2">
+                    <CalendarOff className="w-4 h-4 text-destructive" />
+                    Expire Trial Now
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    Force the paywall to activate immediately
+                  </p>
+                </div>
+                <Button
+                  size="sm"
+                  variant="destructive"
+                  onClick={async () => {
+                    const yesterday = new Date();
+                    yesterday.setDate(yesterday.getDate() - 1);
+                    await supabase.from("tenants").update({ trial_end_date: yesterday.toISOString() }).eq("id", tenant.id);
+                    toast({ title: "Trial expired", description: "Paywall is now active for this tenant." });
+                    onUpdated();
+                  }}
+                >
+                  Expire Now
+                </Button>
+              </div>
+            </div>
           </TabsContent>
 
           <TabsContent value="users" className="mt-4">

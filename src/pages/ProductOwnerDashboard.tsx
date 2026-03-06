@@ -1,9 +1,8 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { useAuth } from "@/hooks/useAuth";
 import { useUserRole } from "@/hooks/useUserRole";
 import { supabase } from "@/integrations/supabase/client";
-import { DashboardLayout } from "@/components/DashboardLayout";
+import { AdminLayout } from "@/components/admin/AdminLayout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -11,9 +10,10 @@ import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
-import { Building2, Users, FileText, BarChart3, Search, Eye, ExternalLink, RefreshCw, CheckCircle, XCircle, Clock, AlertCircle, Mail } from "lucide-react";
+import { Building2, Users, FileText, BarChart3, Search, Eye, ExternalLink, RefreshCw, CheckCircle, XCircle, Clock, AlertCircle, Mail, Plus } from "lucide-react";
 import { SmtpSettingsPanel } from "@/components/admin/SmtpSettingsPanel";
 import { TenantDetailDialog } from "@/components/admin/TenantDetailDialog";
+import { CreateTenantDialog } from "@/components/admin/CreateTenantDialog";
 import { format } from "date-fns";
 
 interface Tenant {
@@ -38,7 +38,6 @@ interface PendingTenant {
 }
 
 export default function ProductOwnerDashboard() {
-  const { user } = useAuth();
   const { isProductOwner, loading: roleLoading } = useUserRole();
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -51,6 +50,7 @@ export default function ProductOwnerDashboard() {
   const [selectedTenant, setSelectedTenant] = useState<Tenant | null>(null);
   const [approvingId, setApprovingId] = useState<string | null>(null);
   const [rejectingId, setRejectingId] = useState<string | null>(null);
+  const [showCreateDialog, setShowCreateDialog] = useState(false);
 
   useEffect(() => {
     if (!roleLoading && !isProductOwner) {
@@ -155,8 +155,7 @@ export default function ProductOwnerDashboard() {
   const handleApprove = async (tenantId: string) => {
     setApprovingId(tenantId);
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      
+      await supabase.auth.getSession();
       const response = await supabase.functions.invoke("approve-tenant", {
         body: { tenantId },
       });
@@ -228,7 +227,7 @@ export default function ProductOwnerDashboard() {
       tenant.subdomain.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const activeTenants = filteredTenants.filter(t => t.status === "active");
+  
 
   const totalStats = {
     tenants: tenants.filter(t => t.status === "active").length,
@@ -255,11 +254,11 @@ export default function ProductOwnerDashboard() {
 
   if (roleLoading) {
     return (
-      <DashboardLayout>
+      <AdminLayout>
         <div className="flex items-center justify-center h-64">
           <RefreshCw className="w-8 h-8 animate-spin text-muted-foreground" />
         </div>
-      </DashboardLayout>
+      </AdminLayout>
     );
   }
 
@@ -268,7 +267,7 @@ export default function ProductOwnerDashboard() {
   }
 
   return (
-    <DashboardLayout>
+    <AdminLayout>
       <div className="space-y-6">
         {/* Summary Cards */}
         <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
@@ -461,6 +460,10 @@ export default function ProductOwnerDashboard() {
                     <CardDescription>Manage all registered organizations</CardDescription>
                   </div>
                   <div className="flex items-center gap-2">
+                    <Button onClick={() => setShowCreateDialog(true)} className="gap-2">
+                      <Plus className="w-4 h-4" />
+                      Create Organization
+                    </Button>
                     <div className="relative">
                       <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                       <Input
@@ -559,7 +562,14 @@ export default function ProductOwnerDashboard() {
           onOpenChange={(open) => { if (!open) setSelectedTenant(null); }}
           onUpdated={() => { fetchTenants(); fetchPendingTenants(); }}
         />
+
+        {/* Create Tenant Dialog */}
+        <CreateTenantDialog
+          open={showCreateDialog}
+          onOpenChange={setShowCreateDialog}
+          onCreated={() => { fetchTenants(); fetchPendingTenants(); }}
+        />
       </div>
-    </DashboardLayout>
+    </AdminLayout>
   );
 }
