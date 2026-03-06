@@ -2,20 +2,28 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-import { AuthProvider, useAuth } from "@/hooks/useAuth";
+import { BrowserRouter, Routes, Route, Navigate, useParams } from "react-router-dom";
+import { AuthProvider } from "@/hooks/useAuth";
 import { BrandingProvider } from "@/hooks/useBranding";
 import { UploadProgressProvider, useUploadProgress } from "@/hooks/useUploadProgress";
 import { TourProvider } from "@/hooks/useTour";
 import { UploadProgressBar } from "@/components/UploadProgressBar";
 import { TourGuide } from "@/components/TourGuide";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
-import { SubdomainRouter } from "@/components/SubdomainRouter";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { TenantProvider } from "@/hooks/useTenant";
+import { TenantPathProvider } from "@/hooks/useTenantPath";
+import { SubscriptionProvider } from "@/hooks/useSubscription";
+import { TrialPaywall } from "@/components/TrialPaywall";
 import { isNativeApp } from "@/lib/native-dialer";
 import { OfflineBanner } from "@/components/OfflineBanner";
+import { LandingOrRedirect } from "@/components/LandingOrRedirect";
+import { PaywallGate } from "@/components/PaywallGate";
 import { Suspense, lazy } from "react";
+import { useAuth } from "@/hooks/useAuth";
+import { isPast, parseISO } from "date-fns";
+import { useTenant } from "@/hooks/useTenant";
+import { useSubscription } from "@/hooks/useSubscription";
 
 // Lazy-loaded page components for code splitting
 const Auth = lazy(() => import("./pages/Auth"));
@@ -94,89 +102,90 @@ function CompanionRoutes() {
   );
 }
 
-function CrmApp() {
+/** CRM routes rendered inside the tenant path context */
+function CrmRoutes() {
+  return (
+    <Routes>
+      <Route index element={<ProtectedRoute><ControlPanel /></ProtectedRoute>} />
+      <Route path="dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+      <Route path="control-panel" element={<Navigate to="." replace />} />
+      <Route path="work" element={<ProtectedRoute><Work /></ProtectedRoute>} />
+      <Route path="leads" element={<ProtectedRoute><Leads /></ProtectedRoute>} />
+      <Route path="campaigns" element={<ProtectedRoute><Campaigns /></ProtectedRoute>} />
+      <Route path="reports" element={<ProtectedRoute><Reports /></ProtectedRoute>} />
+      <Route path="team" element={<ProtectedRoute><Team /></ProtectedRoute>} />
+      <Route path="manage/users" element={<ProtectedRoute><Team /></ProtectedRoute>} />
+      <Route path="manage/lists" element={<ProtectedRoute><ManageLists /></ProtectedRoute>} />
+      <Route path="manage/settings" element={<Navigate to="../preferences" replace />} />
+      <Route path="manage/account" element={<ProtectedRoute><ManageAccount /></ProtectedRoute>} />
+      <Route path="manage/claims" element={<ProtectedRoute><ManageClaims /></ProtectedRoute>} />
+      <Route path="manage/duplicates" element={<ProtectedRoute><ManageDuplicates /></ProtectedRoute>} />
+      <Route path="preferences" element={<ProtectedRoute><Preferences /></ProtectedRoute>} />
+      <Route path="settings" element={<Navigate to="../preferences" replace />} />
+      <Route path="manage" element={<ProtectedRoute><Manage /></ProtectedRoute>} />
+      <Route path="dialer" element={<Dialer />} />
+      <Route path="install" element={<Install />} />
+      <Route path="*" element={<NotFound />} />
+    </Routes>
+  );
+}
+
+/** Wraps CRM with tenant context, subscription, paywall, and tour */
+function TenantCrmApp() {
+  const { tenantSlug } = useParams();
+
+  return (
+    <TenantPathProvider tenantSlug={tenantSlug!}>
+      <TenantProvider>
+        <SubscriptionProvider>
+          <PaywallGate>
+            <TourProvider>
+              <CrmRoutes />
+              <TourGuide />
+            </TourProvider>
+          </PaywallGate>
+        </SubscriptionProvider>
+      </TenantProvider>
+    </TenantPathProvider>
+  );
+}
+
+function AppContent() {
+  // Native app → show focused companion UI (not the full CRM)
+  if (isNativeApp()) {
+    return <CompanionRoutes />;
+  }
+
   return (
     <Suspense fallback={<PageLoader />}>
       <Routes>
+        {/* Public / auth routes */}
+        <Route path="/" element={<LandingOrRedirect />} />
         <Route path="/auth" element={<Auth />} />
         <Route path="/auth/callback" element={<AuthCallback />} />
         <Route path="/register" element={<Register />} />
         <Route path="/registration-pending" element={<RegistrationPending />} />
         <Route path="/reset-password" element={<ResetPassword />} />
         <Route path="/accept-invite" element={<AcceptInvite />} />
-        <Route path="/aiculedssul" element={<ProtectedRoute requiredRoles={["product_owner"]}><ProductOwnerDashboard /></ProtectedRoute>} />
-        <Route path="/" element={<ProtectedRoute><ControlPanel /></ProtectedRoute>} />
-        <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
-        <Route path="/control-panel" element={<Navigate to="/" replace />} />
-        <Route path="/work" element={<ProtectedRoute><Work /></ProtectedRoute>} />
-        <Route path="/leads" element={<ProtectedRoute><Leads /></ProtectedRoute>} />
-        <Route path="/campaigns" element={<ProtectedRoute><Campaigns /></ProtectedRoute>} />
-        <Route path="/reports" element={<ProtectedRoute><Reports /></ProtectedRoute>} />
-        <Route path="/team" element={<ProtectedRoute><Team /></ProtectedRoute>} />
-        <Route path="/manage/users" element={<ProtectedRoute><Team /></ProtectedRoute>} />
-        <Route path="/manage/lists" element={<ProtectedRoute><ManageLists /></ProtectedRoute>} />
-        <Route path="/manage/settings" element={<Navigate to="/preferences" replace />} />
-        <Route path="/manage/account" element={<ProtectedRoute><ManageAccount /></ProtectedRoute>} />
-        <Route path="/manage/claims" element={<ProtectedRoute><ManageClaims /></ProtectedRoute>} />
-        <Route path="/manage/duplicates" element={<ProtectedRoute><ManageDuplicates /></ProtectedRoute>} />
-        <Route path="/preferences" element={<ProtectedRoute><Preferences /></ProtectedRoute>} />
-        <Route path="/settings" element={<Navigate to="/preferences" replace />} />
-        <Route path="/manage" element={<ProtectedRoute><Manage /></ProtectedRoute>} />
-        <Route path="/dialer" element={<Dialer />} />
-        <Route path="/install" element={<Install />} />
+
+        {/* Product owner dashboard (root level, no tenant) */}
+        <Route path="/aiculedssul" element={
+          <TenantProvider>
+            <ProtectedRoute requiredRoles={["product_owner"]}>
+              <ProductOwnerDashboard />
+            </ProtectedRoute>
+          </TenantProvider>
+        } />
+
+        {/* CRM tenant routes */}
+        <Route path="/t/:tenantSlug/*" element={<TenantCrmApp />} />
+
+        {/* Catch-all */}
         <Route path="*" element={<NotFound />} />
       </Routes>
     </Suspense>
   );
 }
-
-function LandingRoutes() {
-  return (
-    <Suspense fallback={<PageLoader />}>
-      <Routes>
-        <Route path="/" element={<LandingPage />} />
-        <Route path="/auth" element={<Auth />} />
-        <Route path="/register" element={<Register />} />
-        <Route path="/registration-pending" element={<RegistrationPending />} />
-        <Route path="/reset-password" element={<ResetPassword />} />
-        <Route path="/accept-invite" element={<AcceptInvite />} />
-        <Route path="/aiculedssul" element={
-          <TenantProvider>
-            <ProtectedRoute>
-              <ProductOwnerDashboard />
-            </ProtectedRoute>
-          </TenantProvider>
-        } />
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
-    </Suspense>
-  );
-}
-
-function AppContent() {
-  const hostname = window.location.hostname;
-
-  // Native app → show focused companion UI (not the full CRM)
-  if (isNativeApp()) {
-    return <CompanionRoutes />;
-  }
-
-  // Check if we're on the root domain (flowcall.eu without subdomain)
-  const isRootDomain = hostname === "flowcall.eu" || hostname === "www.flowcall.eu";
-
-  if (isRootDomain) {
-    return <LandingRoutes />;
-  }
-
-  // Subdomains / dev / preview → full CRM
-  return (
-    <SubdomainRouter>
-      <CrmApp />
-      <TourGuide />
-    </SubdomainRouter>
-  );
-}
-
 
 const App = () => (
   <ErrorBoundary>
@@ -187,17 +196,15 @@ const App = () => (
             <ErrorBoundary>
               <BrandingProvider>
                 <UploadProgressProvider>
-                  <TourProvider>
-                    <OfflineBanner />
-                    <Toaster />
-                    <Sonner />
-                    <BrowserRouter>
-                      <ErrorBoundary>
-                        <AppContent />
-                      </ErrorBoundary>
-                    </BrowserRouter>
-                    <GlobalUploadProgressBar />
-                  </TourProvider>
+                  <OfflineBanner />
+                  <Toaster />
+                  <Sonner />
+                  <BrowserRouter>
+                    <ErrorBoundary>
+                      <AppContent />
+                    </ErrorBoundary>
+                  </BrowserRouter>
+                  <GlobalUploadProgressBar />
                 </UploadProgressProvider>
               </BrandingProvider>
             </ErrorBoundary>
