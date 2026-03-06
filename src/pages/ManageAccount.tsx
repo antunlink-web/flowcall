@@ -3,6 +3,7 @@ import { DashboardLayout } from "@/components/DashboardLayout";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Link } from "react-router-dom";
+import { useTenantLinkPath } from "@/hooks/useTenantPath";
 
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
