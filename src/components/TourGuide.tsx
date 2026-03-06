@@ -73,7 +73,7 @@ export function TourGuide() {
   const { runTour, endTour, hasSeenTour, startTour } = useTour();
   const { user } = useAuth();
   const location = useLocation();
-  const navigate = useNavigate();
+  const navigate = useTenantNavigate();
   const [stepIndex, setStepIndex] = useState(0);
   const [isReady, setIsReady] = useState(false);
 
