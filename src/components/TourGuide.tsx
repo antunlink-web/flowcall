@@ -1,7 +1,7 @@
 import Joyride, { CallBackProps, STATUS, Step, ACTIONS } from "react-joyride";
 import { useTour } from "@/hooks/useTour";
 import { useLocation } from "react-router-dom";
-import { useTenantNavigate, useTenantPath } from "@/hooks/useTenantPath";
+import { useTenantNavigate } from "@/hooks/useTenantPath";
 import { useEffect, useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 

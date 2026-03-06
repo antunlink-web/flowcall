@@ -175,7 +175,7 @@ const sidebarItems = [
 export default function Preferences() {
   const { user } = useAuth();
   const { startTour } = useTour();
-  const navigate = useNavigate();
+  const navigate = useTenantNavigate();
   const [activeSection, setActiveSection] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
