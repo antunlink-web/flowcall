@@ -39,7 +39,6 @@ interface PendingTenant {
 }
 
 export default function ProductOwnerDashboard() {
-  const { user } = useAuth();
   const { isProductOwner, loading: roleLoading } = useUserRole();
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -52,6 +51,7 @@ export default function ProductOwnerDashboard() {
   const [selectedTenant, setSelectedTenant] = useState<Tenant | null>(null);
   const [approvingId, setApprovingId] = useState<string | null>(null);
   const [rejectingId, setRejectingId] = useState<string | null>(null);
+  const [showCreateDialog, setShowCreateDialog] = useState(false);
 
   useEffect(() => {
     if (!roleLoading && !isProductOwner) {
