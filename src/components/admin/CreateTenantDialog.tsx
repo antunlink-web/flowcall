@@ -115,8 +115,8 @@ export function CreateTenantDialog({ open, onOpenChange, onCreated }: CreateTena
             <div className="space-y-2">
               <Label htmlFor="subdomain">Subdomain</Label>
               <div className="flex items-center gap-1">
+                <span className="text-sm text-muted-foreground whitespace-nowrap">flowcall.eu/t/</span>
                 <Input id="subdomain" value={subdomain} onChange={(e) => setSubdomain(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ''))} placeholder="acme" />
-                <span className="text-sm text-muted-foreground whitespace-nowrap">.flowcall.eu</span>
               </div>
             </div>
           </div>
