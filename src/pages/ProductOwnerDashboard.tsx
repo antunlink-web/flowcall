@@ -461,6 +461,11 @@ export default function ProductOwnerDashboard() {
                     <CardDescription>Manage all registered organizations</CardDescription>
                   </div>
                   <div className="flex items-center gap-2">
+                    <Button onClick={() => setShowCreateDialog(true)} className="gap-2">
+                      <Plus className="w-4 h-4" />
+                      Create Organization
+                    </Button>
+                  <div className="flex items-center gap-2">
                     <div className="relative">
                       <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                       <Input
