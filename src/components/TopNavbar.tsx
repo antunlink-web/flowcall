@@ -1,4 +1,5 @@
 import { NavLink, useLocation, Link, useNavigate } from "react-router-dom";
+import { useTenantPath, useTenantNavigate, useTenantLinkPath } from "@/hooks/useTenantPath";
 import { useAuth } from "@/hooks/useAuth";
 import flowcallLogo from "@/assets/flowcall-logo.png";
 import { useUserRole } from "@/hooks/useUserRole";
