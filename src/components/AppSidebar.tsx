@@ -76,7 +76,7 @@ export function AppSidebar() {
   const appName = branding?.app_name || "FlowCall";
   const logoUrl = branding?.logo_url || flowcallLogo;
 
-  const visibleItems = navItems.filter(
+  const visibleItems = resolvedNavItems.filter(
     (item) => roles.some(r => item.roles.includes(r)) || (roles.length === 0 && item.roles.includes("agent"))
   );
 
@@ -84,7 +84,7 @@ export function AppSidebar() {
   const showManageSection = roles.includes("owner") || roles.includes("account_manager");
 
   // Check if current route is a manage sub-route
-  const isManageSubRoute = manageSubItems.some(item => location.pathname === item.to);
+  const isManageSubRoute = resolvedManageItems.some(item => location.pathname === item.to);
 
   // Format roles for display
   const displayRole = roles.length > 0 
