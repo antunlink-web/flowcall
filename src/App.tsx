@@ -44,7 +44,7 @@ const Install = lazy(() => import("./pages/Install"));
 
 const ProductOwnerDashboard = lazy(() => import("./pages/ProductOwnerDashboard"));
 // LandingPage is lazy-loaded inside LandingOrRedirect
-const RegistrationPending = lazy(() => import("./pages/RegistrationPending"));
+
 const CompanionApp = lazy(() => import("./pages/CompanionApp"));
 
 function PageLoader() {
