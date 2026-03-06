@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
-import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
+import { useTenantNavigate, useTenantLinkPath } from "@/hooks/useTenantPath";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -94,7 +95,8 @@ export default function ControlPanel() {
   const { user } = useAuth();
   const { roles } = useUserRole();
   const { dueCallbacks } = useDueCallbacks();
-  const navigate = useNavigate();
+  const navigate = useTenantNavigate();
+  const tPath = useTenantLinkPath();
   const [searchParams, setSearchParams] = useSearchParams();
 
   // Reset to main grid when reset param is present
@@ -333,7 +335,7 @@ export default function ControlPanel() {
               return (
                 <Link
                   key={item.id}
-                  to={item.href!}
+                  to={tPath(item.href!)}
                   className="flex flex-col items-center p-6 rounded-xl bg-card border border-border/50 shadow-md
                     hover:shadow-lg hover:shadow-primary/10 hover:-translate-y-1 hover:border-primary/40
                     transition-all duration-300 ease-out group animate-fade-in"
@@ -357,7 +359,7 @@ export default function ControlPanel() {
             {manageItems.map((item, index) => (
               <Link
                 key={item.name}
-                to={item.href}
+                to={tPath(item.href)}
                 className="flex flex-col items-center p-6 rounded-xl bg-card border border-border/50 shadow-md
                   hover:shadow-lg hover:shadow-primary/10 hover:-translate-y-1 hover:border-primary/40
                   transition-all duration-300 ease-out group animate-fade-in"
@@ -380,7 +382,7 @@ export default function ControlPanel() {
             {reviewItems.map((item, index) => (
               <Link
                 key={item.name}
-                to={item.href}
+                to={tPath(item.href)}
                 className="flex flex-col items-center p-6 rounded-xl bg-card border border-border/50 shadow-md
                   hover:shadow-lg hover:shadow-primary/10 hover:-translate-y-1 hover:border-primary/40
                   transition-all duration-300 ease-out group animate-fade-in"
@@ -410,7 +412,7 @@ export default function ControlPanel() {
             ) : (
               <div className="grid gap-3">
                 {recentLeads.map((lead) => (
-                  <Link key={lead.id} to={`/work?leadId=${lead.id}`} className="flex items-center justify-between p-4 rounded-lg border bg-card hover:bg-muted transition-colors">
+                  <Link key={lead.id} to={tPath(`/work?leadId=${lead.id}`)} className="flex items-center justify-between p-4 rounded-lg border bg-card hover:bg-muted transition-colors">
                     <div className="flex items-center gap-3">
                       <div className={`w-3 h-3 rounded-full ${getStatusColor(lead.status)}`} />
                       <div>
@@ -439,7 +441,7 @@ export default function ControlPanel() {
             ) : (
               <div className="grid gap-3">
                 {scheduledLeads.map((lead) => (
-                  <Link key={lead.id} to={`/work?leadId=${lead.id}`} className="flex items-center justify-between p-4 rounded-lg border bg-card hover:bg-muted transition-colors">
+                  <Link key={lead.id} to={tPath(`/work?leadId=${lead.id}`)} className="flex items-center justify-between p-4 rounded-lg border bg-card hover:bg-muted transition-colors">
                     <div className="flex items-center gap-3">
                       <Calendar className="w-5 h-5 text-primary" />
                       <div>
@@ -468,7 +470,7 @@ export default function ControlPanel() {
             ) : (
               <div className="grid gap-3">
                 {lockedLeads.map((lead) => (
-                  <Link key={lead.id} to={`/work?leadId=${lead.id}`} className="flex items-center justify-between p-4 rounded-lg border bg-card hover:bg-muted transition-colors">
+                  <Link key={lead.id} to={tPath(`/work?leadId=${lead.id}`)} className="flex items-center justify-between p-4 rounded-lg border bg-card hover:bg-muted transition-colors">
                     <div className="flex items-center gap-3">
                       <Lock className="w-5 h-5 text-yellow-500" />
                       <div>
@@ -497,7 +499,7 @@ export default function ControlPanel() {
               <div className="space-y-4">
                 <div className="grid gap-3">
                   {dueCallbacks.map((callback) => (
-                    <Link key={callback.id} to={`/work?leadId=${callback.id}`} className="flex items-center justify-between p-4 rounded-lg border border-l-4 border-l-destructive bg-card hover:bg-muted transition-colors">
+                    <Link key={callback.id} to={tPath(`/work?leadId=${callback.id}`)} className="flex items-center justify-between p-4 rounded-lg border border-l-4 border-l-destructive bg-card hover:bg-muted transition-colors">
                       <div className="flex items-center gap-3">
                         <Bell className="w-5 h-5 text-destructive" />
                         <div>

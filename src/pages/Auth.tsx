@@ -41,100 +41,75 @@ export default function Auth() {
     const redirectAfterLogin = async () => {
       if (!user) return;
       
-      // If on root domain AND not in native app, redirect to tenant subdomain
-      if (isRootDomain() && !isNativeApp()) {
-        setRedirecting(true);
-        try {
-          // Check if user is a product owner - they should stay on root domain
-          const { data: roleData } = await supabase
-            .from("user_roles")
-            .select("role")
-            .eq("user_id", user.id);
-          
-          const isProductOwner = roleData?.some(r => r.role === "product_owner");
-          
-          if (isProductOwner) {
-            // Product owners stay on root domain, go to admin dashboard
-            navigate("/aiculedssul");
-            setRedirecting(false);
-            return;
-          }
+      try {
+        // Check if user is a product owner - they go to admin dashboard
+        const { data: roleData } = await supabase
+          .from("user_roles")
+          .select("role")
+          .eq("user_id", user.id);
+        
+        const isProductOwner = roleData?.some(r => r.role === "product_owner");
+        
+        if (isProductOwner) {
+          navigate("/aiculedssul");
+          return;
+        }
 
-          // Get user's tenant subdomain
-          const { data: profile, error: profileError } = await supabase
-            .from("profiles")
-            .select("tenant_id")
-            .eq("id", user.id)
+        // Get user's tenant subdomain for path-based routing
+        const { data: profile, error: profileError } = await supabase
+          .from("profiles")
+          .select("tenant_id")
+          .eq("id", user.id)
+          .single();
+        
+        if (profileError) {
+          console.error("Error getting profile:", profileError);
+          toast({
+            title: "Error",
+            description: "Could not find your workspace. Please contact support.",
+            variant: "destructive",
+          });
+          return;
+        }
+        
+        if (profile?.tenant_id) {
+          const { data: tenant, error: tenantError } = await supabase
+            .from("tenants")
+            .select("subdomain")
+            .eq("id", profile.tenant_id)
             .single();
           
-          if (profileError) {
-            console.error("Error getting profile:", profileError);
+          if (tenantError) {
+            console.error("Error getting tenant:", tenantError);
             toast({
               title: "Error",
               description: "Could not find your workspace. Please contact support.",
               variant: "destructive",
             });
-            setRedirecting(false);
             return;
           }
           
-          if (profile?.tenant_id) {
-            const { data: tenant, error: tenantError } = await supabase
-              .from("tenants")
-              .select("subdomain")
-              .eq("id", profile.tenant_id)
-              .single();
-            
-            if (tenantError) {
-              console.error("Error getting tenant:", tenantError);
-              toast({
-                title: "Error",
-                description: "Could not find your workspace. Please contact support.",
-                variant: "destructive",
-              });
-              setRedirecting(false);
-              return;
-            }
-            
           if (tenant?.subdomain) {
-              // Get current session tokens to pass to subdomain (localStorage is per-origin)
-              const { data: { session: currentSession } } = await supabase.auth.getSession();
-              if (currentSession) {
-                const params = new URLSearchParams({
-                  access_token: currentSession.access_token,
-                  refresh_token: currentSession.refresh_token,
-                  token_type: currentSession.token_type || 'bearer',
-                });
-                window.location.href = `https://${tenant.subdomain}.flowcall.eu/auth/callback?${params.toString()}`;
-              } else {
-                window.location.href = `https://${tenant.subdomain}.flowcall.eu`;
-              }
-              return;
-            }
+            // Path-based routing: navigate to /t/:slug/
+            navigate(`/t/${tenant.subdomain}/`);
+            return;
           }
-          
-          // No tenant found
-          toast({
-            title: "No workspace found",
-            description: "Your account is not associated with a workspace. Please register or contact support.",
-            variant: "destructive",
-          });
-          setRedirecting(false);
-          return;
-        } catch (error) {
-          console.error("Error during redirect:", error);
-          toast({
-            title: "Error",
-            description: "Something went wrong. Please try again.",
-            variant: "destructive",
-          });
-          setRedirecting(false);
-          return;
         }
+        
+        // No tenant found
+        toast({
+          title: "No workspace found",
+          description: "Your account is not associated with a workspace. Please register or contact support.",
+          variant: "destructive",
+        });
+      } catch (error) {
+        console.error("Error during redirect:", error);
+        toast({
+          title: "Error",
+          description: "Something went wrong. Please try again.",
+          variant: "destructive",
+        });
       }
-      
-      // Not on root domain: navigate within current domain
-      navigate("/");
     };
     
     redirectAfterLogin();

@@ -2,9 +2,8 @@ import { ReactNode } from "react";
 import { Navigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useUserRole } from "@/hooks/useUserRole";
+import { useTenantPath } from "@/hooks/useTenantPath";
 import { Loader2 } from "lucide-react";
-
-
 
 interface ProtectedRouteProps {
   children: ReactNode;
@@ -24,8 +23,8 @@ export function ProtectedRoute({ children, requiredRoles }: ProtectedRouteProps)
   const { user, loading: authLoading } = useAuth();
   const { roles, loading: rolesLoading } = useUserRole();
   const location = useLocation();
+  const { basePath } = useTenantPath();
 
-  // Show loading while auth or roles are being fetched
   if (authLoading || rolesLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
@@ -38,33 +37,29 @@ export function ProtectedRoute({ children, requiredRoles }: ProtectedRouteProps)
     return <Navigate to="/auth" replace />;
   }
 
-  // Compute isOwnerOrManager directly from roles array AFTER loading is complete
-  // This ensures we're using the freshest roles data
   const isOwnerOrManager = roles.includes("owner") || 
                            roles.includes("account_manager") || 
                            roles.includes("product_owner");
 
-  // Check if current route requires manager/owner access
+  // Strip basePath prefix for route matching
+  const relativePath = basePath && location.pathname.startsWith(basePath)
+    ? location.pathname.slice(basePath.length) || "/"
+    : location.pathname;
+
   const isManagerOnlyRoute = managerOnlyRoutes.some(
-    route => location.pathname === route || location.pathname.startsWith(route + "/")
+    route => relativePath === route || relativePath.startsWith(route + "/")
   );
 
-  // Allow agents to access /leads with a specific lead ID (from search)
-  // RLS will properly restrict what they can see
-  const isLeadDetailAccess = location.pathname === "/leads" && location.search.includes("id=");
+  const isLeadDetailAccess = relativePath === "/leads" && location.search.includes("id=");
 
-  // If agent tries to access manager-only routes, redirect to home
-  // Exception: agents can access lead detail view via /leads?id=...
-  // Also, if no roles are loaded yet (empty array), don't redirect - wait for roles
   if (isManagerOnlyRoute && !isOwnerOrManager && !isLeadDetailAccess && roles.length > 0) {
-    return <Navigate to="/" replace />;
+    return <Navigate to={basePath || "/"} replace />;
   }
 
-  // Check for specific required roles if provided
   if (requiredRoles && requiredRoles.length > 0) {
     const hasRequiredRole = requiredRoles.some(r => roles.includes(r as any));
     if (!hasRequiredRole) {
-      return <Navigate to="/" replace />;
+      return <Navigate to={basePath || "/"} replace />;
     }
   }
 

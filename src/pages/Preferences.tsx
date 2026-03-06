@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { useNavigate } from "react-router-dom";
+import { useTenantNavigate } from "@/hooks/useTenantPath";
 import { QRCodeSVG } from "qrcode.react";
 import { useAuth } from "@/hooks/useAuth";
 import { useConnectedDevices } from "@/hooks/useConnectedDevices";
@@ -175,7 +175,7 @@ const sidebarItems = [
 export default function Preferences() {
   const { user } = useAuth();
   const { startTour } = useTour();
-  const navigate = useNavigate();
+  const navigate = useTenantNavigate();
   const [activeSection, setActiveSection] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 

@@ -1,4 +1,5 @@
-import { NavLink, useLocation, Link, useNavigate } from "react-router-dom";
+import { useLocation, Link } from "react-router-dom";
+import { useTenantPath, useTenantNavigate, useTenantLinkPath } from "@/hooks/useTenantPath";
 import { useAuth } from "@/hooks/useAuth";
 import flowcallLogo from "@/assets/flowcall-logo.png";
 import { useUserRole } from "@/hooks/useUserRole";
@@ -46,8 +47,10 @@ export function TopNavbar() {
   const { user, signOut } = useAuth();
   const { isOwnerOrManager } = useUserRole();
   const { startTour } = useTour();
-  const navigate = useNavigate();
+  const navigate = useTenantNavigate();
   const location = useLocation();
+  const t = useTenantLinkPath();
+  const { basePath } = useTenantPath();
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
   const [searchLoading, setSearchLoading] = useState(false);
@@ -56,8 +59,8 @@ export function TopNavbar() {
   const { dueCount } = useDueCallbacks();
   const { hasOnlinePhone, onlineDevices, loading: devicesLoading } = useConnectedDevices();
 
-  const isOnDashboard = location.pathname === "/dashboard";
-  const isOnControlPanel = location.pathname === "/";
+  const isOnDashboard = location.pathname === `${basePath}/dashboard`;
+  const isOnControlPanel = location.pathname === basePath || location.pathname === `${basePath}/`;
 
   useEffect(() => {
     const fetchAvatar = async () => {
@@ -205,7 +208,7 @@ export function TopNavbar() {
         {/* Left Section - Logo, Name, Search & Home */}
         <div className="flex items-center gap-4">
           {/* Logo and Brand Name */}
-          <Link to="/" className="flex items-center gap-2">
+          <Link to={t("/")} className="flex items-center gap-2">
             <img src={flowcallLogo} alt="FlowCall" className="h-7 w-7" />
             <span className="text-lg font-semibold tracking-tight hidden sm:inline">FlowCall</span>
           </Link>
@@ -247,7 +250,7 @@ export function TopNavbar() {
                       return (
                         <Link
                           key={result.id}
-                          to={`/leads?id=${result.id}`}
+                          to={t(`/leads?id=${result.id}`)}
                           className="block px-3 py-2 hover:bg-muted border-b last:border-b-0"
                           onClick={() => setSearchQuery("")}
                         >
@@ -367,14 +370,14 @@ export function TopNavbar() {
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-48 bg-popover text-popover-foreground">
               <DropdownMenuItem asChild>
-                <Link to="/preferences" className="w-full cursor-pointer">
+                <Link to={t("/preferences")} className="w-full cursor-pointer">
                   Preferences
                 </Link>
               </DropdownMenuItem>
               {isOwnerOrManager && (
                 <>
                   <DropdownMenuItem asChild>
-                    <Link to="/manage/account" className="w-full cursor-pointer">
+                    <Link to={t("/manage/account")} className="w-full cursor-pointer">
                       Account Settings
                     </Link>
                   </DropdownMenuItem>

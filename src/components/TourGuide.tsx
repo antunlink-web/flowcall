@@ -1,6 +1,7 @@
 import Joyride, { CallBackProps, STATUS, Step, ACTIONS } from "react-joyride";
 import { useTour } from "@/hooks/useTour";
-import { useLocation, useNavigate } from "react-router-dom";
+import { useLocation } from "react-router-dom";
+import { useTenantNavigate } from "@/hooks/useTenantPath";
 import { useEffect, useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 
@@ -72,7 +73,7 @@ export function TourGuide() {
   const { runTour, endTour, hasSeenTour, startTour } = useTour();
   const { user } = useAuth();
   const location = useLocation();
-  const navigate = useNavigate();
+  const navigate = useTenantNavigate();
   const [stepIndex, setStepIndex] = useState(0);
   const [isReady, setIsReady] = useState(false);
 

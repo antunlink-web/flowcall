@@ -3,6 +3,7 @@ import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useBranding } from "@/hooks/useBranding";
+import { useTenantPath, useTenantLinkPath } from "@/hooks/useTenantPath";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
@@ -59,17 +60,23 @@ export function AppSidebar() {
   const { roles, primaryRole } = useUserRole();
   const { branding } = useBranding();
   const location = useLocation();
+  const t = useTenantLinkPath();
+  const { basePath } = useTenantPath();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [manageOpen, setManageOpen] = useState(
-    location.pathname.startsWith("/manage") || 
-    location.pathname === "/team" || 
-    location.pathname === "/preferences"
+    location.pathname.includes("/manage") || 
+    location.pathname.endsWith("/team") || 
+    location.pathname.endsWith("/preferences")
   );
+
+  // Resolve nav items to tenant-scoped paths
+  const resolvedNavItems = navItems.map(item => ({ ...item, to: t(item.to) }));
+  const resolvedManageItems = manageSubItems.map(item => ({ ...item, to: t(item.to) }));
 
   const appName = branding?.app_name || "FlowCall";
   const logoUrl = branding?.logo_url || flowcallLogo;
 
-  const visibleItems = navItems.filter(
+  const visibleItems = resolvedNavItems.filter(
     (item) => roles.some(r => item.roles.includes(r)) || (roles.length === 0 && item.roles.includes("agent"))
   );
 
@@ -77,7 +84,7 @@ export function AppSidebar() {
   const showManageSection = roles.includes("owner") || roles.includes("account_manager");
 
   // Check if current route is a manage sub-route
-  const isManageSubRoute = manageSubItems.some(item => location.pathname === item.to);
+  const isManageSubRoute = resolvedManageItems.some(item => location.pathname === item.to);
 
   // Format roles for display
   const displayRole = roles.length > 0 
@@ -146,7 +153,7 @@ export function AppSidebar() {
                   <ChevronDown className={cn("w-4 h-4 transition-transform", manageOpen && "rotate-180")} />
                 </CollapsibleTrigger>
                 <CollapsibleContent className="pl-4 space-y-1 mt-1">
-                  {manageSubItems.map((item) => (
+                  {resolvedManageItems.map((item) => (
                     <NavLink
                       key={item.to}
                       to={item.to}
@@ -206,7 +213,7 @@ export function AppSidebar() {
                 <ChevronDown className={cn("w-4 h-4 transition-transform", manageOpen && "rotate-180")} />
               </CollapsibleTrigger>
               <CollapsibleContent className="pl-4 space-y-1 mt-1">
-                {manageSubItems.map((item) => (
+                {resolvedManageItems.map((item) => (
                   <NavLink
                     key={item.to}
                     to={item.to}
@@ -246,7 +253,7 @@ export function AppSidebar() {
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-56">
               <DropdownMenuItem asChild>
-                <NavLink to="/preferences" className="flex items-center gap-2">
+                <NavLink to={t("/preferences")} className="flex items-center gap-2">
                   <Settings className="w-4 h-4" />
                   Settings
                 </NavLink>
