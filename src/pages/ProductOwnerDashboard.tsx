@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useUserRole } from "@/hooks/useUserRole";
 import { supabase } from "@/integrations/supabase/client";
-import { DashboardLayout } from "@/components/DashboardLayout";
+import { AdminLayout } from "@/components/admin/AdminLayout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -11,9 +11,10 @@ import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
-import { Building2, Users, FileText, BarChart3, Search, Eye, ExternalLink, RefreshCw, CheckCircle, XCircle, Clock, AlertCircle, Mail } from "lucide-react";
+import { Building2, Users, FileText, BarChart3, Search, Eye, ExternalLink, RefreshCw, CheckCircle, XCircle, Clock, AlertCircle, Mail, Plus } from "lucide-react";
 import { SmtpSettingsPanel } from "@/components/admin/SmtpSettingsPanel";
 import { TenantDetailDialog } from "@/components/admin/TenantDetailDialog";
+import { CreateTenantDialog } from "@/components/admin/CreateTenantDialog";
 import { format } from "date-fns";
 
 interface Tenant {
