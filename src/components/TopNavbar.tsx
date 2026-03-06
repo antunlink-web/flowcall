@@ -47,8 +47,10 @@ export function TopNavbar() {
   const { user, signOut } = useAuth();
   const { isOwnerOrManager } = useUserRole();
   const { startTour } = useTour();
-  const navigate = useNavigate();
+  const navigate = useTenantNavigate();
   const location = useLocation();
+  const t = useTenantLinkPath();
+  const { basePath } = useTenantPath();
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
   const [searchLoading, setSearchLoading] = useState(false);
