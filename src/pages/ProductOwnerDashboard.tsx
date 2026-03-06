@@ -561,6 +561,6 @@ export default function ProductOwnerDashboard() {
           onUpdated={() => { fetchTenants(); fetchPendingTenants(); }}
         />
       </div>
-    </DashboardLayout>
+    </AdminLayout>
   );
 }
