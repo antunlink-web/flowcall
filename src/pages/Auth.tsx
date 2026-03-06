@@ -283,12 +283,6 @@ export default function Auth() {
                 >
                   Forgot your password?
                 </button>
-                <p className="text-center text-sm text-muted-foreground pt-2">
-                  Don't have an account?{" "}
-                  <Link to="/register" className="text-primary hover:underline">
-                    Register your organization
-                  </Link>
-                </p>
               </form>
             )}
           </CardContent>
