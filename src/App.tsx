@@ -33,7 +33,7 @@ const Campaigns = lazy(() => import("./pages/Campaigns"));
 const Reports = lazy(() => import("./pages/Reports"));
 const Team = lazy(() => import("./pages/Team"));
 const Manage = lazy(() => import("./pages/Manage"));
-const ManageAccount = lazy(() => import("./pages/ManageAccount"));
+
 const ManageLists = lazy(() => import("./pages/ManageLists"));
 const ManageClaims = lazy(() => import("./pages/ManageClaims"));
 const ManageDuplicates = lazy(() => import("./pages/ManageDuplicates"));
