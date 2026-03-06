@@ -41,7 +41,7 @@ const Preferences = lazy(() => import("./pages/Preferences"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 const Dialer = lazy(() => import("./pages/Dialer"));
 const Install = lazy(() => import("./pages/Install"));
-const Register = lazy(() => import("./pages/Register"));
+
 const ProductOwnerDashboard = lazy(() => import("./pages/ProductOwnerDashboard"));
 // LandingPage is lazy-loaded inside LandingOrRedirect
 const RegistrationPending = lazy(() => import("./pages/RegistrationPending"));
