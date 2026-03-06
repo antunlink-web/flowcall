@@ -359,7 +359,7 @@ export default function ControlPanel() {
             {manageItems.map((item, index) => (
               <Link
                 key={item.name}
-                to={item.href}
+                to={tPath(item.href)}
                 className="flex flex-col items-center p-6 rounded-xl bg-card border border-border/50 shadow-md
                   hover:shadow-lg hover:shadow-primary/10 hover:-translate-y-1 hover:border-primary/40
                   transition-all duration-300 ease-out group animate-fade-in"
