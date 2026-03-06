@@ -59,8 +59,8 @@ export function TopNavbar() {
   const { dueCount } = useDueCallbacks();
   const { hasOnlinePhone, onlineDevices, loading: devicesLoading } = useConnectedDevices();
 
-  const isOnDashboard = location.pathname === "/dashboard";
-  const isOnControlPanel = location.pathname === "/";
+  const isOnDashboard = location.pathname === `${basePath}/dashboard`;
+  const isOnControlPanel = location.pathname === basePath || location.pathname === `${basePath}/`;
 
   useEffect(() => {
     const fetchAvatar = async () => {
