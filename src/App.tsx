@@ -21,10 +21,6 @@ import { LandingOrRedirect } from "@/components/LandingOrRedirect";
 import { PaywallGate } from "@/components/PaywallGate";
 import { Suspense, lazy } from "react";
 import { useAuth } from "@/hooks/useAuth";
-import { isPast, parseISO } from "date-fns";
-import { useTenant } from "@/hooks/useTenant";
-import { useSubscription } from "@/hooks/useSubscription";
-
 // Lazy-loaded page components for code splitting
 const Auth = lazy(() => import("./pages/Auth"));
 const AuthCallback = lazy(() => import("./pages/AuthCallback"));
