@@ -470,7 +470,7 @@ export default function ControlPanel() {
             ) : (
               <div className="grid gap-3">
                 {lockedLeads.map((lead) => (
-                  <Link key={lead.id} to={`/work?leadId=${lead.id}`} className="flex items-center justify-between p-4 rounded-lg border bg-card hover:bg-muted transition-colors">
+                  <Link key={lead.id} to={tPath(`/work?leadId=${lead.id}`)} className="flex items-center justify-between p-4 rounded-lg border bg-card hover:bg-muted transition-colors">
                     <div className="flex items-center gap-3">
                       <Lock className="w-5 h-5 text-yellow-500" />
                       <div>
