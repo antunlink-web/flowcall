@@ -95,7 +95,8 @@ export default function ControlPanel() {
   const { user } = useAuth();
   const { roles } = useUserRole();
   const { dueCallbacks } = useDueCallbacks();
-  const navigate = useNavigate();
+  const navigate = useTenantNavigate();
+  const t = useTenantLinkPath();
   const [searchParams, setSearchParams] = useSearchParams();
 
   // Reset to main grid when reset param is present

@@ -377,7 +377,7 @@ export function TopNavbar() {
               {isOwnerOrManager && (
                 <>
                   <DropdownMenuItem asChild>
-                    <Link to="/manage/account" className="w-full cursor-pointer">
+                    <Link to={t("/manage/account")} className="w-full cursor-pointer">
                       Account Settings
                     </Link>
                   </DropdownMenuItem>
