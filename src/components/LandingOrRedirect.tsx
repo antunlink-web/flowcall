@@ -20,19 +20,17 @@ export function LandingOrRedirect() {
 
   // Handle legacy subdomain URLs
   const subdomain = getCurrentSubdomain();
-  if (subdomain) {
-    return <Navigate to={`/t/${subdomain}/`} replace />;
-  }
 
   useEffect(() => {
-    if (authLoading || !user) {
+    if (subdomain) return; // handled by redirect below
+    if (authLoading) return;
+    if (!user) {
       setChecked(true);
       return;
     }
 
     const fetchTenantSlug = async () => {
       try {
-        // Check if product owner
         const { data: roleData } = await supabase
           .from("user_roles")
           .select("role")
@@ -69,9 +67,13 @@ export function LandingOrRedirect() {
     };
 
     fetchTenantSlug();
-  }, [user, authLoading]);
+  }, [user, authLoading, subdomain]);
 
-  // Still loading auth
+  // Legacy subdomain redirect
+  if (subdomain) {
+    return <Navigate to={`/t/${subdomain}/`} replace />;
+  }
+
   if (authLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
@@ -80,16 +82,10 @@ export function LandingOrRedirect() {
     );
   }
 
-  // Not logged in → landing page
   if (!user) {
-    return (
-      <Suspense fallback={null}>
-        <LandingPage />
-      </Suspense>
-    );
+    return <Suspense fallback={null}><LandingPage /></Suspense>;
   }
 
-  // Still resolving tenant
   if (!checked) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
@@ -98,20 +94,13 @@ export function LandingOrRedirect() {
     );
   }
 
-  // Product owner → admin dashboard
   if (tenantSlug === "__product_owner__") {
     return <Navigate to="/aiculedssul" replace />;
   }
 
-  // Has tenant → redirect to CRM
   if (tenantSlug) {
     return <Navigate to={`/t/${tenantSlug}/`} replace />;
   }
 
-  // No tenant found → show landing page
-  return (
-    <Suspense fallback={null}>
-      <LandingPage />
-    </Suspense>
-  );
+  return <Suspense fallback={null}><LandingPage /></Suspense>;
 }

@@ -44,7 +44,7 @@ const Dialer = lazy(() => import("./pages/Dialer"));
 const Install = lazy(() => import("./pages/Install"));
 const Register = lazy(() => import("./pages/Register"));
 const ProductOwnerDashboard = lazy(() => import("./pages/ProductOwnerDashboard"));
-const LandingPage = lazy(() => import("./pages/LandingPage"));
+// LandingPage is lazy-loaded inside LandingOrRedirect
 const RegistrationPending = lazy(() => import("./pages/RegistrationPending"));
 const CompanionApp = lazy(() => import("./pages/CompanionApp"));
 
