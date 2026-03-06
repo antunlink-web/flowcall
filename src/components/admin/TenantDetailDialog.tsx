@@ -193,6 +193,7 @@ export function TenantDetailDialog({ tenant, open, onOpenChange, onUpdated }: Te
         <Tabs defaultValue="details" className="mt-2">
           <TabsList className="w-full">
             <TabsTrigger value="details" className="flex-1">Details</TabsTrigger>
+            <TabsTrigger value="plan" className="flex-1">Plan</TabsTrigger>
             <TabsTrigger value="users" className="flex-1">Users ({users.length})</TabsTrigger>
             <TabsTrigger value="stats" className="flex-1">Stats</TabsTrigger>
           </TabsList>
