@@ -185,7 +185,7 @@ export function TenantDetailDialog({ tenant, open, onOpenChange, onUpdated }: Te
             {editing ? "Edit Organization" : tenant.name}
           </DialogTitle>
           <DialogDescription>
-            <code className="text-sm bg-muted px-2 py-0.5 rounded">{tenant.subdomain}.flowcall.eu</code>
+            <code className="text-sm bg-muted px-2 py-0.5 rounded">flowcall.eu/t/{tenant.subdomain}</code>
             <span className="ml-2">{getStatusBadge(tenant.status)}</span>
           </DialogDescription>
         </DialogHeader>
@@ -238,7 +238,7 @@ export function TenantDetailDialog({ tenant, open, onOpenChange, onUpdated }: Te
                 </div>
                 <div>
                   <span className="text-muted-foreground">Subdomain</span>
-                  <p className="font-medium">{tenant.subdomain}.flowcall.eu</p>
+                  <p className="font-medium">flowcall.eu/t/{tenant.subdomain}</p>
                 </div>
                 <div>
                   <span className="text-muted-foreground">Status</span>
