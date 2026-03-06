@@ -112,7 +112,7 @@ function CrmRoutes() {
       <Route path="manage/users" element={<ProtectedRoute><Team /></ProtectedRoute>} />
       <Route path="manage/lists" element={<ProtectedRoute><ManageLists /></ProtectedRoute>} />
       <Route path="manage/settings" element={<Navigate to="../preferences" replace />} />
-      <Route path="manage/account" element={<ProtectedRoute><ManageAccount /></ProtectedRoute>} />
+      <Route path="manage/account" element={<Navigate to="../preferences" replace />} />
       <Route path="manage/claims" element={<ProtectedRoute><ManageClaims /></ProtectedRoute>} />
       <Route path="manage/duplicates" element={<ProtectedRoute><ManageDuplicates /></ProtectedRoute>} />
       <Route path="preferences" element={<ProtectedRoute><Preferences /></ProtectedRoute>} />
