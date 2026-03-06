@@ -370,7 +370,7 @@ export function TopNavbar() {
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-48 bg-popover text-popover-foreground">
               <DropdownMenuItem asChild>
-                <Link to="/preferences" className="w-full cursor-pointer">
+                <Link to={t("/preferences")} className="w-full cursor-pointer">
                   Preferences
                 </Link>
               </DropdownMenuItem>
