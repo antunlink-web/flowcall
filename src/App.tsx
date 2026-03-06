@@ -24,7 +24,7 @@ import { useAuth } from "@/hooks/useAuth";
 const Auth = lazy(() => import("./pages/Auth"));
 const AuthCallback = lazy(() => import("./pages/AuthCallback"));
 const ResetPassword = lazy(() => import("./pages/ResetPassword"));
-const AcceptInvite = lazy(() => import("./pages/AcceptInvite"));
+
 const ControlPanel = lazy(() => import("./pages/ControlPanel"));
 const Dashboard = lazy(() => import("./pages/Dashboard"));
 const Work = lazy(() => import("./pages/Work"));
