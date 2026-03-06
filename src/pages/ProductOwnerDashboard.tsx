@@ -256,7 +256,7 @@ export default function ProductOwnerDashboard() {
 
   if (roleLoading) {
     return (
-      <DashboardLayout>
+      <AdminLayout>
         <div className="flex items-center justify-center h-64">
           <RefreshCw className="w-8 h-8 animate-spin text-muted-foreground" />
         </div>
