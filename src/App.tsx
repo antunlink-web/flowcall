@@ -14,7 +14,7 @@ import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { TenantProvider } from "@/hooks/useTenant";
 import { TenantPathProvider } from "@/hooks/useTenantPath";
 import { SubscriptionProvider } from "@/hooks/useSubscription";
-import { TrialPaywall } from "@/components/TrialPaywall";
+import { isNativeApp } from "@/lib/native-dialer";
 import { isNativeApp } from "@/lib/native-dialer";
 import { OfflineBanner } from "@/components/OfflineBanner";
 import { LandingOrRedirect } from "@/components/LandingOrRedirect";
