@@ -188,8 +188,8 @@ Deno.serve(async (req) => {
           subdomain: tenant.subdomain,
         },
         user: {
-          id: authData.user.id,
-          email: authData.user.email,
+          id: userId,
+          email,
         },
       }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
