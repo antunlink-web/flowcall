@@ -76,7 +76,9 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Create the user with tenant_id in metadata
+    // Try to create the user, or link existing user to new tenant
+    let userId: string;
+    
     const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
       email,
       password,
@@ -89,13 +91,55 @@ Deno.serve(async (req) => {
     });
 
     if (authError) {
-      // Rollback tenant creation if user creation fails
-      await supabaseAdmin.from("tenants").delete().eq("id", tenant.id);
-      console.error("User creation error:", authError);
-      return new Response(
-        JSON.stringify({ error: authError.message }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      // If user already exists, find them and update their metadata
+      if (authError.message?.includes("already been registered")) {
+        console.log("User already exists, linking to new tenant");
+        const { data: usersData } = await supabaseAdmin.auth.admin.listUsers();
+        const existingUser = usersData?.users?.find(u => u.email === email);
+        
+        if (!existingUser) {
+          await supabaseAdmin.from("tenants").delete().eq("id", tenant.id);
+          return new Response(
+            JSON.stringify({ error: "User exists but could not be found. Please contact support." }),
+            { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+        
+        userId = existingUser.id;
+        
+        // Update user metadata to point to new tenant
+        await supabaseAdmin.auth.admin.updateUserById(userId, {
+          user_metadata: {
+            ...existingUser.user_metadata,
+            tenant_id: tenant.id,
+            is_tenant_owner: true,
+          },
+        });
+        
+        // Update or create profile for this tenant
+        await supabaseAdmin.from("profiles").upsert({
+          id: userId,
+          email,
+          full_name: fullName,
+          tenant_id: tenant.id,
+        }, { onConflict: "id" });
+        
+        // Add owner role if not present
+        await supabaseAdmin.from("user_roles").upsert({
+          user_id: userId,
+          role: "owner",
+        }, { onConflict: "user_id,role" });
+        
+      } else {
+        await supabaseAdmin.from("tenants").delete().eq("id", tenant.id);
+        console.error("User creation error:", authError);
+        return new Response(
+          JSON.stringify({ error: authError.message }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+    } else {
+      userId = authData.user.id;
     }
 
     // Create default branding settings for the tenant
