@@ -135,7 +135,7 @@ export default function ProductOwnerDashboard() {
   const powerOrgs = [...orgs].sort((a, b) => b.calls_today - a.calls_today).filter(o => o.calls_today > 0).slice(0, 5);
 
   const totalActiveOrgs = orgs.filter(o => o.status === "active").length;
-  const orgsWithCalls7d = orgs.filter(o => o.calls_7d > 0);
+  
   const avgCalls = totalActiveOrgs > 0 ? Math.round((stats?.total_calls_7d || 0) / totalActiveOrgs) : 0;
   const medianCalls = (() => {
     const sorted = orgs.map(o => o.calls_7d).sort((a, b) => a - b);
