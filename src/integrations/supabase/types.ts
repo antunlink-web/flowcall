@@ -989,6 +989,8 @@ export type Database = {
           won_count: number
         }[]
       }
+      get_operator_analytics: { Args: never; Returns: Json }
+      get_org_analytics: { Args: never; Returns: Json }
       get_user_tenant_id: { Args: { _user_id: string }; Returns: string }
       has_role: {
         Args: {
