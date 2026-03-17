@@ -14,9 +14,9 @@ import { CreateTenantDialog } from "@/components/admin/CreateTenantDialog";
 import { SmtpSettingsPanel } from "@/components/admin/SmtpSettingsPanel";
 import { format, formatDistanceToNow } from "date-fns";
 import {
-  RefreshCw, Plus, Search, Eye, AlertTriangle, TrendingUp, TrendingDown,
-  DollarSign, Activity, Shield, Zap, Users, Phone, MessageSquare,
-  Smartphone, ArrowUpRight, Clock, Flame, LogOut, Mail, ChevronDown, ChevronUp,
+  RefreshCw, Plus, Search, Eye, AlertTriangle, TrendingUp,
+  DollarSign, Activity, Shield, Zap, Users, Phone,
+  ArrowUpRight, Clock, Flame, LogOut, Mail, ChevronDown, ChevronUp,
 } from "lucide-react";
 
 function StatCard({ label, value, icon: Icon, color = "text-muted-foreground", alert = false, hint }: {
