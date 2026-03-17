@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { useToast } from "@/hooks/use-toast";
+
 import { TenantDetailDialog } from "@/components/admin/TenantDetailDialog";
 import { CreateTenantDialog } from "@/components/admin/CreateTenantDialog";
 import { SmtpSettingsPanel } from "@/components/admin/SmtpSettingsPanel";
