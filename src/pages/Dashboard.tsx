@@ -1,25 +1,26 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Lead } from "@/types/crm";
 import {
   Phone,
   Clock,
-  Trophy,
   TrendingUp,
-  Mail,
-  MessageSquare,
   ChevronRight,
-  MoreVertical,
   ArrowRight,
-  ListTodo,
-  CheckCircle,
-  User,
+  AlertTriangle,
+  Zap,
+  Calendar,
+  Target,
+  Loader2,
+  PhoneCall,
+  PhoneOff,
 } from "lucide-react";
 import {
   AreaChart,
@@ -38,28 +39,20 @@ interface CallLog {
   lead_id: string;
 }
 
-interface RecentActivity {
-  id: string;
-  type: "call" | "email" | "sms";
-  title: string;
-  subtitle: string;
-  time: string;
-  timestamp: Date;
-  lead_id?: string;
-}
-
-interface PipelineLead {
+interface QueueLead {
   id: string;
   name: string;
-  contact: string;
+  phone: string;
   status: string;
+  isOverdue: boolean;
+  callbackAt: string | null;
 }
 
 export default function Dashboard() {
   const [leads, setLeads] = useState<Lead[]>([]);
   const [callLogs, setCallLogs] = useState<CallLog[]>([]);
   const [yesterdayCallCount, setYesterdayCallCount] = useState(0);
-  const [recentActivities, setRecentActivities] = useState<RecentActivity[]>([]);
+  const [loading, setLoading] = useState(true);
   const { user } = useAuth();
   const navigate = useNavigate();
 
@@ -67,217 +60,86 @@ export default function Dashboard() {
   const currentHour = new Date().getHours();
   const greeting = currentHour < 12 ? "Good morning" : currentHour < 18 ? "Good afternoon" : "Good evening";
 
-  useEffect(() => {
-    if (user) {
-      fetchLeads();
-      fetchCallLogs();
-      fetchRecentActivities();
-    }
-  }, [user]);
-
-  const fetchLeads = async () => {
+  const fetchData = useCallback(async () => {
     if (!user) return;
-    const { data } = await supabase
-      .from("leads")
-      .select("*")
-      .or(`claimed_by.is.null,claimed_by.eq.${user.id}`);
-    const mappedLeads = (data || []).map((l) => ({
-      ...l,
-      data: (l.data as Record<string, unknown>) || {},
-    })) as Lead[];
-    setLeads(mappedLeads);
-  };
+    setLoading(true);
 
-  const fetchCallLogs = async () => {
-    if (!user) return;
     const now = new Date();
     const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
     const yesterdayStart = new Date(todayStart.getTime() - 24 * 60 * 60 * 1000);
 
-    const { data: todayData } = await supabase
-      .from("call_logs")
-      .select("id, created_at, duration_seconds, outcome, lead_id")
-      .eq("user_id", user.id)
-      .gte("created_at", todayStart.toISOString());
+    const [leadsRes, callsRes, yesterdayRes] = await Promise.all([
+      supabase
+        .from("leads")
+        .select("*")
+        .or(`claimed_by.is.null,claimed_by.eq.${user.id}`)
+        .not("status", "in", '("won","lost","archived")'),
+      supabase
+        .from("call_logs")
+        .select("id, created_at, duration_seconds, outcome, lead_id")
+        .eq("user_id", user.id)
+        .gte("created_at", todayStart.toISOString()),
+      supabase
+        .from("call_logs")
+        .select("*", { count: "exact", head: true })
+        .eq("user_id", user.id)
+        .gte("created_at", yesterdayStart.toISOString())
+        .lt("created_at", todayStart.toISOString()),
+    ]);
 
-    setCallLogs(todayData || []);
+    setLeads((leadsRes.data || []).map((l) => ({
+      ...l,
+      data: (l.data as Record<string, unknown>) || {},
+    })) as Lead[]);
+    setCallLogs(callsRes.data || []);
+    setYesterdayCallCount(yesterdayRes.count || 0);
+    setLoading(false);
+  }, [user]);
 
-    const { count } = await supabase
-      .from("call_logs")
-      .select("*", { count: "exact", head: true })
-      .eq("user_id", user.id)
-      .gte("created_at", yesterdayStart.toISOString())
-      .lt("created_at", todayStart.toISOString());
+  useEffect(() => {
+    if (user) fetchData();
+  }, [user, fetchData]);
 
-    setYesterdayCallCount(count || 0);
-  };
-
-  const fetchRecentActivities = async () => {
-    if (!user) return;
-    const activities: RecentActivity[] = [];
-
-    // Fetch leads to get names for activity items
-    const { data: leadsData } = await supabase
-      .from("leads")
-      .select("id, data")
-      .or(`claimed_by.is.null,claimed_by.eq.${user.id}`);
-
-    const leadMap = new Map<string, string>();
-    (leadsData || []).forEach((lead) => {
-      const name = getLeadDisplayName(lead.data as Record<string, unknown>);
-      leadMap.set(lead.id, name);
-    });
-
-    // Recent calls
-    const { data: calls } = await supabase
-      .from("call_logs")
-      .select("id, created_at, outcome, lead_id, duration_seconds")
-      .eq("user_id", user.id)
-      .order("created_at", { ascending: false })
-      .limit(5);
-
-    (calls || []).forEach((call) => {
-      const mins = call.duration_seconds ? Math.floor(call.duration_seconds / 60) : 0;
-      const leadName = leadMap.get(call.lead_id) || "Unknown";
-      activities.push({
-        id: call.id,
-        type: "call",
-        title: `Call to ${leadName}`,
-        subtitle: `${call.outcome} • ${mins} min`,
-        time: formatTimeAgo(new Date(call.created_at)),
-        timestamp: new Date(call.created_at),
-        lead_id: call.lead_id,
-      });
-    });
-
-    // Recent emails
-    const { data: emails } = await supabase
-      .from("email_logs")
-      .select("id, created_at, subject, lead_id")
-      .eq("user_id", user.id)
-      .order("created_at", { ascending: false })
-      .limit(3);
-
-    (emails || []).forEach((email) => {
-      const leadName = leadMap.get(email.lead_id) || "Unknown";
-      activities.push({
-        id: email.id,
-        type: "email",
-        title: `Email to ${leadName}`,
-        subtitle: email.subject || "No subject",
-        time: formatTimeAgo(new Date(email.created_at)),
-        timestamp: new Date(email.created_at),
-        lead_id: email.lead_id,
-      });
-    });
-
-    // Recent SMS
-    const { data: sms } = await supabase
-      .from("sms_logs")
-      .select("id, created_at, message, lead_id")
-      .eq("user_id", user.id)
-      .order("created_at", { ascending: false })
-      .limit(2);
-
-    (sms || []).forEach((s) => {
-      const leadName = leadMap.get(s.lead_id) || "Unknown";
-      activities.push({
-        id: s.id,
-        type: "sms",
-        title: `SMS to ${leadName}`,
-        subtitle: s.message?.substring(0, 40) + (s.message?.length > 40 ? "..." : "") || "Message",
-        time: formatTimeAgo(new Date(s.created_at)),
-        timestamp: new Date(s.created_at),
-        lead_id: s.lead_id,
-      });
-    });
-
-    // Sort by timestamp
-    activities.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
-    setRecentActivities(activities.slice(0, 6));
-  };
-
+  // Helpers
   const getLeadDisplayName = (data: Record<string, unknown> | null): string => {
     if (!data) return "Unknown";
     const entries = Object.entries(data);
-    
-    // Try company name first
     const companyFields = ["pavadinimas", "company", "company name", "įmonė", "firma", "business"];
     for (const [key, value] of entries) {
-      if (companyFields.includes(key.toLowerCase()) && typeof value === "string" && value.trim()) {
-        return value;
-      }
+      if (companyFields.includes(key.toLowerCase()) && typeof value === "string" && value.trim()) return value;
     }
-    
-    // Try name fields
     const nameFields = ["name", "full_name", "first_name", "vardas", "contact"];
     for (const [key, value] of entries) {
-      if (nameFields.some(f => key.toLowerCase().includes(f)) && typeof value === "string" && value.trim()) {
-        return value;
-      }
+      if (nameFields.some(f => key.toLowerCase().includes(f)) && typeof value === "string" && value.trim()) return value;
     }
-    
-    // Return first string value
     for (const [, value] of entries) {
-      if (typeof value === "string" && value.trim()) {
-        return value;
-      }
+      if (typeof value === "string" && value.trim()) return value;
     }
-    
     return "Unknown";
   };
 
-  const getLeadContact = (data: Record<string, unknown> | null): string => {
+  const getLeadPhone = (data: Record<string, unknown> | null): string => {
     if (!data) return "";
-    const entries = Object.entries(data);
-    
-    // Try phone first
-    for (const [key, value] of entries) {
-      const keyLower = key.toLowerCase();
-      if ((keyLower.includes("phone") || keyLower.includes("tel") || keyLower.includes("mobile")) && typeof value === "string" && value.trim()) {
-        return value;
-      }
+    for (const [key, value] of Object.entries(data)) {
+      const k = key.toLowerCase();
+      if ((k.includes("phone") || k.includes("tel") || k.includes("mobile")) && typeof value === "string" && value.trim()) return value;
     }
-    
-    // Try email
-    for (const [key, value] of entries) {
-      const keyLower = key.toLowerCase();
-      if ((keyLower.includes("email") || keyLower.includes("mail")) && typeof value === "string" && value.trim()) {
-        return value;
-      }
-    }
-    
     return "";
   };
 
-  const formatTimeAgo = (date: Date) => {
-    const now = new Date();
-    const diffMs = now.getTime() - date.getTime();
-    const diffMins = Math.floor(diffMs / 60000);
-    if (diffMins < 60) return `${diffMins} min ago`;
-    const diffHours = Math.floor(diffMins / 60);
-    if (diffHours < 24) return `${diffHours}h ago`;
-    return `${Math.floor(diffHours / 24)}d ago`;
-  };
-
-  // Calculate call stats
+  // Stats
+  const now = new Date();
   const callStats = useMemo(() => {
     const hourlyData: { [key: string]: number } = {};
-    for (let h = 8; h <= 20; h++) {
-      hourlyData[`${h}`] = 0;
-    }
-
-    let totalDurationSeconds = 0;
+    for (let h = 8; h <= 20; h++) hourlyData[`${h}`] = 0;
+    let totalDuration = 0;
+    let answered = 0;
 
     callLogs.forEach((log) => {
-      const callDate = new Date(log.created_at);
-      const hour = callDate.getHours();
-      if (hourlyData[`${hour}`] !== undefined) {
-        hourlyData[`${hour}`]++;
-      }
-      if (log.duration_seconds) {
-        totalDurationSeconds += log.duration_seconds;
-      }
+      const hour = new Date(log.created_at).getHours();
+      if (hourlyData[`${hour}`] !== undefined) hourlyData[`${hour}`]++;
+      if (log.duration_seconds) totalDuration += log.duration_seconds;
+      if (log.outcome === "answered" || log.outcome === "called") answered++;
     });
 
     const chartData = Object.entries(hourlyData).map(([hour, calls]) => ({
@@ -286,7 +148,6 @@ export default function Dashboard() {
     }));
 
     const totalCalls = callLogs.length;
-
     let percentChange = 0;
     if (yesterdayCallCount > 0) {
       percentChange = Math.round(((totalCalls - yesterdayCallCount) / yesterdayCallCount) * 100);
@@ -294,396 +155,419 @@ export default function Dashboard() {
       percentChange = 100;
     }
 
-    const totalHours = Math.floor(totalDurationSeconds / 3600);
-    const totalMinutes = Math.floor((totalDurationSeconds % 3600) / 60);
-    const totalTimeStr = `${totalHours}h ${totalMinutes}m`;
+    const connectionRate = totalCalls > 0 ? Math.round((answered / totalCalls) * 100) : 0;
+    const hasData = chartData.some(d => d.calls > 0);
 
-    return { chartData, totalCalls, percentChange, totalTimeStr };
+    return { chartData, totalCalls, percentChange, connectionRate, hasData };
   }, [callLogs, yesterdayCallCount]);
 
-  // Lead pipeline calculations
-  const now = new Date();
-  const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-
-  const followupsToday = leads.filter((l) => {
+  // Lead categorization
+  const overdueCallbacks = leads.filter((l) => {
     if (!l.callback_scheduled_at) return false;
-    const callbackDate = new Date(l.callback_scheduled_at);
-    return callbackDate >= todayStart;
+    return new Date(l.callback_scheduled_at) <= now;
   });
 
-  const onSchedule = leads.filter((l) => l.callback_scheduled_at && new Date(l.callback_scheduled_at) > now).length;
-  const due = leads.filter((l) => {
+  const dueCallbacks = leads.filter((l) => {
     if (!l.callback_scheduled_at) return false;
     const cb = new Date(l.callback_scheduled_at);
-    const hourAgo = new Date(now.getTime() - 60 * 60 * 1000);
-    return cb <= now && cb > hourAgo;
-  }).length;
-  const overdue = leads.filter((l) => {
-    if (!l.callback_scheduled_at) return false;
-    return new Date(l.callback_scheduled_at) <= new Date(now.getTime() - 60 * 60 * 1000);
-  }).length;
+    return cb > now && cb <= new Date(now.getTime() + 2 * 60 * 60 * 1000);
+  });
 
-  // Get leads for each pipeline stage
-  const pipelineStages = useMemo(() => {
-    const stages = [
-      { 
-        label: "New Lead", 
-        status: "new",
-        color: "bg-blue-500", 
-        leads: leads.filter((l) => l.status === "new").slice(0, 3)
-      },
-      { 
-        label: "Qualified", 
-        status: "qualified",
-        color: "bg-purple-500", 
-        leads: leads.filter((l) => l.status === "qualified").slice(0, 3)
-      },
-      { 
-        label: "Contacted", 
-        status: "contacted",
-        color: "bg-teal-500", 
-        leads: leads.filter((l) => l.status === "contacted").slice(0, 3)
-      },
-      { 
-        label: "Callback", 
-        status: "callback",
-        color: "bg-orange-500", 
-        leads: leads.filter((l) => l.status === "callback").slice(0, 3)
-      },
-      { 
-        label: "Won", 
-        status: "won",
-        color: "bg-green-500", 
-        leads: leads.filter((l) => l.status === "won").slice(0, 3)
-      },
-    ];
+  const newLeads = leads.filter(l => l.status === "new");
+  const callbackLeads = leads.filter(l => l.status === "callback");
+  const contactedLeads = leads.filter(l => l.status === "contacted");
+  const leadsReady = newLeads.length + overdueCallbacks.length;
 
-    return stages.map((stage) => ({
-      ...stage,
-      count: leads.filter((l) => l.status === stage.status).length,
-      pipelineLeads: stage.leads.map((lead) => ({
-        id: lead.id,
-        name: getLeadDisplayName(lead.data),
-        contact: getLeadContact(lead.data),
-        status: lead.status,
-      })),
-    }));
-  }, [leads]);
+  // Call queue - overdue first, then new leads
+  const queueLeads: QueueLead[] = useMemo(() => {
+    const queue: QueueLead[] = [];
+    overdueCallbacks.slice(0, 5).forEach(l => {
+      queue.push({
+        id: l.id,
+        name: getLeadDisplayName(l.data),
+        phone: getLeadPhone(l.data),
+        status: "overdue",
+        isOverdue: true,
+        callbackAt: l.callback_scheduled_at,
+      });
+    });
+    if (queue.length < 5) {
+      newLeads.slice(0, 5 - queue.length).forEach(l => {
+        queue.push({
+          id: l.id,
+          name: getLeadDisplayName(l.data),
+          phone: getLeadPhone(l.data),
+          status: "new",
+          isOverdue: false,
+          callbackAt: null,
+        });
+      });
+    }
+    return queue;
+  }, [leads]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const wonsToday = callLogs.filter((log) => log.outcome === "won").length;
-  const totalWon = leads.filter((l) => l.status === "won").length;
+  // Daily goal (target 50 calls)
+  const dailyGoal = 50;
+  const dailyProgress = Math.min((callStats.totalCalls / dailyGoal) * 100, 100);
+
+  // Pipeline stages for interactive board
+  const pipelineStages = useMemo(() => [
+    { label: "New", status: "new", color: "bg-blue-500", textColor: "text-blue-400", leads: newLeads },
+    { label: "Contacted", status: "contacted", color: "bg-purple-500", textColor: "text-purple-400", leads: contactedLeads },
+    { label: "Callback", status: "callback", color: "bg-warning", textColor: "text-warning", leads: callbackLeads },
+  ], [leads]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  if (loading) {
+    return (
+      <DashboardLayout>
+        <div className="flex items-center justify-center h-[60vh]">
+          <Loader2 className="w-8 h-8 animate-spin text-primary" />
+        </div>
+      </DashboardLayout>
+    );
+  }
 
   return (
     <DashboardLayout>
-      <div className="max-w-[1600px] mx-auto px-6 py-6">
-        {/* Header Greeting */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-foreground">
-            {greeting}, {firstName}. <span className="text-primary">Here's your day.</span>
-          </h1>
+      <div className="max-w-[1400px] mx-auto px-4 sm:px-6 py-4 sm:py-6 space-y-6">
+        {/* Header + Daily Progress */}
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          <div>
+            <h1 className="text-2xl font-bold text-foreground">
+              {greeting}, {firstName}
+            </h1>
+            <p className="text-sm text-muted-foreground mt-0.5">
+              You made <span className="text-foreground font-semibold">{callStats.totalCalls}</span> / {dailyGoal} calls today
+            </p>
+          </div>
+          <div className="flex items-center gap-3 min-w-[200px]">
+            <Progress value={dailyProgress} className="h-2 flex-1" />
+            <span className="text-xs text-muted-foreground whitespace-nowrap">{Math.round(dailyProgress)}%</span>
+          </div>
         </div>
 
-        {/* Top Stats Cards - Gradient style */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-          {/* Calls Today */}
-          <Card className="gradient-purple border-0 overflow-hidden">
-            <CardContent className="p-5">
-              <div className="flex items-center justify-between">
+        {/* START CALLING - Hero CTA */}
+        <Card className="border-primary/30 bg-gradient-to-r from-primary/10 via-card to-card overflow-hidden">
+          <CardContent className="p-5 sm:p-6">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+              <div className="flex items-center gap-4">
+                <div className="w-14 h-14 rounded-2xl bg-primary/20 flex items-center justify-center shrink-0">
+                  <PhoneCall className="w-7 h-7 text-primary" />
+                </div>
                 <div>
-                  <p className="text-sm text-white/80 font-medium mb-1">Live Calls Today</p>
-                  <div className="flex items-center gap-2">
-                    <p className="text-3xl font-bold text-white">{callStats.totalCalls}</p>
-                    {callStats.percentChange !== 0 && (
-                      <span className="text-xs text-white/90 bg-white/20 px-2 py-0.5 rounded-full flex items-center gap-1">
-                        <TrendingUp className="w-3 h-3" />
-                        {callStats.percentChange > 0 ? "+" : ""}{callStats.percentChange}%
-                      </span>
+                  <h2 className="text-lg font-bold text-foreground">Start Calling</h2>
+                  <div className="flex items-center gap-3 mt-1 flex-wrap">
+                    <span className="text-sm text-muted-foreground">
+                      <span className="text-foreground font-semibold">{leadsReady}</span> leads ready
+                    </span>
+                    {overdueCallbacks.length > 0 && (
+                      <Badge variant="destructive" className="text-xs gap-1">
+                        <AlertTriangle className="w-3 h-3" />
+                        {overdueCallbacks.length} overdue
+                      </Badge>
+                    )}
+                    {dueCallbacks.length > 0 && (
+                      <Badge className="bg-warning/20 text-warning border-warning/30 text-xs gap-1">
+                        <Clock className="w-3 h-3" />
+                        {dueCallbacks.length} due soon
+                      </Badge>
                     )}
                   </div>
                 </div>
-                <Button size="icon" variant="ghost" className="text-white/60 hover:text-white hover:bg-white/10">
-                  <MoreVertical className="w-4 h-4" />
-                </Button>
+              </div>
+              <Button
+                size="lg"
+                className="bg-primary hover:bg-primary/90 text-primary-foreground px-8 gap-2 font-semibold w-full sm:w-auto"
+                onClick={() => navigate("/work?autostart=true")}
+              >
+                <Phone className="w-5 h-5" />
+                Start Calling
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Urgency Alerts */}
+        {(overdueCallbacks.length > 0 || dueCallbacks.length > 0) && (
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {overdueCallbacks.length > 0 && (
+              <Card className="border-destructive/30 bg-destructive/5">
+                <CardContent className="p-4 flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-destructive/20 flex items-center justify-center">
+                      <AlertTriangle className="w-5 h-5 text-destructive" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-semibold text-destructive">{overdueCallbacks.length} Overdue Callbacks</p>
+                      <p className="text-xs text-muted-foreground">These leads are waiting for your call</p>
+                    </div>
+                  </div>
+                  <Button size="sm" variant="outline" className="border-destructive/30 text-destructive hover:bg-destructive/10" onClick={() => navigate("/work")}>
+                    View
+                  </Button>
+                </CardContent>
+              </Card>
+            )}
+            {dueCallbacks.length > 0 && (
+              <Card className="border-warning/30 bg-warning/5">
+                <CardContent className="p-4 flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-warning/20 flex items-center justify-center">
+                      <Clock className="w-5 h-5 text-warning" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-semibold text-warning">{dueCallbacks.length} Callbacks Due Soon</p>
+                      <p className="text-xs text-muted-foreground">Scheduled within the next 2 hours</p>
+                    </div>
+                  </div>
+                  <Button size="sm" variant="outline" className="border-warning/30 text-warning hover:bg-warning/10" onClick={() => navigate("/work")}>
+                    View
+                  </Button>
+                </CardContent>
+              </Card>
+            )}
+          </div>
+        )}
+
+        {/* Metrics Row */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+          <Card className="border-border/50">
+            <CardContent className="p-4">
+              <div className="flex items-center gap-2 mb-1">
+                <Phone className="w-4 h-4 text-primary" />
+                <span className="text-xs text-muted-foreground font-medium">Calls Today</span>
+              </div>
+              <div className="flex items-baseline gap-2">
+                <span className="text-2xl font-bold text-foreground">{callStats.totalCalls}</span>
+                {callStats.percentChange !== 0 && (
+                  <span className={`text-xs flex items-center gap-0.5 ${callStats.percentChange > 0 ? "text-success" : "text-destructive"}`}>
+                    <TrendingUp className="w-3 h-3" />
+                    {callStats.percentChange > 0 ? "+" : ""}{callStats.percentChange}%
+                  </span>
+                )}
               </div>
             </CardContent>
           </Card>
 
-          {/* Talk Time */}
-          <Card className="gradient-blue border-0 overflow-hidden">
-            <CardContent className="p-5">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-white/80 font-medium mb-1">Talk Time</p>
-                  <p className="text-3xl font-bold text-white">{callStats.totalTimeStr}</p>
-                </div>
-                <Button size="icon" variant="ghost" className="text-white/60 hover:text-white hover:bg-white/10">
-                  <MoreVertical className="w-4 h-4" />
-                </Button>
+          <Card className="border-border/50">
+            <CardContent className="p-4">
+              <div className="flex items-center gap-2 mb-1">
+                <Target className="w-4 h-4 text-blue-400" />
+                <span className="text-xs text-muted-foreground font-medium">Leads Remaining</span>
               </div>
+              <span className="text-2xl font-bold text-foreground">{leads.length}</span>
             </CardContent>
           </Card>
 
-          {/* Tasks Due */}
-          <Card className="gradient-teal border-0 overflow-hidden">
-            <CardContent className="p-5">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-white/80 font-medium mb-1">Tasks Due</p>
-                  <p className="text-3xl font-bold text-white">{followupsToday.length}</p>
-                </div>
-                <Button size="icon" variant="ghost" className="text-white/60 hover:text-white hover:bg-white/10">
-                  <MoreVertical className="w-4 h-4" />
-                </Button>
+          <Card className="border-border/50">
+            <CardContent className="p-4">
+              <div className="flex items-center gap-2 mb-1">
+                <Calendar className="w-4 h-4 text-warning" />
+                <span className="text-xs text-muted-foreground font-medium">Callbacks Due</span>
               </div>
+              <span className="text-2xl font-bold text-foreground">{overdueCallbacks.length + dueCallbacks.length}</span>
             </CardContent>
           </Card>
 
-          {/* Deals Closed */}
-          <Card className="gradient-green border-0 overflow-hidden">
-            <CardContent className="p-5">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-white/80 font-medium mb-1">Deals Closed</p>
-                  <p className="text-3xl font-bold text-white">{totalWon}</p>
-                  {wonsToday > 0 && (
-                    <p className="text-xs text-white/80 mt-1">+{wonsToday} today</p>
-                  )}
-                </div>
-                <Button size="icon" variant="ghost" className="text-white/60 hover:text-white hover:bg-white/10">
-                  <MoreVertical className="w-4 h-4" />
-                </Button>
+          <Card className="border-border/50">
+            <CardContent className="p-4">
+              <div className="flex items-center gap-2 mb-1">
+                <Zap className="w-4 h-4 text-success" />
+                <span className="text-xs text-muted-foreground font-medium">Connection Rate</span>
               </div>
+              <span className="text-2xl font-bold text-foreground">{callStats.connectionRate}%</span>
             </CardContent>
           </Card>
         </div>
 
-        {/* Activity Stream & Live Feed */}
-        <div className="mb-8">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold text-foreground">Activity Stream & Live Feed</h2>
-            <Button variant="link" className="text-primary gap-1 p-0 h-auto" onClick={() => navigate("/work")}>
-              Quick actions <ChevronRight className="w-4 h-4" />
+        {/* Call Queue Preview */}
+        <Card className="border-border/50">
+          <CardContent className="p-5">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <PhoneCall className="w-4 h-4 text-primary" />
+                <h3 className="text-sm font-semibold text-foreground">Next Leads to Call</h3>
+              </div>
+              <Button variant="link" className="text-primary gap-1 p-0 h-auto text-xs" onClick={() => navigate("/work")}>
+                View queue <ChevronRight className="w-3 h-3" />
+              </Button>
+            </div>
+
+            {queueLeads.length > 0 ? (
+              <div className="space-y-2">
+                {queueLeads.map((lead) => (
+                  <div
+                    key={lead.id}
+                    className={`flex items-center justify-between p-3 rounded-lg border transition-colors ${
+                      lead.isOverdue
+                        ? "bg-destructive/5 border-destructive/20 hover:border-destructive/40"
+                        : "bg-muted/30 border-border/50 hover:border-primary/30"
+                    }`}
+                  >
+                    <div className="flex items-center gap-3 min-w-0">
+                      {lead.isOverdue && (
+                        <AlertTriangle className="w-4 h-4 text-destructive shrink-0" />
+                      )}
+                      <div className="min-w-0">
+                        <p className="text-sm font-medium text-foreground truncate">{lead.name}</p>
+                        <p className="text-xs text-muted-foreground truncate">
+                          {lead.phone || "No phone"}
+                          {lead.callbackAt && (
+                            <span className="ml-2">
+                              · Callback {new Date(lead.callbackAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                            </span>
+                          )}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="h-8 text-xs text-muted-foreground hover:text-foreground"
+                        onClick={() => navigate(`/leads?id=${lead.id}`)}
+                      >
+                        Details
+                      </Button>
+                      <Button
+                        size="sm"
+                        className="h-8 gap-1 bg-primary/20 text-primary hover:bg-primary/30 border-0"
+                        onClick={() => navigate(`/leads?id=${lead.id}`)}
+                      >
+                        <Phone className="w-3.5 h-3.5" />
+                        Call
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-6">
+                <PhoneOff className="w-8 h-8 mx-auto text-muted-foreground/40 mb-2" />
+                <p className="text-sm text-muted-foreground">No leads in queue</p>
+                <p className="text-xs text-muted-foreground/70 mt-1">Upload leads to get started</p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Interactive Pipeline */}
+        <div>
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-sm font-semibold text-foreground">Pipeline</h2>
+            <Button variant="link" className="text-primary gap-1 p-0 h-auto text-xs" onClick={() => navigate("/leads")}>
+              View all <ChevronRight className="w-3 h-3" />
             </Button>
           </div>
 
-          <Card className="border-border/50 bg-card">
-            <CardContent className="p-6">
-              {/* Chart */}
-              <div className="h-40 mb-6">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            {pipelineStages.map((stage) => (
+              <Card key={stage.label} className="border-border/50">
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-2">
+                      <div className={`w-2 h-2 rounded-full ${stage.color}`} />
+                      <span className="text-xs font-semibold text-foreground">{stage.label}</span>
+                    </div>
+                    <span className="text-xs font-bold text-muted-foreground">{stage.leads.length}</span>
+                  </div>
+
+                  {stage.leads.length > 0 ? (
+                    <div className="space-y-2">
+                      {stage.leads.slice(0, 3).map((lead) => {
+                        const isOverdue = lead.callback_scheduled_at && new Date(lead.callback_scheduled_at) <= now;
+                        return (
+                          <div
+                            key={lead.id}
+                            className={`rounded-lg p-3 transition-colors group ${
+                              isOverdue ? "bg-destructive/10 border border-destructive/20" : "bg-muted/40 hover:bg-muted/60"
+                            }`}
+                          >
+                            <p className="text-sm font-medium text-foreground truncate">{getLeadDisplayName(lead.data)}</p>
+                            <p className="text-xs text-muted-foreground truncate">{getLeadPhone(lead.data) || "No phone"}</p>
+                            {/* Action buttons */}
+                            <div className="flex items-center gap-1 mt-2 opacity-70 group-hover:opacity-100 transition-opacity">
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                className="h-7 px-2 text-xs gap-1"
+                                onClick={() => navigate(`/leads?id=${lead.id}`)}
+                              >
+                                <Phone className="w-3 h-3" /> Call
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                className="h-7 px-2 text-xs gap-1"
+                                onClick={() => navigate(`/leads?id=${lead.id}`)}
+                              >
+                                <Calendar className="w-3 h-3" /> Schedule
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                className="h-7 px-2 text-xs"
+                                onClick={() => navigate(`/leads?id=${lead.id}`)}
+                              >
+                                Note
+                              </Button>
+                            </div>
+                          </div>
+                        );
+                      })}
+                      {stage.leads.length > 3 && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="w-full text-xs text-muted-foreground"
+                          onClick={() => navigate(`/leads?status=${stage.status}`)}
+                        >
+                          +{stage.leads.length - 3} more <ArrowRight className="w-3 h-3 ml-1" />
+                        </Button>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="text-center py-4 text-muted-foreground/50">
+                      <p className="text-xs">No leads in this stage</p>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </div>
+
+        {/* Activity Graph - compact, only if data */}
+        {callStats.hasData && (
+          <Card className="border-border/50">
+            <CardContent className="p-4">
+              <h3 className="text-xs font-semibold text-muted-foreground mb-3">TODAY'S CALL ACTIVITY</h3>
+              <div className="h-28">
                 <ResponsiveContainer width="100%" height="100%">
                   <AreaChart data={callStats.chartData} margin={{ top: 5, right: 10, left: -20, bottom: 0 }}>
                     <defs>
-                      <linearGradient id="callGradient" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="hsl(270 60% 55%)" stopOpacity={0.5} />
-                        <stop offset="95%" stopColor="hsl(270 60% 55%)" stopOpacity={0} />
+                      <linearGradient id="callGrad" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.4} />
+                        <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0} />
                       </linearGradient>
                     </defs>
-                    <XAxis
-                      dataKey="hour"
-                      axisLine={false}
-                      tickLine={false}
-                      tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }}
-                    />
-                    <YAxis
-                      axisLine={false}
-                      tickLine={false}
-                      tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }}
-                      allowDecimals={false}
-                    />
+                    <XAxis dataKey="hour" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }} />
+                    <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }} allowDecimals={false} />
                     <Tooltip
                       contentStyle={{
                         backgroundColor: "hsl(var(--card))",
                         border: "1px solid hsl(var(--border))",
                         borderRadius: "8px",
+                        fontSize: "12px",
                       }}
                     />
-                    <Area
-                      type="monotone"
-                      dataKey="calls"
-                      stroke="hsl(270 60% 55%)"
-                      strokeWidth={2}
-                      fill="url(#callGradient)"
-                    />
+                    <Area type="monotone" dataKey="calls" stroke="hsl(var(--primary))" strokeWidth={2} fill="url(#callGrad)" />
                   </AreaChart>
                 </ResponsiveContainer>
               </div>
-
-              {/* Recent Activity Cards */}
-              <div className="flex gap-4 overflow-x-auto pb-2">
-                {recentActivities.length > 0 ? (
-                  recentActivities.map((activity) => (
-                    <div
-                      key={activity.id}
-                      className="flex-shrink-0 bg-muted/30 border border-border/50 rounded-xl p-4 min-w-[220px] hover:border-primary/50 transition-colors cursor-pointer"
-                      onClick={() => activity.lead_id && navigate(`/leads?id=${activity.lead_id}`)}
-                    >
-                      <div className="flex items-center gap-2 mb-2">
-                        <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
-                          activity.type === "call" ? "bg-purple-500/20 text-purple-400" :
-                          activity.type === "email" ? "bg-blue-500/20 text-blue-400" :
-                          "bg-green-500/20 text-green-400"
-                        }`}>
-                          {activity.type === "call" ? <Phone className="w-4 h-4" /> :
-                           activity.type === "email" ? <Mail className="w-4 h-4" /> :
-                           <MessageSquare className="w-4 h-4" />}
-                        </div>
-                        <span className="text-xs text-muted-foreground">{activity.time}</span>
-                      </div>
-                      <p className="text-sm font-medium text-foreground truncate">{activity.title}</p>
-                      <p className="text-xs text-muted-foreground truncate">{activity.subtitle}</p>
-                    </div>
-                  ))
-                ) : (
-                  <div className="flex-1 text-center py-8 text-muted-foreground">
-                    <Clock className="w-8 h-8 mx-auto mb-2 opacity-50" />
-                    <p className="text-sm">No recent activity yet</p>
-                    <p className="text-xs">Start making calls to see your activity here</p>
-                  </div>
-                )}
-              </div>
             </CardContent>
           </Card>
-        </div>
-
-        {/* Pipeline Board & Quick Actions */}
-        <div className="grid lg:grid-cols-3 gap-6">
-          {/* Pipeline Board - 2 columns */}
-          <div className="lg:col-span-2">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-semibold text-foreground">Pipeline Board</h2>
-              <Button variant="link" className="text-primary gap-1 p-0 h-auto" onClick={() => navigate("/leads")}>
-                View all <ChevronRight className="w-4 h-4" />
-              </Button>
-            </div>
-
-            <div className="flex gap-4 overflow-x-auto pb-2">
-              {pipelineStages.map((stage) => (
-                <Card
-                  key={stage.label}
-                  className="flex-shrink-0 w-[200px] border-border/50 bg-card hover:border-primary/30 transition-colors"
-                >
-                  <CardContent className="p-4">
-                    <div className="flex items-center justify-between mb-3">
-                      <div className="flex items-center gap-2">
-                        <div className={`w-2 h-2 rounded-full ${stage.color}`} />
-                        <span className="text-xs font-medium text-foreground">{stage.label}</span>
-                      </div>
-                      <span className="text-xs font-bold text-muted-foreground">{stage.count}</span>
-                    </div>
-
-                    {stage.pipelineLeads.length > 0 ? (
-                      <div className="space-y-2">
-                        {stage.pipelineLeads.map((lead) => (
-                          <div
-                            key={lead.id}
-                            className="bg-muted/50 rounded-lg p-3 cursor-pointer hover:bg-muted transition-colors"
-                            onClick={() => navigate(`/leads?id=${lead.id}`)}
-                          >
-                            <p className="text-sm font-medium text-foreground truncate">{lead.name}</p>
-                            {lead.contact && (
-                              <p className="text-xs text-muted-foreground truncate">{lead.contact}</p>
-                            )}
-                          </div>
-                        ))}
-                      </div>
-                    ) : (
-                      <div className="bg-muted/30 rounded-lg p-4 text-center">
-                        <User className="w-5 h-5 mx-auto text-muted-foreground/50 mb-1" />
-                        <p className="text-xs text-muted-foreground">No leads</p>
-                      </div>
-                    )}
-
-                    {stage.count > 3 && (
-                      <Button 
-                        variant="ghost" 
-                        size="sm" 
-                        className="w-full mt-2 text-xs text-muted-foreground hover:text-foreground"
-                        onClick={() => navigate(`/leads?status=${stage.status}`)}
-                      >
-                        +{stage.count - 3} more
-                      </Button>
-                    )}
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          </div>
-
-          {/* Quick Actions & Summary */}
-          <div className="space-y-6">
-            {/* Top Priorities */}
-            <Card className="border-border/50 bg-card">
-              <CardContent className="p-5">
-                <h3 className="text-sm font-semibold text-foreground mb-4">Top Priorities</h3>
-                <div className="space-y-3">
-                  {overdue > 0 && (
-                    <div className="flex items-center gap-3">
-                      <div className="w-4 h-4 rounded border-2 border-destructive" />
-                      <span className="text-sm text-foreground">{overdue} overdue callbacks</span>
-                    </div>
-                  )}
-                  {due > 0 && (
-                    <div className="flex items-center gap-3">
-                      <div className="w-4 h-4 rounded border-2 border-warning" />
-                      <span className="text-sm text-foreground">{due} due callbacks</span>
-                    </div>
-                  )}
-                  {onSchedule > 0 && (
-                    <div className="flex items-center gap-3">
-                      <CheckCircle className="w-4 h-4 text-success" />
-                      <span className="text-sm text-foreground">{onSchedule} scheduled</span>
-                    </div>
-                  )}
-                  {followupsToday.length === 0 && overdue === 0 && due === 0 && (
-                    <p className="text-sm text-muted-foreground">All caught up! 🎉</p>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Quick Actions */}
-            <Card className="border-border/50 bg-card">
-              <CardContent className="p-5">
-                <h3 className="text-sm font-semibold text-foreground mb-4">Quick Actions</h3>
-                <div className="space-y-2">
-                  <Button
-                    variant="outline"
-                    className="w-full justify-between h-11 border-border/50 hover:bg-muted/50"
-                    onClick={() => navigate("/work?autostart=true")}
-                  >
-                    <span className="flex items-center gap-2">
-                      <Phone className="w-4 h-4 text-purple-400" />
-                      Start Calling
-                    </span>
-                    <ArrowRight className="w-4 h-4 text-muted-foreground" />
-                  </Button>
-                  <Button
-                    variant="outline"
-                    className="w-full justify-between h-11 border-border/50 hover:bg-muted/50"
-                    onClick={() => navigate("/leads")}
-                  >
-                    <span className="flex items-center gap-2">
-                      <ListTodo className="w-4 h-4 text-blue-400" />
-                      View Leads ({leads.length})
-                    </span>
-                    <ArrowRight className="w-4 h-4 text-muted-foreground" />
-                  </Button>
-                  <Button
-                    variant="outline"
-                    className="w-full justify-between h-11 border-border/50 hover:bg-muted/50"
-                    onClick={() => navigate("/reports")}
-                  >
-                    <span className="flex items-center gap-2">
-                      <Trophy className="w-4 h-4 text-yellow-400" />
-                      View Reports
-                    </span>
-                    <ArrowRight className="w-4 h-4 text-muted-foreground" />
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        </div>
+        )}
       </div>
     </DashboardLayout>
   );
