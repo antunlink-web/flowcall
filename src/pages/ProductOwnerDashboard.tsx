@@ -89,7 +89,7 @@ export default function ProductOwnerDashboard() {
   const { isProductOwner, loading: roleLoading } = useUserRole();
   const { signOut, user } = useAuth();
   const navigate = useNavigate();
-  const { toast } = useToast();
+  
   const { stats, orgs, loading, refetch } = useOperatorAnalytics();
 
   const [searchQuery, setSearchQuery] = useState("");
