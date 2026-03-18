@@ -201,7 +201,7 @@ export const translations = {
     step2Title: "Učitajte svoje leadove",
     step2Desc: "Uvezite CSV ili dodajte leadove ručno. Mapirajte polja jednim klikom.",
     step3Title: "Počnite pozivati",
-    step3Desc: "Kliknite za poziv. Vaš telefon zvoni. Razgovarajte, zabilježite ishod, prijeđite na sljedećeg.",
+    step3Desc: "Kliknite za poziv sa svog pravog broja. Vaš telefon zvoni. Razgovarajte, zabilježite ishod, prijeđite na sljedećeg.",
 
     // Pricing
     noSurprises: "Bez iznenađenja",
