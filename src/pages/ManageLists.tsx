@@ -411,6 +411,45 @@ export default function ManageLists() {
     setShowScriptDialog(true);
   };
 
+  const handleSendTestEmail = async () => {
+    if (!testEmailAddress) {
+      toast({ title: "Error", description: "Please enter an email address", variant: "destructive" });
+      return;
+    }
+    if (!emailConfig.smtp_host || !emailConfig.smtp_username || !emailConfig.smtp_password || !emailConfig.from_email) {
+      toast({ title: "Error", description: "Please fill in all SMTP settings first", variant: "destructive" });
+      return;
+    }
+    
+    setSendingTestEmail(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("test-smtp", {
+        body: {
+          toEmail: testEmailAddress,
+          smtpConfig: {
+            host: emailConfig.smtp_host,
+            port: emailConfig.smtp_port || 587,
+            username: emailConfig.smtp_username,
+            password: emailConfig.smtp_password,
+            from_email: emailConfig.from_email,
+            use_tls: emailConfig.use_tls ?? true,
+          },
+        },
+      });
+      
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      
+      toast({ title: "Success", description: `Test email sent to ${testEmailAddress}` });
+      setShowTestEmailDialog(false);
+      setTestEmailAddress("");
+    } catch (err: any) {
+      toast({ title: "Test Failed", description: err.message || "Failed to send test email", variant: "destructive" });
+    } finally {
+      setSendingTestEmail(false);
+    }
+  };
+
   const handleSaveEmailConfig = async () => {
     if (!configureList) return;
     
