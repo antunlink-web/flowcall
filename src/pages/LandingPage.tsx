@@ -102,15 +102,13 @@ export default function LandingPage() {
               </Button>
             </a>
           </div>
-          <div className="flex items-center justify-center gap-4 text-sm text-muted-foreground">
-            <span className="flex items-center gap-1.5">
-              <CheckCircle2 className="w-3.5 h-3.5 text-primary" />
-              {t.noCreditCard}
-            </span>
-            <span className="flex items-center gap-1.5">
-              <CheckCircle2 className="w-3.5 h-3.5 text-primary" />
-              {t.setupUnder2}
-            </span>
+          <div className="flex flex-col items-center gap-2 text-sm text-muted-foreground mt-2">
+            {[t.trustAndroid, t.trustNoVoip, t.trustSim].map(item => (
+              <span key={item} className="flex items-center gap-1.5">
+                <CheckCircle2 className="w-3.5 h-3.5 text-primary" />
+                {item}
+              </span>
+            ))}
           </div>
         </div>
       </section>
@@ -186,7 +184,7 @@ export default function LandingPage() {
               </p>
               <div className="grid grid-cols-2 gap-3 max-w-md">
                 {[
-                  { icon: PhoneCall, text: t.higherPickup },
+                  { icon: PhoneCall, text: t.realCallerIdBullet },
                   { icon: Zap, text: t.worksInstantly },
                   { icon: Target, text: t.lowerCosts },
                   { icon: Smartphone, text: t.noExtraHardware },
@@ -388,6 +386,9 @@ export default function LandingPage() {
           </Link>
           <p className="text-sm text-muted-foreground mt-4">
             {t.noCreditCardCancel}
+          </p>
+          <p className="text-xs text-muted-foreground/60 mt-6">
+            {t.androidNote}
           </p>
         </div>
       </section>

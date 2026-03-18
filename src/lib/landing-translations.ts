@@ -11,10 +11,13 @@ export const translations = {
     // Hero
     heroTitle1: "Stop Overpaying for ",
     heroTitle2: "Cold Calling Software",
-    heroSub: "Make more calls using your own phone. No VoIP, no complex setup, no unnecessary features. Just results.",
+    heroSub: "Make more calls using your own phone. No VoIP, no complex setup, no unnecessary features.",
     seeHowItWorks: "See How It Works",
     noCreditCard: "No credit card required",
     setupUnder2: "Setup in under 2 minutes",
+    trustAndroid: "Works with Android phones (2 min setup)",
+    trustNoVoip: "No VoIP, no new numbers",
+    trustSim: "Use your existing SIM",
 
     // Comparison
     smarterChoice: "The Smarter Choice",
@@ -37,7 +40,8 @@ export const translations = {
     // Unique Mechanism
     uniqueAdvantage: "Unique Advantage",
     smartphoneDialer: "Your Smartphone Becomes Your Dialer",
-    smartphoneDialerDesc: "Connect your phone to your computer. Click to call from your CRM. Send SMS directly. No extra hardware, no VoIP costs — your real number, higher pickup rates.",
+    smartphoneDialerDesc: "Call and send SMS directly from your real mobile number — not VoIP. Connect your phone to your computer, click to call from your CRM. No extra hardware, no VoIP costs.",
+    realCallerIdBullet: "Higher pickup rates (real caller ID)",
     higherPickup: "Higher pickup rates",
     worksInstantly: "Works instantly",
     lowerCosts: "Lower costs",
@@ -68,12 +72,12 @@ export const translations = {
     // How It Works
     threeSteps: "3 Simple Steps",
     upAndRunning: "Up and Running in Minutes",
-    step1Title: "Connect Your Phone",
+    step1Title: "Connect Your Android Phone",
     step1Desc: "Download the companion app and pair with your desktop in seconds.",
     step2Title: "Upload Your Leads",
     step2Desc: "Import a CSV or add leads manually. Map fields in one click.",
     step3Title: "Start Calling",
-    step3Desc: "Click to dial. Your phone rings. Talk, log outcome, move to next lead.",
+    step3Desc: "Click to dial from your real number. Your phone rings. Talk, log outcome, move to next lead.",
 
     // Pricing
     noSurprises: "No Surprises",
@@ -113,8 +117,9 @@ export const translations = {
 
     // Final CTA
     startCallingToday: "Start Calling Today — Not Next Week",
-    finalCtaSub: "Set up in minutes and make your first calls immediately. No demos, no sales calls, no waiting.",
+    finalCtaSub: "Test it today on your first 20 leads and see the difference in pickup rates. No demos, no sales calls, no waiting.",
     noCreditCardCancel: "No credit card required • Cancel anytime",
+    androidNote: "FlowCall works with Android smartphones. iOS support is not available yet.",
 
     // Footer
     allRightsReserved: "All rights reserved.",
@@ -130,10 +135,13 @@ export const translations = {
     // Hero
     heroTitle1: "Prestanite preplaćivati ",
     heroTitle2: "softver za hladne pozive",
-    heroSub: "Obavite više poziva koristeći vlastiti telefon. Bez VoIP-a, bez složenog postavljanja, bez nepotrebnih funkcija. Samo rezultati.",
+    heroSub: "Obavite više poziva koristeći vlastiti telefon. Bez VoIP-a, bez složenog postavljanja, bez nepotrebnih funkcija.",
     seeHowItWorks: "Pogledajte kako funkcionira",
     noCreditCard: "Nije potrebna kreditna kartica",
     setupUnder2: "Postavljanje za manje od 2 minute",
+    trustAndroid: "Radi s Android telefonima (2 min postavljanje)",
+    trustNoVoip: "Bez VoIP-a, bez novih brojeva",
+    trustSim: "Koristite svoju postojeću SIM karticu",
 
     // Comparison
     smarterChoice: "Pametniji izbor",
@@ -156,7 +164,8 @@ export const translations = {
     // Unique Mechanism
     uniqueAdvantage: "Jedinstvena prednost",
     smartphoneDialer: "Vaš pametni telefon postaje vaš pozivatelj",
-    smartphoneDialerDesc: "Povežite telefon s računalom. Pozovite jednim klikom iz CRM-a. Šaljite SMS izravno. Bez dodatnog hardvera, bez VoIP troškova — vaš pravi broj, veća stopa javljanja.",
+    smartphoneDialerDesc: "Pozivajte i šaljite SMS izravno sa svog pravog mobilnog broja — bez VoIP-a. Povežite telefon s računalom, pozovite jednim klikom iz CRM-a. Bez dodatnog hardvera, bez VoIP troškova.",
+    realCallerIdBullet: "Veća stopa javljanja (pravi pozivatelj ID)",
     higherPickup: "Veća stopa javljanja",
     worksInstantly: "Radi odmah",
     lowerCosts: "Niži troškovi",
@@ -187,12 +196,12 @@ export const translations = {
     // How It Works
     threeSteps: "3 jednostavna koraka",
     upAndRunning: "Spremni za rad u minutama",
-    step1Title: "Povežite svoj telefon",
+    step1Title: "Povežite svoj Android telefon",
     step1Desc: "Preuzmite pratitelja aplikaciju i uparite s računalom u sekundama.",
     step2Title: "Učitajte svoje leadove",
     step2Desc: "Uvezite CSV ili dodajte leadove ručno. Mapirajte polja jednim klikom.",
     step3Title: "Počnite pozivati",
-    step3Desc: "Kliknite za poziv. Vaš telefon zvoni. Razgovarajte, zabilježite ishod, prijeđite na sljedećeg.",
+    step3Desc: "Kliknite za poziv sa svog pravog broja. Vaš telefon zvoni. Razgovarajte, zabilježite ishod, prijeđite na sljedećeg.",
 
     // Pricing
     noSurprises: "Bez iznenađenja",
@@ -232,8 +241,9 @@ export const translations = {
 
     // Final CTA
     startCallingToday: "Počnite pozivati danas — ne sljedeći tjedan",
-    finalCtaSub: "Postavite za minutama i obavite svoje prve pozive odmah. Bez demo poziva, bez čekanja.",
+    finalCtaSub: "Isprobajte danas na prvih 20 leadova i osjetite razliku u stopi javljanja. Bez demo poziva, bez čekanja.",
     noCreditCardCancel: "Nije potrebna kreditna kartica • Otkažite bilo kada",
+    androidNote: "FlowCall radi s Android pametnim telefonima. iOS podrška još nije dostupna.",
 
     // Footer
     allRightsReserved: "Sva prava pridržana.",
