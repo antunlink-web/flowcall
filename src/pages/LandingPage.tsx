@@ -387,6 +387,9 @@ export default function LandingPage() {
           <p className="text-sm text-muted-foreground mt-4">
             {t.noCreditCardCancel}
           </p>
+          <p className="text-xs text-muted-foreground/60 mt-6">
+            {t.androidNote}
+          </p>
         </div>
       </section>
 
