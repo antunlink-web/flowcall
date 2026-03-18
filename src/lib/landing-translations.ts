@@ -196,7 +196,7 @@ export const translations = {
     // How It Works
     threeSteps: "3 jednostavna koraka",
     upAndRunning: "Spremni za rad u minutama",
-    step1Title: "Povežite svoj telefon",
+    step1Title: "Povežite svoj Android telefon",
     step1Desc: "Preuzmite pratitelja aplikaciju i uparite s računalom u sekundama.",
     step2Title: "Učitajte svoje leadove",
     step2Desc: "Uvezite CSV ili dodajte leadove ručno. Mapirajte polja jednim klikom.",
