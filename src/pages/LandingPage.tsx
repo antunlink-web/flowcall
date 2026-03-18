@@ -52,23 +52,20 @@ export default function LandingPage() {
             <a href="#pricing" className="text-sm text-muted-foreground hover:text-foreground hidden sm:inline">{t.pricing}</a>
             <a href="#how-it-works" className="text-sm text-muted-foreground hover:text-foreground hidden sm:inline">{t.howItWorks}</a>
 
-            {/* Language Selector */}
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="sm" className="gap-1.5 text-muted-foreground hover:text-foreground h-8 px-2">
-                  <Globe className="w-4 h-4" />
-                  <span className="text-xs font-medium">{langLabels[lang]}</span>
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="min-w-[100px]">
-                <DropdownMenuItem onClick={() => switchLang("en")} className={lang === "en" ? "font-bold" : ""}>
-                  🇬🇧 English
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => switchLang("hr")} className={lang === "hr" ? "font-bold" : ""}>
-                  🇭🇷 Hrvatski
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+            <div className="flex items-center border border-border/30 rounded-md overflow-hidden h-8 text-xs font-medium">
+              <button
+                onClick={() => switchLang("en")}
+                className={`px-2.5 h-full transition-colors ${lang === "en" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}
+              >
+                EN
+              </button>
+              <button
+                onClick={() => switchLang("hr")}
+                className={`px-2.5 h-full transition-colors ${lang === "hr" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}
+              >
+                HR
+              </button>
+            </div>
 
             <Link to="/auth">
               <Button variant="ghost" size="sm">{t.signIn}</Button>
