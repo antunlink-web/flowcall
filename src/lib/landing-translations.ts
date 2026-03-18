@@ -135,10 +135,13 @@ export const translations = {
     // Hero
     heroTitle1: "Prestanite preplaćivati ",
     heroTitle2: "softver za hladne pozive",
-    heroSub: "Obavite više poziva koristeći vlastiti telefon. Bez VoIP-a, bez složenog postavljanja, bez nepotrebnih funkcija. Samo rezultati.",
+    heroSub: "Obavite više poziva koristeći vlastiti telefon. Bez VoIP-a, bez složenog postavljanja, bez nepotrebnih funkcija.",
     seeHowItWorks: "Pogledajte kako funkcionira",
     noCreditCard: "Nije potrebna kreditna kartica",
     setupUnder2: "Postavljanje za manje od 2 minute",
+    trustAndroid: "Radi s Android telefonima (2 min postavljanje)",
+    trustNoVoip: "Bez VoIP-a, bez novih brojeva",
+    trustSim: "Koristite svoju postojeću SIM karticu",
 
     // Comparison
     smarterChoice: "Pametniji izbor",
