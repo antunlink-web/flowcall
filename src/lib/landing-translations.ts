@@ -77,7 +77,7 @@ export const translations = {
     step2Title: "Upload Your Leads",
     step2Desc: "Import a CSV or add leads manually. Map fields in one click.",
     step3Title: "Start Calling",
-    step3Desc: "Click to dial. Your phone rings. Talk, log outcome, move to next lead.",
+    step3Desc: "Click to dial from your real number. Your phone rings. Talk, log outcome, move to next lead.",
 
     // Pricing
     noSurprises: "No Surprises",
