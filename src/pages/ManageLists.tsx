@@ -151,6 +151,11 @@ export default function ManageLists() {
   const [templateBody, setTemplateBody] = useState("");
   const [templateContent, setTemplateContent] = useState("");
   
+  // Test email state
+  const [showTestEmailDialog, setShowTestEmailDialog] = useState(false);
+  const [testEmailAddress, setTestEmailAddress] = useState("");
+  const [sendingTestEmail, setSendingTestEmail] = useState(false);
+  
   // Users for list access
   const [allUsers, setAllUsers] = useState<UserWithAccess[]>([]);
   const [loadingUsers, setLoadingUsers] = useState(false);
