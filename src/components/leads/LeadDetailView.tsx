@@ -595,17 +595,32 @@ export function LeadDetailView({ leadId, onClose }: LeadDetailViewProps) {
     return "Unknown";
   };
 
+  // Check if a value looks like a phone number
+  const isPhoneValue = (value: unknown): boolean => {
+    if (typeof value !== "string" || !value.trim()) return false;
+    // Remove common formatting chars and check if mostly digits
+    const cleaned = value.replace(/[\s\-()+./]/g, "");
+    return cleaned.length >= 6 && cleaned.length <= 20 && /^\d+$/.test(cleaned);
+  };
+
+  // Check if a field is a phone field by list type or name pattern
+  const isPhoneField = (key: string): boolean => {
+    // Check list field type definition
+    if (list?.fields) {
+      const listField = list.fields.find(f => f.name === key);
+      if (listField?.type === "Phone") return true;
+    }
+    // Check name pattern
+    const keyLower = key.toLowerCase();
+    return keyLower.includes("phone") || keyLower.includes("tel") || keyLower.includes("mobile") || keyLower.includes("cell") || keyLower.includes("fax") || keyLower.includes("telefon") || keyLower.includes("mobil");
+  };
+
   const getPhones = () => {
     if (!lead?.data) return [];
-    const phones: string[] = [];
+    const phones: { label: string; value: string }[] = [];
     for (const [key, value] of Object.entries(lead.data)) {
-      const keyLower = key.toLowerCase();
-      if (
-        (keyLower.includes("phone") || keyLower.includes("tel")) &&
-        typeof value === "string" &&
-        value.trim()
-      ) {
-        phones.push(value);
+      if (typeof value === "string" && value.trim() && (isPhoneField(key) || isPhoneValue(value))) {
+        phones.push({ label: key, value });
       }
     }
     return phones;
@@ -614,10 +629,9 @@ export function LeadDetailView({ leadId, onClose }: LeadDetailViewProps) {
   // Get non-phone data fields for display
   const getDataFields = () => {
     if (!lead?.data) return [];
-    return Object.entries(lead.data).filter(([key]) => {
-      const keyLower = key.toLowerCase();
-      return !(keyLower.includes("phone") || keyLower.includes("tel"));
-    });
+    const phoneEntries = getPhones();
+    const phoneKeys = new Set(phoneEntries.map(p => p.label));
+    return Object.entries(lead.data).filter(([key]) => !phoneKeys.has(key));
   };
 
   // Email helper functions
@@ -793,21 +807,22 @@ export function LeadDetailView({ leadId, onClose }: LeadDetailViewProps) {
         <div className="ml-14 mt-2 space-y-1">
           {phones.map((phone, i) => (
             <div key={i} className="flex items-center gap-2">
+              <span className="text-xs text-muted-foreground">{phone.label}:</span>
               <a
-                href={`tel:${phone}`}
+                href={`tel:${phone.value}`}
                 className="text-primary hover:underline flex items-center gap-2 text-sm"
               >
-                {phone}
+                {phone.value}
               </a>
               <Button
                 variant="ghost"
                 size="sm"
                 className="h-6 px-2 text-xs"
-                onClick={() => sendDialRequest(phone, leadId)}
+                onClick={() => sendDialRequest(phone.value, leadId)}
                 title="Dial via companion phone"
               >
                 <Smartphone className="w-3 h-3 mr-1" />
-                Dial via Phone
+                Dial
               </Button>
             </div>
           ))}
@@ -1216,7 +1231,7 @@ export function LeadDetailView({ leadId, onClose }: LeadDetailViewProps) {
             <TabsContent value="sms" className="mt-4">
               <SmsComposer
                 leadId={leadId}
-                phoneNumbers={getPhones()}
+                phoneNumbers={getPhones().map(p => p.value)}
                 templates={smsTemplates}
                 templatesLoading={templatesLoading}
                 leadData={lead?.data || {}}
