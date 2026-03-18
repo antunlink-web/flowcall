@@ -184,7 +184,7 @@ export default function LandingPage() {
               </p>
               <div className="grid grid-cols-2 gap-3 max-w-md">
                 {[
-                  { icon: PhoneCall, text: t.higherPickup },
+                  { icon: PhoneCall, text: t.realCallerIdBullet },
                   { icon: Zap, text: t.worksInstantly },
                   { icon: Target, text: t.lowerCosts },
                   { icon: Smartphone, text: t.noExtraHardware },
