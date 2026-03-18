@@ -40,7 +40,8 @@ export const translations = {
     // Unique Mechanism
     uniqueAdvantage: "Unique Advantage",
     smartphoneDialer: "Your Smartphone Becomes Your Dialer",
-    smartphoneDialerDesc: "Connect your phone to your computer. Click to call from your CRM. Send SMS directly. No extra hardware, no VoIP costs — your real number, higher pickup rates.",
+    smartphoneDialerDesc: "Call and send SMS directly from your real mobile number — not VoIP. Connect your phone to your computer, click to call from your CRM. No extra hardware, no VoIP costs.",
+    realCallerIdBullet: "Higher pickup rates (real caller ID)",
     higherPickup: "Higher pickup rates",
     worksInstantly: "Works instantly",
     lowerCosts: "Lower costs",
