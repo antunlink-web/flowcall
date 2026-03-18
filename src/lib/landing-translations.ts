@@ -117,8 +117,9 @@ export const translations = {
 
     // Final CTA
     startCallingToday: "Start Calling Today — Not Next Week",
-    finalCtaSub: "Set up in minutes and make your first calls immediately. No demos, no sales calls, no waiting.",
+    finalCtaSub: "Test it today on your first 20 leads and see the difference in pickup rates. No demos, no sales calls, no waiting.",
     noCreditCardCancel: "No credit card required • Cancel anytime",
+    androidNote: "FlowCall works with Android smartphones. iOS support is not available yet.",
 
     // Footer
     allRightsReserved: "All rights reserved.",
