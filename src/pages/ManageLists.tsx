@@ -151,6 +151,11 @@ export default function ManageLists() {
   const [templateBody, setTemplateBody] = useState("");
   const [templateContent, setTemplateContent] = useState("");
   
+  // Test email state
+  const [showTestEmailDialog, setShowTestEmailDialog] = useState(false);
+  const [testEmailAddress, setTestEmailAddress] = useState("");
+  const [sendingTestEmail, setSendingTestEmail] = useState(false);
+  
   // Users for list access
   const [allUsers, setAllUsers] = useState<UserWithAccess[]>([]);
   const [loadingUsers, setLoadingUsers] = useState(false);
@@ -404,6 +409,45 @@ export default function ManageLists() {
     setTemplateName(script.name);
     setTemplateContent(script.content);
     setShowScriptDialog(true);
+  };
+
+  const handleSendTestEmail = async () => {
+    if (!testEmailAddress) {
+      toast({ title: "Error", description: "Please enter an email address", variant: "destructive" });
+      return;
+    }
+    if (!emailConfig.smtp_host || !emailConfig.smtp_username || !emailConfig.smtp_password || !emailConfig.from_email) {
+      toast({ title: "Error", description: "Please fill in all SMTP settings first", variant: "destructive" });
+      return;
+    }
+    
+    setSendingTestEmail(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("test-smtp", {
+        body: {
+          toEmail: testEmailAddress,
+          smtpConfig: {
+            host: emailConfig.smtp_host,
+            port: emailConfig.smtp_port || 587,
+            username: emailConfig.smtp_username,
+            password: emailConfig.smtp_password,
+            from_email: emailConfig.from_email,
+            use_tls: emailConfig.use_tls ?? true,
+          },
+        },
+      });
+      
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      
+      toast({ title: "Success", description: `Test email sent to ${testEmailAddress}` });
+      setShowTestEmailDialog(false);
+      setTestEmailAddress("");
+    } catch (err: any) {
+      toast({ title: "Test Failed", description: err.message || "Failed to send test email", variant: "destructive" });
+    } finally {
+      setSendingTestEmail(false);
+    }
   };
 
   const handleSaveEmailConfig = async () => {
@@ -1263,9 +1307,58 @@ export default function ManageLists() {
                 <Label htmlFor="use-tls">Use TLS</Label>
               </div>
               
-              <Button onClick={handleSaveEmailConfig} className="bg-destructive hover:bg-destructive/90">
-                Save Email Configuration
-              </Button>
+              <div className="flex items-center gap-3">
+                <Button onClick={handleSaveEmailConfig} className="bg-destructive hover:bg-destructive/90">
+                  Save Email Configuration
+                </Button>
+                <Button 
+                  variant="outline" 
+                  onClick={() => setShowTestEmailDialog(true)}
+                  disabled={!emailConfig.smtp_host || !emailConfig.from_email}
+                >
+                  <Mail className="h-4 w-4 mr-2" />
+                  Send Test Email
+                </Button>
+              </div>
+              
+              {/* Test Email Dialog */}
+              <Dialog open={showTestEmailDialog} onOpenChange={setShowTestEmailDialog}>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Send Test Email</DialogTitle>
+                    <DialogDescription>
+                      Send a test email using this list's SMTP configuration to verify it works correctly.
+                    </DialogDescription>
+                  </DialogHeader>
+                  <div className="space-y-4 py-4">
+                    <div className="space-y-2">
+                      <Label>Recipient Email</Label>
+                      <Input
+                        type="email"
+                        value={testEmailAddress}
+                        onChange={(e) => setTestEmailAddress(e.target.value)}
+                        placeholder="your@email.com"
+                      />
+                    </div>
+                    <div className="bg-muted/50 border border-border rounded p-3 text-sm space-y-1">
+                      <p><span className="text-muted-foreground">From:</span> {emailConfig.from_name || "N/A"} &lt;{emailConfig.from_email || "N/A"}&gt;</p>
+                      <p><span className="text-muted-foreground">Server:</span> {emailConfig.smtp_host || "N/A"}:{emailConfig.smtp_port || 587}</p>
+                      <p><span className="text-muted-foreground">TLS:</span> {emailConfig.use_tls !== false ? "Yes" : "No"}</p>
+                    </div>
+                  </div>
+                  <DialogFooter>
+                    <Button variant="outline" onClick={() => setShowTestEmailDialog(false)}>Cancel</Button>
+                    <Button 
+                      onClick={handleSendTestEmail} 
+                      disabled={sendingTestEmail || !testEmailAddress}
+                      className="bg-destructive hover:bg-destructive/90"
+                    >
+                      {sendingTestEmail && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                      {sendingTestEmail ? "Sending..." : "Send Test"}
+                    </Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
             </div>
 
             {/* Email Templates */}
