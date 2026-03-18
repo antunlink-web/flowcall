@@ -1268,9 +1268,58 @@ export default function ManageLists() {
                 <Label htmlFor="use-tls">Use TLS</Label>
               </div>
               
-              <Button onClick={handleSaveEmailConfig} className="bg-destructive hover:bg-destructive/90">
-                Save Email Configuration
-              </Button>
+              <div className="flex items-center gap-3">
+                <Button onClick={handleSaveEmailConfig} className="bg-destructive hover:bg-destructive/90">
+                  Save Email Configuration
+                </Button>
+                <Button 
+                  variant="outline" 
+                  onClick={() => setShowTestEmailDialog(true)}
+                  disabled={!emailConfig.smtp_host || !emailConfig.from_email}
+                >
+                  <Mail className="h-4 w-4 mr-2" />
+                  Send Test Email
+                </Button>
+              </div>
+              
+              {/* Test Email Dialog */}
+              <Dialog open={showTestEmailDialog} onOpenChange={setShowTestEmailDialog}>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Send Test Email</DialogTitle>
+                    <DialogDescription>
+                      Send a test email using this list's SMTP configuration to verify it works correctly.
+                    </DialogDescription>
+                  </DialogHeader>
+                  <div className="space-y-4 py-4">
+                    <div className="space-y-2">
+                      <Label>Recipient Email</Label>
+                      <Input
+                        type="email"
+                        value={testEmailAddress}
+                        onChange={(e) => setTestEmailAddress(e.target.value)}
+                        placeholder="your@email.com"
+                      />
+                    </div>
+                    <div className="bg-muted/50 border border-border rounded p-3 text-sm space-y-1">
+                      <p><span className="text-muted-foreground">From:</span> {emailConfig.from_name || "N/A"} &lt;{emailConfig.from_email || "N/A"}&gt;</p>
+                      <p><span className="text-muted-foreground">Server:</span> {emailConfig.smtp_host || "N/A"}:{emailConfig.smtp_port || 587}</p>
+                      <p><span className="text-muted-foreground">TLS:</span> {emailConfig.use_tls !== false ? "Yes" : "No"}</p>
+                    </div>
+                  </div>
+                  <DialogFooter>
+                    <Button variant="outline" onClick={() => setShowTestEmailDialog(false)}>Cancel</Button>
+                    <Button 
+                      onClick={handleSendTestEmail} 
+                      disabled={sendingTestEmail || !testEmailAddress}
+                      className="bg-destructive hover:bg-destructive/90"
+                    >
+                      {sendingTestEmail && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                      {sendingTestEmail ? "Sending..." : "Send Test"}
+                    </Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
             </div>
 
             {/* Email Templates */}
