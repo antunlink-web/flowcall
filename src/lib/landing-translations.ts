@@ -164,7 +164,8 @@ export const translations = {
     // Unique Mechanism
     uniqueAdvantage: "Jedinstvena prednost",
     smartphoneDialer: "Vaš pametni telefon postaje vaš pozivatelj",
-    smartphoneDialerDesc: "Povežite telefon s računalom. Pozovite jednim klikom iz CRM-a. Šaljite SMS izravno. Bez dodatnog hardvera, bez VoIP troškova — vaš pravi broj, veća stopa javljanja.",
+    smartphoneDialerDesc: "Pozivajte i šaljite SMS izravno sa svog pravog mobilnog broja — bez VoIP-a. Povežite telefon s računalom, pozovite jednim klikom iz CRM-a. Bez dodatnog hardvera, bez VoIP troškova.",
+    realCallerIdBullet: "Veća stopa javljanja (pravi pozivatelj ID)",
     higherPickup: "Veća stopa javljanja",
     worksInstantly: "Radi odmah",
     lowerCosts: "Niži troškovi",
