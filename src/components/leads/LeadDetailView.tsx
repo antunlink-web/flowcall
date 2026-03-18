@@ -599,7 +599,7 @@ export function LeadDetailView({ leadId, onClose }: LeadDetailViewProps) {
   const isPhoneValue = (value: unknown): boolean => {
     if (typeof value !== "string" || !value.trim()) return false;
     // Remove common formatting chars and check if mostly digits
-    const cleaned = value.replace(/[\s\-\(\)\+\.\/]/g, "");
+    const cleaned = value.replace(/[\s\-()+./]/g, "");
     return cleaned.length >= 6 && cleaned.length <= 20 && /^\d+$/.test(cleaned);
   };
 
