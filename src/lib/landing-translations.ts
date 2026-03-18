@@ -72,7 +72,7 @@ export const translations = {
     // How It Works
     threeSteps: "3 Simple Steps",
     upAndRunning: "Up and Running in Minutes",
-    step1Title: "Connect Your Phone",
+    step1Title: "Connect Your Android Phone",
     step1Desc: "Download the companion app and pair with your desktop in seconds.",
     step2Title: "Upload Your Leads",
     step2Desc: "Import a CSV or add leads manually. Map fields in one click.",
