@@ -11,10 +11,13 @@ export const translations = {
     // Hero
     heroTitle1: "Stop Overpaying for ",
     heroTitle2: "Cold Calling Software",
-    heroSub: "Make more calls using your own phone. No VoIP, no complex setup, no unnecessary features. Just results.",
+    heroSub: "Make more calls using your own phone. No VoIP, no complex setup, no unnecessary features.",
     seeHowItWorks: "See How It Works",
     noCreditCard: "No credit card required",
     setupUnder2: "Setup in under 2 minutes",
+    trustAndroid: "Works with Android phones (2 min setup)",
+    trustNoVoip: "No VoIP, no new numbers",
+    trustSim: "Use your existing SIM",
 
     // Comparison
     smarterChoice: "The Smarter Choice",
