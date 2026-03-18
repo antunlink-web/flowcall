@@ -241,8 +241,9 @@ export const translations = {
 
     // Final CTA
     startCallingToday: "Počnite pozivati danas — ne sljedeći tjedan",
-    finalCtaSub: "Postavite za minutama i obavite svoje prve pozive odmah. Bez demo poziva, bez čekanja.",
+    finalCtaSub: "Isprobajte danas na prvih 20 leadova i osjetite razliku u stopi javljanja. Bez demo poziva, bez čekanja.",
     noCreditCardCancel: "Nije potrebna kreditna kartica • Otkažite bilo kada",
+    androidNote: "FlowCall radi s Android pametnim telefonima. iOS podrška još nije dostupna.",
 
     // Footer
     allRightsReserved: "Sva prava pridržana.",
