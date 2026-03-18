@@ -807,21 +807,22 @@ export function LeadDetailView({ leadId, onClose }: LeadDetailViewProps) {
         <div className="ml-14 mt-2 space-y-1">
           {phones.map((phone, i) => (
             <div key={i} className="flex items-center gap-2">
+              <span className="text-xs text-muted-foreground">{phone.label}:</span>
               <a
-                href={`tel:${phone}`}
+                href={`tel:${phone.value}`}
                 className="text-primary hover:underline flex items-center gap-2 text-sm"
               >
-                {phone}
+                {phone.value}
               </a>
               <Button
                 variant="ghost"
                 size="sm"
                 className="h-6 px-2 text-xs"
-                onClick={() => sendDialRequest(phone, leadId)}
+                onClick={() => sendDialRequest(phone.value, leadId)}
                 title="Dial via companion phone"
               >
                 <Smartphone className="w-3 h-3 mr-1" />
-                Dial via Phone
+                Dial
               </Button>
             </div>
           ))}
