@@ -1231,7 +1231,7 @@ export function LeadDetailView({ leadId, onClose }: LeadDetailViewProps) {
             <TabsContent value="sms" className="mt-4">
               <SmsComposer
                 leadId={leadId}
-                phoneNumbers={getPhones()}
+                phoneNumbers={getPhones().map(p => p.value)}
                 templates={smsTemplates}
                 templatesLoading={templatesLoading}
                 leadData={lead?.data || {}}
