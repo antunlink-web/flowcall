@@ -25,7 +25,39 @@ interface SmtpConfig {
 }
 
 async function getSmtpConfig(): Promise<SmtpConfig | null> {
-  // First try environment variables (Supabase secrets)
+  // First try account_settings table (managed via UI)
+  const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+  const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+  const supabase = createClient(supabaseUrl, supabaseServiceKey);
+  
+  const { data, error } = await supabase
+    .from("account_settings")
+    .select("setting_key, setting_value")
+    .is("tenant_id", null)
+    .in("setting_key", [
+      "smtp_host", "smtp_port", "smtp_username", "smtp_password", 
+      "smtp_from_email", "admin_notification_email", "smtp_use_tls"
+    ]);
+
+  if (!error && data && data.length > 0) {
+    const settingsMap: Record<string, any> = {};
+    data.forEach(row => { settingsMap[row.setting_key] = row.setting_value; });
+
+    if (settingsMap.smtp_host && settingsMap.smtp_username && settingsMap.smtp_password && settingsMap.smtp_from_email) {
+      console.log("Using SMTP config from account_settings table");
+      return {
+        host: settingsMap.smtp_host,
+        port: parseInt(settingsMap.smtp_port) || 587,
+        username: settingsMap.smtp_username,
+        password: settingsMap.smtp_password,
+        from_email: settingsMap.smtp_from_email,
+        admin_email: settingsMap.admin_notification_email || settingsMap.smtp_from_email,
+        use_tls: settingsMap.smtp_use_tls === true,
+      };
+    }
+  }
+
+  // Fallback to environment variables
   const envHost = Deno.env.get("SMTP_HOST");
   const envUsername = Deno.env.get("SMTP_USERNAME");
   const envPassword = Deno.env.get("SMTP_PASSWORD");
@@ -46,42 +78,8 @@ async function getSmtpConfig(): Promise<SmtpConfig | null> {
     };
   }
 
-  // Fallback to account_settings table
-  const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-  const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-  const supabase = createClient(supabaseUrl, supabaseServiceKey);
-  
-  const { data, error } = await supabase
-    .from("account_settings")
-    .select("setting_key, setting_value")
-    .is("tenant_id", null)
-    .in("setting_key", [
-      "smtp_host", "smtp_port", "smtp_username", "smtp_password", 
-      "smtp_from_email", "admin_notification_email", "smtp_use_tls"
-    ]);
-
-  if (error || !data) {
-    console.error("Error fetching SMTP settings:", error);
-    return null;
-  }
-
-  const settingsMap: Record<string, any> = {};
-  data.forEach(row => { settingsMap[row.setting_key] = row.setting_value; });
-
-  if (!settingsMap.smtp_host || !settingsMap.smtp_username || !settingsMap.smtp_password || !settingsMap.smtp_from_email) {
-    console.error("Incomplete SMTP configuration");
-    return null;
-  }
-
-  return {
-    host: settingsMap.smtp_host,
-    port: parseInt(settingsMap.smtp_port) || 587,
-    username: settingsMap.smtp_username,
-    password: settingsMap.smtp_password,
-    from_email: settingsMap.smtp_from_email,
-    admin_email: settingsMap.admin_notification_email || settingsMap.smtp_from_email,
-    use_tls: settingsMap.smtp_use_tls === true,
-  };
+  console.error("No SMTP configuration found");
+  return null;
 }
 
 Deno.serve(async (req) => {
