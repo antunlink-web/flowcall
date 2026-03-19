@@ -104,10 +104,10 @@ Deno.serve(async (req) => {
 
     console.log(`Sending admin notification for new registration: ${companyName}`);
 
-    // Port 465 = implicit TLS, Port 587 = STARTTLS (both need tls: true)
-    const useTls = smtpConfig.port === 465 || smtpConfig.port === 587;
+    // Port 465 = implicit TLS, Port 587 = STARTTLS (tls: false lets denomailer handle STARTTLS)
+    const useTls = smtpConfig.port === 465;
 
-    console.log(`Connecting to SMTP: ${smtpConfig.host}:${smtpConfig.port} (TLS: ${useTls})`);
+    console.log(`Connecting to SMTP: ${smtpConfig.host}:${smtpConfig.port} (TLS: ${useTls}), sending to: ${smtpConfig.admin_email}`);
 
     const client = new SMTPClient({
       connection: {
