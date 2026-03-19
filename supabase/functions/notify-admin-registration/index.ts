@@ -25,24 +25,39 @@ interface SmtpConfig {
 }
 
 async function getSmtpConfig(): Promise<SmtpConfig | null> {
+  // First try environment variables (Supabase secrets)
+  const envHost = Deno.env.get("SMTP_HOST");
+  const envUsername = Deno.env.get("SMTP_USERNAME");
+  const envPassword = Deno.env.get("SMTP_PASSWORD");
+  const envFromEmail = Deno.env.get("SMTP_FROM_EMAIL");
+  const envAdminEmail = Deno.env.get("ADMIN_NOTIFICATION_EMAIL");
+  const envPort = Deno.env.get("SMTP_PORT");
+
+  if (envHost && envUsername && envPassword && envFromEmail) {
+    console.log("Using SMTP config from environment variables");
+    return {
+      host: envHost,
+      port: parseInt(envPort || "587"),
+      username: envUsername,
+      password: envPassword,
+      from_email: envFromEmail,
+      admin_email: envAdminEmail || envFromEmail,
+      use_tls: parseInt(envPort || "587") === 465,
+    };
+  }
+
+  // Fallback to account_settings table
   const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
   const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-  
   const supabase = createClient(supabaseUrl, supabaseServiceKey);
   
-  // Fetch platform-level SMTP settings (tenant_id is null)
   const { data, error } = await supabase
     .from("account_settings")
     .select("setting_key, setting_value")
     .is("tenant_id", null)
     .in("setting_key", [
-      "smtp_host", 
-      "smtp_port", 
-      "smtp_username", 
-      "smtp_password", 
-      "smtp_from_email", 
-      "admin_notification_email", 
-      "smtp_use_tls"
+      "smtp_host", "smtp_port", "smtp_username", "smtp_password", 
+      "smtp_from_email", "admin_notification_email", "smtp_use_tls"
     ]);
 
   if (error || !data) {
@@ -51,12 +66,10 @@ async function getSmtpConfig(): Promise<SmtpConfig | null> {
   }
 
   const settingsMap: Record<string, any> = {};
-  data.forEach(row => {
-    settingsMap[row.setting_key] = row.setting_value;
-  });
+  data.forEach(row => { settingsMap[row.setting_key] = row.setting_value; });
 
   if (!settingsMap.smtp_host || !settingsMap.smtp_username || !settingsMap.smtp_password || !settingsMap.smtp_from_email) {
-    console.error("Incomplete SMTP configuration in account_settings");
+    console.error("Incomplete SMTP configuration");
     return null;
   }
 
