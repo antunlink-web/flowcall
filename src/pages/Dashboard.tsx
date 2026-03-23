@@ -283,7 +283,7 @@ export default function Dashboard() {
                 onClick={() => navigate("/work?autostart=true")}
               >
                 <Phone className="w-5 h-5" />
-                Start Calling
+                {t.startCalling}
               </Button>
             </div>
           </CardContent>
