@@ -47,6 +47,7 @@ const ProductOwnerDashboard = lazy(() => import("./pages/ProductOwnerDashboard")
 // LandingPage is lazy-loaded inside LandingOrRedirect
 
 const CompanionApp = lazy(() => import("./pages/CompanionApp"));
+const InsuranceLandingPage = lazy(() => import("./pages/InsuranceLandingPage"));
 
 function PageLoader() {
   return (
@@ -157,6 +158,7 @@ function AppContent() {
       <Routes>
         {/* Public / auth routes */}
         <Route path="/" element={<LandingOrRedirect />} />
+        <Route path="/osiguranja" element={<InsuranceLandingPage />} />
         <Route path="/auth" element={<Auth />} />
         <Route path="/auth/callback" element={<AuthCallback />} />
         <Route path="/reset-password" element={<ResetPassword />} />
