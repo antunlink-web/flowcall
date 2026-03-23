@@ -456,9 +456,9 @@ export default function Dashboard() {
         {/* Interactive Pipeline */}
         <div>
           <div className="flex items-center justify-between mb-3">
-            <h2 className="text-sm font-semibold text-foreground">Pipeline</h2>
+            <h2 className="text-sm font-semibold text-foreground">{t.pipeline}</h2>
             <Button variant="link" className="text-primary gap-1 p-0 h-auto text-xs" onClick={() => navigate("/leads")}>
-              View all <ChevronRight className="w-3 h-3" />
+              {t.viewAll} <ChevronRight className="w-3 h-3" />
             </Button>
           </div>
 
