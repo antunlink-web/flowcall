@@ -388,17 +388,14 @@ export function TopNavbar() {
                 <>
                   <DropdownMenuItem asChild>
                     <Link to={t("/manage/account")} className="w-full cursor-pointer">
-                      Account Settings
+                      {tt.accountSettings}
                     </Link>
                   </DropdownMenuItem>
                   <DropdownMenuItem 
                     className="w-full cursor-pointer"
-                    onClick={() => {
-                      navigate("/");
-                      setTimeout(() => startTour(), 100);
-                    }}
+                    onClick={() => { navigate("/"); setTimeout(() => startTour(), 100); }}
                   >
-                    Getting Started
+                    {tt.gettingStarted}
                   </DropdownMenuItem>
                 </>
               )}
