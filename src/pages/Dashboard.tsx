@@ -300,8 +300,8 @@ export default function Dashboard() {
                       <AlertTriangle className="w-5 h-5 text-destructive" />
                     </div>
                     <div>
-                      <p className="text-sm font-semibold text-destructive">{overdueCallbacks.length} Overdue Callbacks</p>
-                      <p className="text-xs text-muted-foreground">These leads are waiting for your call</p>
+                      <p className="text-sm font-semibold text-destructive">{overdueCallbacks.length} {t.overdueCallbacks}</p>
+                      <p className="text-xs text-muted-foreground">{t.leadsWaiting}</p>
                     </div>
                   </div>
                   <Button size="sm" variant="outline" className="border-destructive/30 text-destructive hover:bg-destructive/10" onClick={() => navigate("/work")}>
