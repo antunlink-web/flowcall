@@ -437,7 +437,7 @@ export function TopNavbar() {
               }}
             >
               <LayoutDashboard className="w-4 h-4" />
-              Open Control Panel
+              {tt.openControlPanel}
               {dueCount > 0 && (
                 <Badge variant="destructive" className="ml-auto">{dueCount}</Badge>
               )}
