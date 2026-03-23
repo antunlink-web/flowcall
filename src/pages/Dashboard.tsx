@@ -265,7 +265,7 @@ export default function Dashboard() {
                     {overdueCallbacks.length > 0 && (
                       <Badge variant="destructive" className="text-xs gap-1">
                         <AlertTriangle className="w-3 h-3" />
-                        {overdueCallbacks.length} overdue
+                        {overdueCallbacks.length} {t.overdue}
                       </Badge>
                     )}
                     {dueCallbacks.length > 0 && (
