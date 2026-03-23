@@ -446,8 +446,8 @@ export default function Dashboard() {
             ) : (
               <div className="text-center py-6">
                 <PhoneOff className="w-8 h-8 mx-auto text-muted-foreground/40 mb-2" />
-                <p className="text-sm text-muted-foreground">No leads in queue</p>
-                <p className="text-xs text-muted-foreground/70 mt-1">Upload leads to get started</p>
+              <p className="text-sm text-muted-foreground">{t.noLeadsInQueue}</p>
+                <p className="text-xs text-muted-foreground/70 mt-1">{t.uploadLeadsToStart}</p>
               </div>
             )}
           </CardContent>
