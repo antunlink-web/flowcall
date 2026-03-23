@@ -524,7 +524,7 @@ export default function Dashboard() {
                           className="w-full text-xs text-muted-foreground"
                           onClick={() => navigate(`/leads?status=${stage.status}`)}
                         >
-                          +{stage.leads.length - 3} more <ArrowRight className="w-3 h-3 ml-1" />
+                          +{stage.leads.length - 3} {t.more} <ArrowRight className="w-3 h-3 ml-1" />
                         </Button>
                       )}
                     </div>
