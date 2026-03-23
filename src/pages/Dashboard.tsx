@@ -486,7 +486,7 @@ export default function Dashboard() {
                             }`}
                           >
                             <p className="text-sm font-medium text-foreground truncate">{getLeadDisplayName(lead.data)}</p>
-                            <p className="text-xs text-muted-foreground truncate">{getLeadPhone(lead.data) || "No phone"}</p>
+                            <p className="text-xs text-muted-foreground truncate">{getLeadPhone(lead.data) || t.noPhone}</p>
                             {/* Action buttons */}
                             <div className="flex items-center gap-1 mt-2 opacity-70 group-hover:opacity-100 transition-opacity">
                               <Button
