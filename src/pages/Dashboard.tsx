@@ -388,10 +388,10 @@ export default function Dashboard() {
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-2">
                 <PhoneCall className="w-4 h-4 text-primary" />
-                <h3 className="text-sm font-semibold text-foreground">Next Leads to Call</h3>
+                <h3 className="text-sm font-semibold text-foreground">{t.nextLeadsToCall}</h3>
               </div>
               <Button variant="link" className="text-primary gap-1 p-0 h-auto text-xs" onClick={() => navigate("/work")}>
-                View queue <ChevronRight className="w-3 h-3" />
+                {t.viewQueue} <ChevronRight className="w-3 h-3" />
               </Button>
             </div>
 
