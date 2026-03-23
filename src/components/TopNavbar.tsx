@@ -26,6 +26,7 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
 import { useDueCallbacks } from "@/hooks/useDueCallbacks";
+import { useTranslation } from "@/hooks/useTranslation";
 import { TrialBadge } from "@/components/TrialBadge";
 import { useTour } from "@/hooks/useTour";
 import { useConnectedDevices } from "@/hooks/useConnectedDevices";
