@@ -214,9 +214,9 @@ export default function Dashboard() {
 
   // Pipeline stages for interactive board
   const pipelineStages = useMemo(() => [
-    { label: "New", status: "new", color: "bg-blue-500", textColor: "text-blue-400", leads: newLeads },
-    { label: "Contacted", status: "contacted", color: "bg-purple-500", textColor: "text-purple-400", leads: contactedLeads },
-    { label: "Callback", status: "callback", color: "bg-warning", textColor: "text-warning", leads: callbackLeads },
+    { label: t.statusNew, status: "new", color: "bg-blue-500", textColor: "text-blue-400", leads: newLeads },
+    { label: t.statusContacted, status: "contacted", color: "bg-purple-500", textColor: "text-purple-400", leads: contactedLeads },
+    { label: t.statusCallback, status: "callback", color: "bg-warning", textColor: "text-warning", leads: callbackLeads },
   ], [leads]); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (loading) {
