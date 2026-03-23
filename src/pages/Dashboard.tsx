@@ -503,7 +503,7 @@ export default function Dashboard() {
                                 className="h-7 px-2 text-xs gap-1"
                                 onClick={() => navigate(`/leads?id=${lead.id}`)}
                               >
-                                <Calendar className="w-3 h-3" /> Schedule
+                                <Calendar className="w-3 h-3" /> {t.schedule}
                               </Button>
                               <Button
                                 size="sm"
