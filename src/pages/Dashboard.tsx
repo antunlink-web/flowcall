@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "@/hooks/useTranslation";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -55,10 +56,11 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const { user } = useAuth();
   const navigate = useNavigate();
+  const t = useTranslation();
 
   const firstName = user?.user_metadata?.full_name?.split(" ")[0] || "there";
   const currentHour = new Date().getHours();
-  const greeting = currentHour < 12 ? "Good morning" : currentHour < 18 ? "Good afternoon" : "Good evening";
+  const greeting = currentHour < 12 ? t.goodMorning : currentHour < 18 ? t.goodAfternoon : t.goodEvening;
 
   const fetchData = useCallback(async () => {
     if (!user) return;
@@ -212,9 +214,9 @@ export default function Dashboard() {
 
   // Pipeline stages for interactive board
   const pipelineStages = useMemo(() => [
-    { label: "New", status: "new", color: "bg-blue-500", textColor: "text-blue-400", leads: newLeads },
-    { label: "Contacted", status: "contacted", color: "bg-purple-500", textColor: "text-purple-400", leads: contactedLeads },
-    { label: "Callback", status: "callback", color: "bg-warning", textColor: "text-warning", leads: callbackLeads },
+    { label: t.statusNew, status: "new", color: "bg-blue-500", textColor: "text-blue-400", leads: newLeads },
+    { label: t.statusContacted, status: "contacted", color: "bg-purple-500", textColor: "text-purple-400", leads: contactedLeads },
+    { label: t.statusCallback, status: "callback", color: "bg-warning", textColor: "text-warning", leads: callbackLeads },
   ], [leads]); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (loading) {
@@ -237,7 +239,7 @@ export default function Dashboard() {
               {greeting}, {firstName}
             </h1>
             <p className="text-sm text-muted-foreground mt-0.5">
-              You made <span className="text-foreground font-semibold">{callStats.totalCalls}</span> / {dailyGoal} calls today
+              {callStats.totalCalls} / {dailyGoal} {t.callsToday}
             </p>
           </div>
           <div className="flex items-center gap-3 min-w-[200px]">
@@ -255,21 +257,21 @@ export default function Dashboard() {
                   <PhoneCall className="w-7 h-7 text-primary" />
                 </div>
                 <div>
-                  <h2 className="text-lg font-bold text-foreground">Start Calling</h2>
+                  <h2 className="text-lg font-bold text-foreground">{t.startCalling}</h2>
                   <div className="flex items-center gap-3 mt-1 flex-wrap">
                     <span className="text-sm text-muted-foreground">
-                      <span className="text-foreground font-semibold">{leadsReady}</span> leads ready
+                      <span className="text-foreground font-semibold">{leadsReady}</span> {t.leadsReady}
                     </span>
                     {overdueCallbacks.length > 0 && (
                       <Badge variant="destructive" className="text-xs gap-1">
                         <AlertTriangle className="w-3 h-3" />
-                        {overdueCallbacks.length} overdue
+                        {overdueCallbacks.length} {t.overdue}
                       </Badge>
                     )}
                     {dueCallbacks.length > 0 && (
                       <Badge className="bg-warning/20 text-warning border-warning/30 text-xs gap-1">
                         <Clock className="w-3 h-3" />
-                        {dueCallbacks.length} due soon
+                        {dueCallbacks.length} {t.dueSoon}
                       </Badge>
                     )}
                   </div>
@@ -281,7 +283,7 @@ export default function Dashboard() {
                 onClick={() => navigate("/work?autostart=true")}
               >
                 <Phone className="w-5 h-5" />
-                Start Calling
+                {t.startCalling}
               </Button>
             </div>
           </CardContent>
@@ -298,12 +300,12 @@ export default function Dashboard() {
                       <AlertTriangle className="w-5 h-5 text-destructive" />
                     </div>
                     <div>
-                      <p className="text-sm font-semibold text-destructive">{overdueCallbacks.length} Overdue Callbacks</p>
-                      <p className="text-xs text-muted-foreground">These leads are waiting for your call</p>
+                      <p className="text-sm font-semibold text-destructive">{overdueCallbacks.length} {t.overdueCallbacks}</p>
+                      <p className="text-xs text-muted-foreground">{t.leadsWaiting}</p>
                     </div>
                   </div>
                   <Button size="sm" variant="outline" className="border-destructive/30 text-destructive hover:bg-destructive/10" onClick={() => navigate("/work")}>
-                    View
+                    {t.view}
                   </Button>
                 </CardContent>
               </Card>
@@ -316,12 +318,12 @@ export default function Dashboard() {
                       <Clock className="w-5 h-5 text-warning" />
                     </div>
                     <div>
-                      <p className="text-sm font-semibold text-warning">{dueCallbacks.length} Callbacks Due Soon</p>
-                      <p className="text-xs text-muted-foreground">Scheduled within the next 2 hours</p>
+                      <p className="text-sm font-semibold text-warning">{dueCallbacks.length} {t.callbacksDueSoon}</p>
+                      <p className="text-xs text-muted-foreground">{t.scheduledWithin2h}</p>
                     </div>
                   </div>
                   <Button size="sm" variant="outline" className="border-warning/30 text-warning hover:bg-warning/10" onClick={() => navigate("/work")}>
-                    View
+                    {t.view}
                   </Button>
                 </CardContent>
               </Card>
@@ -335,7 +337,7 @@ export default function Dashboard() {
             <CardContent className="p-4">
               <div className="flex items-center gap-2 mb-1">
                 <Phone className="w-4 h-4 text-primary" />
-                <span className="text-xs text-muted-foreground font-medium">Calls Today</span>
+                <span className="text-xs text-muted-foreground font-medium">{t.callsMetric}</span>
               </div>
               <div className="flex items-baseline gap-2">
                 <span className="text-2xl font-bold text-foreground">{callStats.totalCalls}</span>
@@ -353,7 +355,7 @@ export default function Dashboard() {
             <CardContent className="p-4">
               <div className="flex items-center gap-2 mb-1">
                 <Target className="w-4 h-4 text-blue-400" />
-                <span className="text-xs text-muted-foreground font-medium">Leads Remaining</span>
+                <span className="text-xs text-muted-foreground font-medium">{t.leadsRemaining}</span>
               </div>
               <span className="text-2xl font-bold text-foreground">{leads.length}</span>
             </CardContent>
@@ -363,7 +365,7 @@ export default function Dashboard() {
             <CardContent className="p-4">
               <div className="flex items-center gap-2 mb-1">
                 <Calendar className="w-4 h-4 text-warning" />
-                <span className="text-xs text-muted-foreground font-medium">Callbacks Due</span>
+                <span className="text-xs text-muted-foreground font-medium">{t.callbacksDue}</span>
               </div>
               <span className="text-2xl font-bold text-foreground">{overdueCallbacks.length + dueCallbacks.length}</span>
             </CardContent>
@@ -373,7 +375,7 @@ export default function Dashboard() {
             <CardContent className="p-4">
               <div className="flex items-center gap-2 mb-1">
                 <Zap className="w-4 h-4 text-success" />
-                <span className="text-xs text-muted-foreground font-medium">Connection Rate</span>
+                <span className="text-xs text-muted-foreground font-medium">{t.connectionRate}</span>
               </div>
               <span className="text-2xl font-bold text-foreground">{callStats.connectionRate}%</span>
             </CardContent>
@@ -386,10 +388,10 @@ export default function Dashboard() {
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-2">
                 <PhoneCall className="w-4 h-4 text-primary" />
-                <h3 className="text-sm font-semibold text-foreground">Next Leads to Call</h3>
+                <h3 className="text-sm font-semibold text-foreground">{t.nextLeadsToCall}</h3>
               </div>
               <Button variant="link" className="text-primary gap-1 p-0 h-auto text-xs" onClick={() => navigate("/work")}>
-                View queue <ChevronRight className="w-3 h-3" />
+                {t.viewQueue} <ChevronRight className="w-3 h-3" />
               </Button>
             </div>
 
@@ -411,7 +413,7 @@ export default function Dashboard() {
                       <div className="min-w-0">
                         <p className="text-sm font-medium text-foreground truncate">{lead.name}</p>
                         <p className="text-xs text-muted-foreground truncate">
-                          {lead.phone || "No phone"}
+                          {lead.phone || t.noPhone}
                           {lead.callbackAt && (
                             <span className="ml-2">
                               · Callback {new Date(lead.callbackAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
@@ -444,8 +446,8 @@ export default function Dashboard() {
             ) : (
               <div className="text-center py-6">
                 <PhoneOff className="w-8 h-8 mx-auto text-muted-foreground/40 mb-2" />
-                <p className="text-sm text-muted-foreground">No leads in queue</p>
-                <p className="text-xs text-muted-foreground/70 mt-1">Upload leads to get started</p>
+              <p className="text-sm text-muted-foreground">{t.noLeadsInQueue}</p>
+                <p className="text-xs text-muted-foreground/70 mt-1">{t.uploadLeadsToStart}</p>
               </div>
             )}
           </CardContent>
@@ -454,9 +456,9 @@ export default function Dashboard() {
         {/* Interactive Pipeline */}
         <div>
           <div className="flex items-center justify-between mb-3">
-            <h2 className="text-sm font-semibold text-foreground">Pipeline</h2>
+            <h2 className="text-sm font-semibold text-foreground">{t.pipeline}</h2>
             <Button variant="link" className="text-primary gap-1 p-0 h-auto text-xs" onClick={() => navigate("/leads")}>
-              View all <ChevronRight className="w-3 h-3" />
+              {t.viewAll} <ChevronRight className="w-3 h-3" />
             </Button>
           </div>
 
@@ -484,7 +486,7 @@ export default function Dashboard() {
                             }`}
                           >
                             <p className="text-sm font-medium text-foreground truncate">{getLeadDisplayName(lead.data)}</p>
-                            <p className="text-xs text-muted-foreground truncate">{getLeadPhone(lead.data) || "No phone"}</p>
+                            <p className="text-xs text-muted-foreground truncate">{getLeadPhone(lead.data) || t.noPhone}</p>
                             {/* Action buttons */}
                             <div className="flex items-center gap-1 mt-2 opacity-70 group-hover:opacity-100 transition-opacity">
                               <Button
@@ -493,7 +495,7 @@ export default function Dashboard() {
                                 className="h-7 px-2 text-xs gap-1"
                                 onClick={() => navigate(`/leads?id=${lead.id}`)}
                               >
-                                <Phone className="w-3 h-3" /> Call
+                                <Phone className="w-3 h-3" /> {t.call}
                               </Button>
                               <Button
                                 size="sm"
@@ -501,7 +503,7 @@ export default function Dashboard() {
                                 className="h-7 px-2 text-xs gap-1"
                                 onClick={() => navigate(`/leads?id=${lead.id}`)}
                               >
-                                <Calendar className="w-3 h-3" /> Schedule
+                                <Calendar className="w-3 h-3" /> {t.schedule}
                               </Button>
                               <Button
                                 size="sm"
@@ -509,7 +511,7 @@ export default function Dashboard() {
                                 className="h-7 px-2 text-xs"
                                 onClick={() => navigate(`/leads?id=${lead.id}`)}
                               >
-                                Note
+                                {t.note}
                               </Button>
                             </div>
                           </div>
@@ -522,13 +524,13 @@ export default function Dashboard() {
                           className="w-full text-xs text-muted-foreground"
                           onClick={() => navigate(`/leads?status=${stage.status}`)}
                         >
-                          +{stage.leads.length - 3} more <ArrowRight className="w-3 h-3 ml-1" />
+                          +{stage.leads.length - 3} {t.more} <ArrowRight className="w-3 h-3 ml-1" />
                         </Button>
                       )}
                     </div>
                   ) : (
                     <div className="text-center py-4 text-muted-foreground/50">
-                      <p className="text-xs">No leads in this stage</p>
+                      <p className="text-xs">{t.noLeadsInStage}</p>
                     </div>
                   )}
                 </CardContent>
@@ -541,7 +543,7 @@ export default function Dashboard() {
         {callStats.hasData && (
           <Card className="border-border/50">
             <CardContent className="p-4">
-              <h3 className="text-xs font-semibold text-muted-foreground mb-3">TODAY'S CALL ACTIVITY</h3>
+              <h3 className="text-xs font-semibold text-muted-foreground mb-3">{t.todaysCallActivity}</h3>
               <div className="h-28">
                 <ResponsiveContainer width="100%" height="100%">
                   <AreaChart data={callStats.chartData} margin={{ top: 5, right: 10, left: -20, bottom: 0 }}>

@@ -2,8 +2,11 @@ import { CheckCircle2, Clock, Mail } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
+import { useTranslation } from "@/hooks/useTranslation";
 
 export default function RegistrationPending() {
+  const t = useTranslation();
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-background to-muted flex items-center justify-center p-4">
       <Card className="w-full max-w-lg text-center">
@@ -11,50 +14,36 @@ export default function RegistrationPending() {
           <div className="mx-auto w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center">
             <Clock className="h-8 w-8 text-primary" />
           </div>
-          <CardTitle className="text-2xl">Registration Received!</CardTitle>
-          <CardDescription className="text-base">
-            Thank you for registering your organization with FlowCall
-          </CardDescription>
+          <CardTitle className="text-2xl">{t.registrationReceived}</CardTitle>
+          <CardDescription className="text-base">{t.thankYouRegistering}</CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
           <div className="bg-muted/50 rounded-lg p-6 space-y-4">
             <div className="flex items-start gap-3 text-left">
               <CheckCircle2 className="h-5 w-5 text-green-500 mt-0.5 shrink-0" />
               <div>
-                <p className="font-medium">Application Submitted</p>
-                <p className="text-sm text-muted-foreground">
-                  We have received your registration request
-                </p>
+                <p className="font-medium">{t.applicationSubmitted}</p>
+                <p className="text-sm text-muted-foreground">{t.weReceivedRequest}</p>
               </div>
             </div>
-            
             <div className="flex items-start gap-3 text-left">
               <Clock className="h-5 w-5 text-amber-500 mt-0.5 shrink-0" />
               <div>
-                <p className="font-medium">Pending Review</p>
-                <p className="text-sm text-muted-foreground">
-                  Our team is reviewing your application and setting up your subdomain
-                </p>
+                <p className="font-medium">{t.pendingReview}</p>
+                <p className="text-sm text-muted-foreground">{t.teamReviewingApp}</p>
               </div>
             </div>
-            
             <div className="flex items-start gap-3 text-left">
               <Mail className="h-5 w-5 text-muted-foreground mt-0.5 shrink-0" />
               <div>
-                <p className="font-medium">Email Notification</p>
-                <p className="text-sm text-muted-foreground">
-                  You will receive an email when your account and subdomain are approved
-                </p>
+                <p className="font-medium">{t.emailNotification}</p>
+                <p className="text-sm text-muted-foreground">{t.emailWhenApproved}</p>
               </div>
             </div>
           </div>
-
-          <p className="text-sm text-muted-foreground">
-            This usually takes 1-2 business days. If you have any questions, please contact our support team.
-          </p>
-
+          <p className="text-sm text-muted-foreground">{t.usuallyTakes}</p>
           <Button variant="outline" asChild className="w-full">
-            <Link to="/">Return to Home</Link>
+            <Link to="/">{t.returnToHome}</Link>
           </Button>
         </CardContent>
       </Card>

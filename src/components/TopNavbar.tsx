@@ -26,6 +26,7 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
 import { useDueCallbacks } from "@/hooks/useDueCallbacks";
+import { useTranslation } from "@/hooks/useTranslation";
 import { TrialBadge } from "@/components/TrialBadge";
 import { useTour } from "@/hooks/useTour";
 import { useConnectedDevices } from "@/hooks/useConnectedDevices";
@@ -57,6 +58,7 @@ export function TopNavbar() {
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [mobileOpen, setMobileOpen] = useState(false);
   const { dueCount } = useDueCallbacks();
+  const tt = useTranslation();
   const { hasOnlinePhone, onlineDevices, loading: devicesLoading } = useConnectedDevices();
 
   const isOnDashboard = location.pathname === `${basePath}/dashboard`;
@@ -219,7 +221,7 @@ export function TopNavbar() {
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search..."
+              placeholder={tt.searchPlaceholder}
               className="w-40 md:w-48 h-7 px-2 text-sm bg-sidebar-accent border border-sidebar-border rounded text-sidebar-foreground placeholder:text-sidebar-muted focus:outline-none focus:ring-2 focus:ring-sidebar-primary"
             />
             {searchQuery.length >= 2 && (
@@ -229,9 +231,7 @@ export function TopNavbar() {
                     <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
                   </div>
                 ) : searchResults.length === 0 ? (
-                  <p className="px-3 py-3 text-sm text-muted-foreground">
-                    No contacts found
-                  </p>
+                  <p className="px-3 py-3 text-sm text-muted-foreground">{tt.noContactsFound}</p>
                 ) : (
                   <div className="max-h-96 overflow-y-auto">
                     {searchResults.map((result) => {
@@ -335,8 +335,8 @@ export function TopNavbar() {
               </TooltipTrigger>
               <TooltipContent side="bottom" className="text-xs">
                 {hasOnlinePhone
-                  ? `Phone connected · ${onlineDevices[0]?.device_name ?? "companion"}`
-                  : "Phone not connected — open the companion app"}
+                  ? `${tt.phoneConnected} · ${onlineDevices[0]?.device_name ?? "companion"}`
+                  : tt.phoneNotConnected}
               </TooltipContent>
             </Tooltip>
           )}
@@ -346,10 +346,20 @@ export function TopNavbar() {
             <TrialBadge />
           </div>
           
+          {/* Language Switcher */}
+          <Button
+            variant="ghost"
+            size="sm"
+            className="text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent h-9 px-2 text-xs font-medium hidden md:flex"
+            onClick={() => tt.setLang(tt.lang === "en" ? "hr" : "en")}
+          >
+            {tt.lang === "en" ? "HR" : "EN"}
+          </Button>
+
           {/* Help */}
           <Button variant="ghost" size="sm" className="text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent gap-1 h-9 hidden md:flex">
             <HelpCircle className="w-5 h-5" />
-            Help
+            {tt.help}
           </Button>
 
           {/* User Menu */}
@@ -371,30 +381,27 @@ export function TopNavbar() {
             <DropdownMenuContent align="end" className="w-48 bg-popover text-popover-foreground">
               <DropdownMenuItem asChild>
                 <Link to={t("/preferences")} className="w-full cursor-pointer">
-                  Preferences
+                  {tt.preferences}
                 </Link>
               </DropdownMenuItem>
               {isOwnerOrManager && (
                 <>
                   <DropdownMenuItem asChild>
                     <Link to={t("/manage/account")} className="w-full cursor-pointer">
-                      Account Settings
+                      {tt.accountSettings}
                     </Link>
                   </DropdownMenuItem>
                   <DropdownMenuItem 
                     className="w-full cursor-pointer"
-                    onClick={() => {
-                      navigate("/");
-                      setTimeout(() => startTour(), 100);
-                    }}
+                    onClick={() => { navigate("/"); setTimeout(() => startTour(), 100); }}
                   >
-                    Getting Started
+                    {tt.gettingStarted}
                   </DropdownMenuItem>
                 </>
               )}
               <DropdownMenuSeparator />
               <DropdownMenuItem onClick={signOut} className="text-destructive cursor-pointer">
-                Sign out
+                {tt.signOut}
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
@@ -430,7 +437,7 @@ export function TopNavbar() {
               }}
             >
               <LayoutDashboard className="w-4 h-4" />
-              Open Control Panel
+              {tt.openControlPanel}
               {dueCount > 0 && (
                 <Badge variant="destructive" className="ml-auto">{dueCount}</Badge>
               )}
