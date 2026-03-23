@@ -530,7 +530,7 @@ export default function Dashboard() {
                     </div>
                   ) : (
                     <div className="text-center py-4 text-muted-foreground/50">
-                      <p className="text-xs">No leads in this stage</p>
+                      <p className="text-xs">{t.noLeadsInStage}</p>
                     </div>
                   )}
                 </CardContent>
