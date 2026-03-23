@@ -4,6 +4,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate, useParams } from "react-router-dom";
 import { AuthProvider } from "@/hooks/useAuth";
+import { LanguageProvider } from "@/hooks/useLanguage";
 import { BrandingProvider } from "@/hooks/useBranding";
 import { UploadProgressProvider, useUploadProgress } from "@/hooks/useUploadProgress";
 import { TourProvider } from "@/hooks/useTour";
