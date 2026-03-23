@@ -543,7 +543,7 @@ export default function Dashboard() {
         {callStats.hasData && (
           <Card className="border-border/50">
             <CardContent className="p-4">
-              <h3 className="text-xs font-semibold text-muted-foreground mb-3">TODAY'S CALL ACTIVITY</h3>
+              <h3 className="text-xs font-semibold text-muted-foreground mb-3">{t.todaysCallActivity}</h3>
               <div className="h-28">
                 <ResponsiveContainer width="100%" height="100%">
                   <AreaChart data={callStats.chartData} margin={{ top: 5, right: 10, left: -20, bottom: 0 }}>
