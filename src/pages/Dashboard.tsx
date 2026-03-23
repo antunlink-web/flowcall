@@ -260,7 +260,7 @@ export default function Dashboard() {
                   <h2 className="text-lg font-bold text-foreground">{t.startCalling}</h2>
                   <div className="flex items-center gap-3 mt-1 flex-wrap">
                     <span className="text-sm text-muted-foreground">
-                      <span className="text-foreground font-semibold">{leadsReady}</span> leads ready
+                      <span className="text-foreground font-semibold">{leadsReady}</span> {t.leadsReady}
                     </span>
                     {overdueCallbacks.length > 0 && (
                       <Badge variant="destructive" className="text-xs gap-1">
