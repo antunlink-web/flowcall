@@ -381,7 +381,7 @@ export function TopNavbar() {
             <DropdownMenuContent align="end" className="w-48 bg-popover text-popover-foreground">
               <DropdownMenuItem asChild>
                 <Link to={t("/preferences")} className="w-full cursor-pointer">
-                  Preferences
+                  {tt.preferences}
                 </Link>
               </DropdownMenuItem>
               {isOwnerOrManager && (
