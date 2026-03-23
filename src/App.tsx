@@ -201,6 +201,7 @@ const App = () => (
               </BrandingProvider>
             </ErrorBoundary>
           </AuthProvider>
+          </LanguageProvider>
         </ErrorBoundary>
       </TooltipProvider>
     </QueryClientProvider>
