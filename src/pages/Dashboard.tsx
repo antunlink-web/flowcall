@@ -365,7 +365,7 @@ export default function Dashboard() {
             <CardContent className="p-4">
               <div className="flex items-center gap-2 mb-1">
                 <Calendar className="w-4 h-4 text-warning" />
-                <span className="text-xs text-muted-foreground font-medium">Callbacks Due</span>
+                <span className="text-xs text-muted-foreground font-medium">{t.callbacksDue}</span>
               </div>
               <span className="text-2xl font-bold text-foreground">{overdueCallbacks.length + dueCallbacks.length}</span>
             </CardContent>
