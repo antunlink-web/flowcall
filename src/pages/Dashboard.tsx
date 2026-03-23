@@ -413,7 +413,7 @@ export default function Dashboard() {
                       <div className="min-w-0">
                         <p className="text-sm font-medium text-foreground truncate">{lead.name}</p>
                         <p className="text-xs text-muted-foreground truncate">
-                          {lead.phone || "No phone"}
+                          {lead.phone || t.noPhone}
                           {lead.callbackAt && (
                             <span className="ml-2">
                               · Callback {new Date(lead.callbackAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
