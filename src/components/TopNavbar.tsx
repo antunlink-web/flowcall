@@ -346,10 +346,20 @@ export function TopNavbar() {
             <TrialBadge />
           </div>
           
+          {/* Language Switcher */}
+          <Button
+            variant="ghost"
+            size="sm"
+            className="text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent h-9 px-2 text-xs font-medium hidden md:flex"
+            onClick={() => tt.setLang(tt.lang === "en" ? "hr" : "en")}
+          >
+            {tt.lang === "en" ? "HR" : "EN"}
+          </Button>
+
           {/* Help */}
           <Button variant="ghost" size="sm" className="text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent gap-1 h-9 hidden md:flex">
             <HelpCircle className="w-5 h-5" />
-            Help
+            {tt.help}
           </Button>
 
           {/* User Menu */}
