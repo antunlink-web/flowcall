@@ -375,7 +375,7 @@ export default function Dashboard() {
             <CardContent className="p-4">
               <div className="flex items-center gap-2 mb-1">
                 <Zap className="w-4 h-4 text-success" />
-                <span className="text-xs text-muted-foreground font-medium">Connection Rate</span>
+                <span className="text-xs text-muted-foreground font-medium">{t.connectionRate}</span>
               </div>
               <span className="text-2xl font-bold text-foreground">{callStats.connectionRate}%</span>
             </CardContent>
