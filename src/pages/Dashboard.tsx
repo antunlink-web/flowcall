@@ -239,7 +239,7 @@ export default function Dashboard() {
               {greeting}, {firstName}
             </h1>
             <p className="text-sm text-muted-foreground mt-0.5">
-              You made <span className="text-foreground font-semibold">{callStats.totalCalls}</span> / {dailyGoal} calls today
+              {callStats.totalCalls} / {dailyGoal} {t.callsToday}
             </p>
           </div>
           <div className="flex items-center gap-3 min-w-[200px]">
