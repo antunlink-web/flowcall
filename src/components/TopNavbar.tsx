@@ -58,6 +58,7 @@ export function TopNavbar() {
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [mobileOpen, setMobileOpen] = useState(false);
   const { dueCount } = useDueCallbacks();
+  const tt = useTranslation();
   const { hasOnlinePhone, onlineDevices, loading: devicesLoading } = useConnectedDevices();
 
   const isOnDashboard = location.pathname === `${basePath}/dashboard`;
