@@ -56,10 +56,11 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const { user } = useAuth();
   const navigate = useNavigate();
+  const t = useTranslation();
 
   const firstName = user?.user_metadata?.full_name?.split(" ")[0] || "there";
   const currentHour = new Date().getHours();
-  const greeting = currentHour < 12 ? "Good morning" : currentHour < 18 ? "Good afternoon" : "Good evening";
+  const greeting = currentHour < 12 ? t.goodMorning : currentHour < 18 ? t.goodAfternoon : t.goodEvening;
 
   const fetchData = useCallback(async () => {
     if (!user) return;
