@@ -318,8 +318,8 @@ export default function Dashboard() {
                       <Clock className="w-5 h-5 text-warning" />
                     </div>
                     <div>
-                      <p className="text-sm font-semibold text-warning">{dueCallbacks.length} Callbacks Due Soon</p>
-                      <p className="text-xs text-muted-foreground">Scheduled within the next 2 hours</p>
+                      <p className="text-sm font-semibold text-warning">{dueCallbacks.length} {t.callbacksDueSoon}</p>
+                      <p className="text-xs text-muted-foreground">{t.scheduledWithin2h}</p>
                     </div>
                   </div>
                   <Button size="sm" variant="outline" className="border-warning/30 text-warning hover:bg-warning/10" onClick={() => navigate("/work")}>
