@@ -305,7 +305,7 @@ export default function Dashboard() {
                     </div>
                   </div>
                   <Button size="sm" variant="outline" className="border-destructive/30 text-destructive hover:bg-destructive/10" onClick={() => navigate("/work")}>
-                    View
+                    {t.view}
                   </Button>
                 </CardContent>
               </Card>
