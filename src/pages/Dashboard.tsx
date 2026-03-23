@@ -257,7 +257,7 @@ export default function Dashboard() {
                   <PhoneCall className="w-7 h-7 text-primary" />
                 </div>
                 <div>
-                  <h2 className="text-lg font-bold text-foreground">Start Calling</h2>
+                  <h2 className="text-lg font-bold text-foreground">{t.startCalling}</h2>
                   <div className="flex items-center gap-3 mt-1 flex-wrap">
                     <span className="text-sm text-muted-foreground">
                       <span className="text-foreground font-semibold">{leadsReady}</span> leads ready
