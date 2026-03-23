@@ -401,7 +401,7 @@ export function TopNavbar() {
               )}
               <DropdownMenuSeparator />
               <DropdownMenuItem onClick={signOut} className="text-destructive cursor-pointer">
-                Sign out
+                {tt.signOut}
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
