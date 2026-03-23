@@ -231,9 +231,7 @@ export function TopNavbar() {
                     <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
                   </div>
                 ) : searchResults.length === 0 ? (
-                  <p className="px-3 py-3 text-sm text-muted-foreground">
-                    No contacts found
-                  </p>
+                  <p className="px-3 py-3 text-sm text-muted-foreground">{tt.noContactsFound}</p>
                 ) : (
                   <div className="max-h-96 overflow-y-auto">
                     {searchResults.map((result) => {
