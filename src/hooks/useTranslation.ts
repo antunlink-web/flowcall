@@ -1,7 +1,10 @@
-import { useLanguage } from "./useLanguage";
-import { appTranslations, AppTranslations } from "@/lib/app-translations";
+import { useLanguage, AppLang } from "./useLanguage";
+import { appTranslations } from "@/lib/app-translations";
 
-export function useTranslation(): AppTranslations & { lang: "en" | "hr"; setLang: (l: "en" | "hr") => void } {
+type TranslationKeys = keyof typeof appTranslations.en;
+type TranslationValues = { [K in TranslationKeys]: string };
+
+export function useTranslation(): TranslationValues & { lang: AppLang; setLang: (l: AppLang) => void } {
   const { lang, setLang } = useLanguage();
-  return { ...appTranslations[lang], lang, setLang };
+  return { ...appTranslations[lang], lang, setLang } as TranslationValues & { lang: AppLang; setLang: (l: AppLang) => void };
 }
