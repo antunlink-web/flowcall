@@ -337,7 +337,7 @@ export default function Dashboard() {
             <CardContent className="p-4">
               <div className="flex items-center gap-2 mb-1">
                 <Phone className="w-4 h-4 text-primary" />
-                <span className="text-xs text-muted-foreground font-medium">Calls Today</span>
+                <span className="text-xs text-muted-foreground font-medium">{t.callsMetric}</span>
               </div>
               <div className="flex items-baseline gap-2">
                 <span className="text-2xl font-bold text-foreground">{callStats.totalCalls}</span>
