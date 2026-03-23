@@ -47,6 +47,7 @@ const ProductOwnerDashboard = lazy(() => import("./pages/ProductOwnerDashboard")
 // LandingPage is lazy-loaded inside LandingOrRedirect
 
 const CompanionApp = lazy(() => import("./pages/CompanionApp"));
+const InsuranceLandingPage = lazy(() => import("./pages/InsuranceLandingPage"));
 
 function PageLoader() {
   return (
