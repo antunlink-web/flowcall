@@ -511,7 +511,7 @@ export default function Dashboard() {
                                 className="h-7 px-2 text-xs"
                                 onClick={() => navigate(`/leads?id=${lead.id}`)}
                               >
-                                Note
+                                {t.note}
                               </Button>
                             </div>
                           </div>
