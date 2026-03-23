@@ -113,7 +113,7 @@ export default function InsuranceLandingPage() {
           <div className="grid sm:grid-cols-2 gap-4 max-w-2xl mx-auto mb-10">
             {[
               "Klijenti u Excelu ili bilježnici",
-              "Podsjetnici u kalendaru ili „u glavi"",
+              "Podsjetnici u kalendaru ili \u201Eu glavi\u201C",
               "Pozivi i bilješke nisu povezani",
               "Traženje brojeva oduzima vrijeme",
             ].map((problem) => (

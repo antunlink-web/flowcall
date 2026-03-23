@@ -158,6 +158,7 @@ function AppContent() {
       <Routes>
         {/* Public / auth routes */}
         <Route path="/" element={<LandingOrRedirect />} />
+        <Route path="/osiguranja" element={<InsuranceLandingPage />} />
         <Route path="/auth" element={<Auth />} />
         <Route path="/auth/callback" element={<AuthCallback />} />
         <Route path="/reset-password" element={<ResetPassword />} />
