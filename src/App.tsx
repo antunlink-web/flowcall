@@ -183,6 +183,7 @@ const App = () => (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
         <ErrorBoundary>
+          <LanguageProvider>
           <AuthProvider>
             <ErrorBoundary>
               <BrandingProvider>
