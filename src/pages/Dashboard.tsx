@@ -271,7 +271,7 @@ export default function Dashboard() {
                     {dueCallbacks.length > 0 && (
                       <Badge className="bg-warning/20 text-warning border-warning/30 text-xs gap-1">
                         <Clock className="w-3 h-3" />
-                        {dueCallbacks.length} due soon
+                        {dueCallbacks.length} {t.dueSoon}
                       </Badge>
                     )}
                   </div>
