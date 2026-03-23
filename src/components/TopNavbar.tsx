@@ -335,8 +335,8 @@ export function TopNavbar() {
               </TooltipTrigger>
               <TooltipContent side="bottom" className="text-xs">
                 {hasOnlinePhone
-                  ? `Phone connected · ${onlineDevices[0]?.device_name ?? "companion"}`
-                  : "Phone not connected — open the companion app"}
+                  ? `${tt.phoneConnected} · ${onlineDevices[0]?.device_name ?? "companion"}`
+                  : tt.phoneNotConnected}
               </TooltipContent>
             </Tooltip>
           )}
