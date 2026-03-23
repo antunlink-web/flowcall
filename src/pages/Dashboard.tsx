@@ -323,7 +323,7 @@ export default function Dashboard() {
                     </div>
                   </div>
                   <Button size="sm" variant="outline" className="border-warning/30 text-warning hover:bg-warning/10" onClick={() => navigate("/work")}>
-                    View
+                    {t.view}
                   </Button>
                 </CardContent>
               </Card>
