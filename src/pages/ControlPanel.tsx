@@ -485,7 +485,7 @@ export default function ControlPanel() {
                 <div className="animate-spin h-8 w-8 border-2 border-primary border-t-transparent rounded-full" />
               </div>
             ) : lockedLeads.length === 0 ? (
-              <Card><CardContent className="p-8 text-center text-muted-foreground">You have no locked leads. Find a lead and start calling!</CardContent></Card>
+              <Card><CardContent className="p-8 text-center text-muted-foreground">{t.noLockedLeadsLong}</CardContent></Card>
             ) : (
               <div className="grid gap-3">
                 {lockedLeads.map((lead) => (
