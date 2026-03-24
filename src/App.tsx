@@ -199,6 +199,7 @@ const App = () => (
           <AuthProvider>
             <ErrorBoundary>
               <BrandingProvider>
+                <FlowModeProvider>
                 <UploadProgressProvider>
                   <OfflineBanner />
                   <Toaster />
