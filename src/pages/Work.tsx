@@ -303,7 +303,7 @@ export default function Work() {
             </Button>
             <div className="flex items-center gap-4">
               <span className="text-sm text-muted-foreground">
-                {list?.name}: {currentIndex + 1} of {filteredLeads.length}
+                {list?.name}: {currentIndex + 1} {t.of} {filteredLeads.length}
               </span>
               <div className="flex gap-2">
                 <Button 
