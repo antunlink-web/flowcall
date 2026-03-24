@@ -30,6 +30,7 @@ import { useTranslation } from "@/hooks/useTranslation";
 import { TrialBadge } from "@/components/TrialBadge";
 import { useTour } from "@/hooks/useTour";
 import { useConnectedDevices } from "@/hooks/useConnectedDevices";
+import { ModeSwitcher } from "@/components/ModeSwitcher";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Smartphone } from "lucide-react";
 
