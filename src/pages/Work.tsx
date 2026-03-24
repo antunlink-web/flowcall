@@ -339,7 +339,7 @@ export default function Work() {
   return (
     <DashboardLayout>
       {/* Sub-navigation Tabs */}
-      <div className="bg-white border-b">
+      <div className="bg-card border-b">
         <div className="max-w-7xl mx-auto px-4">
           <div className="flex gap-6">
             {tabs.map((tab) => (
