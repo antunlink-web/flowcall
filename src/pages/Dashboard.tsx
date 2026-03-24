@@ -132,23 +132,30 @@ export default function Dashboard() {
 
   const getLeadDisplayName = (lead: Lead): string => {
     const data = getLeadData(lead);
-    const listFields = getListFields(lead);
 
-    if (listFields.length > 0) {
-      const primaryKey = listFields[0].name;
-      const primaryValue = data[primaryKey];
-      if (typeof primaryValue === "string" && primaryValue.trim()) return primaryValue.trim();
-      if (primaryValue !== null && primaryValue !== undefined && String(primaryValue).trim()) return String(primaryValue).trim();
-    }
-
-    const fallbackKeys = ["full_name", "name", "first_name", "ime", "company_name", "company", "tvrtka", "firma", "phone", "telefon", "mobile", "email", "e-mail"];
-    for (const key of fallbackKeys) {
+    const nameKeys = ["full_name", "name", "first_name", "ime", "contact", "kontakt"];
+    for (const key of nameKeys) {
       const value = data[key];
       if (typeof value === "string" && value.trim()) return value.trim();
     }
 
-    for (const [, value] of Object.entries(data)) {
-      if (typeof value === "string" && value.trim()) return value.trim();
+    const company = getLeadCompany(lead);
+    if (company) return company;
+
+    const phone = getLeadPhone(lead);
+    if (phone) return phone;
+
+    const email = getLeadEmail(lead);
+    if (email) return email;
+
+    // Last fallback: list primary field if it contains something meaningful
+    const listFields = getListFields(lead);
+    if (listFields.length > 0) {
+      const primaryKey = listFields[0].name;
+      const primaryValue = data[primaryKey];
+      if (primaryValue !== null && primaryValue !== undefined && String(primaryValue).trim()) {
+        return String(primaryValue).trim();
+      }
     }
 
     return "Unknown contact";
