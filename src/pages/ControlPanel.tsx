@@ -513,7 +513,7 @@ export default function ControlPanel() {
               {dueCallbacks.length > 0 && <Badge variant="destructive">{dueCallbacks.length}</Badge>}
             </div>
             {dueCallbacks.length === 0 ? (
-              <Card><CardContent className="p-8 text-center text-muted-foreground">All clear! No callbacks waiting for you.</CardContent></Card>
+              <Card><CardContent className="p-8 text-center text-muted-foreground">{t.allClearCallbacks}</CardContent></Card>
             ) : (
               <div className="space-y-4">
                 <div className="grid gap-3">
