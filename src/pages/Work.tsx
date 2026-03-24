@@ -273,7 +273,7 @@ export default function Work() {
           <div className="max-w-7xl mx-auto px-4 py-6 space-y-6">
             <Button variant="ghost" onClick={handleBackToQueues} className="mb-2 -ml-2 text-muted-foreground">
               <ArrowLeft className="w-4 h-4 mr-2" />
-              Back to Queues
+              {t.backToQueues}
             </Button>
             <Card className="text-center py-16">
               <CardContent>
