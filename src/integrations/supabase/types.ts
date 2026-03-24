@@ -600,6 +600,87 @@ export type Database = {
           },
         ]
       }
+      next_actions: {
+        Row: {
+          action_type: string
+          assigned_user_id: string | null
+          canceled_at: string | null
+          completed_at: string | null
+          created_at: string
+          created_by: string | null
+          description: string | null
+          due_at: string | null
+          id: string
+          lead_id: string
+          outcome: string | null
+          priority: string
+          scheduled_for: string | null
+          snoozed_until: string | null
+          source: string
+          status: string
+          tenant_id: string
+          title: string | null
+          updated_at: string
+        }
+        Insert: {
+          action_type: string
+          assigned_user_id?: string | null
+          canceled_at?: string | null
+          completed_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          due_at?: string | null
+          id?: string
+          lead_id: string
+          outcome?: string | null
+          priority?: string
+          scheduled_for?: string | null
+          snoozed_until?: string | null
+          source?: string
+          status?: string
+          tenant_id: string
+          title?: string | null
+          updated_at?: string
+        }
+        Update: {
+          action_type?: string
+          assigned_user_id?: string | null
+          canceled_at?: string | null
+          completed_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          due_at?: string | null
+          id?: string
+          lead_id?: string
+          outcome?: string | null
+          priority?: string
+          scheduled_for?: string | null
+          snoozed_until?: string | null
+          source?: string
+          status?: string
+          tenant_id?: string
+          title?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "next_actions_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "next_actions_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           avatar_url: string | null
