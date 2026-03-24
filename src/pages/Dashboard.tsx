@@ -545,7 +545,7 @@ export default function Dashboard() {
                             navigate(tPath(`/leads?id=${lead.id}`));
                           }}
                         >
-                          Details
+                          {t.details}
                         </Button>
                         <Button
                           size="sm"
