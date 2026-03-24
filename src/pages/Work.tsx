@@ -299,7 +299,7 @@ export default function Work() {
           <div className="flex items-center justify-between mb-2">
             <Button variant="ghost" onClick={handleBackToQueues} className="-ml-2 text-muted-foreground">
               <ArrowLeft className="w-4 h-4 mr-2" />
-              Back to Queues
+              {t.backToQueues}
             </Button>
             <div className="flex items-center gap-4">
               <span className="text-sm text-muted-foreground">
