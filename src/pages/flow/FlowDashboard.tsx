@@ -137,6 +137,7 @@ export default function FlowDashboard() {
           items={overdue}
           isOverdue
           onCall={() => navigate("session")}
+          onRowClick={(leadId) => navigate(`lead/${leadId}`)}
         />
       )}
 
