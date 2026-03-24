@@ -10,7 +10,7 @@ export const translations = {
 
     // Hero
     heroTitle1: "Stop Overpaying for ",
-    heroTitle2: "Cold Calling Software",
+     heroTitle2: "Calling Software",
     heroSub: "Make more calls using your own phone. No VoIP, no complex setup, no unnecessary features.",
     seeHowItWorks: "See How It Works",
     noCreditCard: "No credit card required",
@@ -134,7 +134,7 @@ export const translations = {
 
     // Hero
     heroTitle1: "Prestanite preplaćivati ",
-    heroTitle2: "softver za hladne pozive",
+     heroTitle2: "softver za pozive",
     heroSub: "Obavite više poziva koristeći vlastiti telefon. Bez VoIP-a, bez složenog postavljanja, bez nepotrebnih funkcija.",
     seeHowItWorks: "Pogledajte kako funkcionira",
     noCreditCard: "Nije potrebna kreditna kartica",
