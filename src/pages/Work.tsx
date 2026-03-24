@@ -312,7 +312,7 @@ export default function Work() {
                   onClick={handlePrevious}
                   disabled={currentIndex === 0}
                 >
-                  Previous
+                  {t.previous}
                 </Button>
                 <Button 
                   variant="outline" 
