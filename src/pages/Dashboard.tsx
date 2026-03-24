@@ -606,7 +606,7 @@ export default function Dashboard() {
                                 size="sm"
                                 variant="ghost"
                                 className="h-7 px-2 text-xs"
-                                onClick={() => navigate(`/leads?id=${lead.id}`)}
+                                onClick={() => navigate(tPath(`/leads?id=${lead.id}`))}
                               >
                                 {t.note}
                               </Button>
