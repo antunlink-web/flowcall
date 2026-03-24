@@ -511,7 +511,7 @@ export default function Work() {
                         </p>
                         <p className="text-sm text-muted-foreground capitalize">{lead.status}</p>
                       </div>
-                      <Badge variant="secondary">{lead.call_attempts} calls</Badge>
+                      <Badge variant="secondary">{lead.call_attempts} {t.calls}</Badge>
                     </CardContent>
                   </Card>
                 ))}
