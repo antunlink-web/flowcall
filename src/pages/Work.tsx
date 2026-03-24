@@ -280,11 +280,11 @@ export default function Work() {
                 <div className="w-16 h-16 mx-auto rounded-full bg-green-100 flex items-center justify-center mb-4">
                   <Phone className="w-8 h-8 text-green-600" />
                 </div>
-                <h3 className="text-xl font-semibold mb-2">Queue Complete!</h3>
+                <h3 className="text-xl font-semibold mb-2">{t.queueComplete}</h3>
                 <p className="text-muted-foreground mb-4">
-                  No more leads to call in this queue.
+                  {t.noMoreLeadsInQueue}
                 </p>
-                <Button onClick={handleBackToQueues}>Back to Queues</Button>
+                <Button onClick={handleBackToQueues}>{t.backToQueues}</Button>
               </CardContent>
             </Card>
           </div>
