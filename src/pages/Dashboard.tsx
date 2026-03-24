@@ -582,8 +582,8 @@ export default function Dashboard() {
                               isOverdue ? "bg-destructive/10 border border-destructive/20" : "bg-muted/40 hover:bg-muted/60"
                             }`}
                           >
-                            <p className="text-sm font-medium text-foreground truncate">{getLeadDisplayName(lead.data)}</p>
-                            <p className="text-xs text-muted-foreground truncate">{getLeadPhone(lead.data) || t.noPhone}</p>
+                            <p className="text-sm font-medium text-foreground truncate">{getLeadDisplayName(lead)}</p>
+                            <p className="text-xs text-muted-foreground truncate">{getLeadPhone(lead) || t.noPhone}</p>
                             {/* Action buttons */}
                             <div className="flex items-center gap-1 mt-2 opacity-70 group-hover:opacity-100 transition-opacity">
                               <Button
