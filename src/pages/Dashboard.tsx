@@ -619,7 +619,7 @@ export default function Dashboard() {
                           variant="ghost"
                           size="sm"
                           className="w-full text-xs text-muted-foreground"
-                          onClick={() => navigate(`/leads?status=${stage.status}`)}
+                          onClick={() => navigate(tPath(`/leads?status=${stage.status}`))}
                         >
                           +{stage.leads.length - 3} {t.more} <ArrowRight className="w-3 h-3 ml-1" />
                         </Button>
