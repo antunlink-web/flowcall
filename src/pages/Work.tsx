@@ -497,7 +497,7 @@ export default function Work() {
             {claimedLeads.length === 0 ? (
               <Card>
                 <CardContent className="py-12 text-center">
-                  <p className="text-muted-foreground">No claimed leads.</p>
+                  <p className="text-muted-foreground">{t.noClaimedLeads}</p>
                 </CardContent>
               </Card>
             ) : (
