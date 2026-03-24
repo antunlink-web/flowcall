@@ -907,6 +907,16 @@ export const appTranslations = {
     language: "Jezik",
     languageEnglish: "English",
     languageCroatian: "Hrvatski",
+
+    // ── Additional UI ──
+    team: "Tim",
+    tryCallingMode: "Isprobajte način pozivanja — brži način rada s leadovima",
+    claimedLeadsTitle: "Zauzeti leadovi",
+    allClearCallbacks: "Sve čisto! Nema poziva koji vas čekaju.",
+    startWorkingCallbacks: "Počni raditi povratne pozive",
+    workLogComingSoon: "Dnevnik rada uskoro dolazi.",
+    noScheduledCallbacksLong: "Nema zakazanih povratnih poziva. Radite na svom redu da zakazete neke.",
+    noLockedLeadsLong: "Nemate zaključanih leadova. Pronađite lead i počnite pozivati!",
   },
 } as const;
 
