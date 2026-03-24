@@ -1,10 +1,28 @@
 import { useState, useMemo, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Phone, X, RotateCcw, ThumbsUp, ThumbsDown, CheckCircle2 } from "lucide-react";
+import {
+  ArrowLeft, Phone, X, RotateCcw, ThumbsUp, ThumbsDown,
+  CheckCircle2, Clock, AlertCircle, Calendar,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
-import { useFlowLeads, useUpdateLeadStatus, deriveNextAction, type FlowLead } from "@/hooks/useFlowLeads";
+import { Badge } from "@/components/ui/badge";
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle,
+} from "@/components/ui/dialog";
+import { useFlowLeads, type FlowLead } from "@/hooks/useFlowLeads";
+import {
+  useNextActions,
+  useHandleCallOutcome,
+  useCreateNextAction,
+  getEffectiveTime,
+  actionTypeLabels,
+  laterToday,
+  tomorrowMorning,
+  type NextAction,
+} from "@/hooks/useNextActions";
+import { isToday, isPast } from "date-fns";
 
 const defaultScript = `**Opening**
 "Hi [Name], this is [Your Name] from [Company]. I'm calling because..."
@@ -22,45 +40,150 @@ const defaultScript = `**Opening**
 **Closing**
 "Based on what you've shared, I think we could help. Would you be open to a quick 15-minute demo?"`;
 
+type QueueItem = { lead: FlowLead; action: NextAction | null };
+
 export default function FlowSession() {
   const navigate = useNavigate();
   const { data: allLeads = [] } = useFlowLeads();
-  const updateStatus = useUpdateLeadStatus();
+  const { data: actions = [] } = useNextActions();
+  const handleOutcomeMut = useHandleCallOutcome();
+  const createAction = useCreateNextAction();
 
-  // Queue: leads that have actionable next actions
+  // Build queue: overdue call tasks → today call tasks → new leads without actions
   const queue = useMemo(() => {
-    return allLeads.filter((l) => {
-      if (l.status === "not_interested" || l.status === "won" || l.status === "lost") return false;
-      const action = deriveNextAction(l);
-      return action.type !== "none";
+    const leadMap = new Map<string, FlowLead>();
+    allLeads.forEach((l) => leadMap.set(l.id, l));
+
+    const leadsWithActions = new Set<string>();
+    const callActions = actions.filter((a) =>
+      ["call", "retry_call", "follow_up_call"].includes(a.action_type)
+    );
+
+    const overdueItems: QueueItem[] = [];
+    const todayItems: QueueItem[] = [];
+
+    callActions.forEach((a) => {
+      const lead = leadMap.get(a.lead_id);
+      if (!lead) return;
+      leadsWithActions.add(a.lead_id);
+      const t = getEffectiveTime(a);
+      if (isPast(t) && !isToday(t)) {
+        overdueItems.push({ lead, action: a });
+      } else if (isToday(t) || (!a.scheduled_for && !a.due_at && !a.snoozed_until)) {
+        todayItems.push({ lead, action: a });
+      }
     });
-  }, [allLeads]);
+
+    overdueItems.sort((a, b) => getEffectiveTime(a.action!).getTime() - getEffectiveTime(b.action!).getTime());
+    todayItems.sort((a, b) => getEffectiveTime(a.action!).getTime() - getEffectiveTime(b.action!).getTime());
+
+    // New leads without any active action
+    const newLeads = allLeads
+      .filter((l) => l.status === "new" && !leadsWithActions.has(l.id))
+      .map((l) => ({ lead: l, action: null as NextAction | null }));
+
+    return [...overdueItems, ...todayItems, ...newLeads];
+  }, [allLeads, actions]);
 
   const [currentIndex, setCurrentIndex] = useState(0);
   const [notes, setNotes] = useState("");
   const [transitioning, setTransitioning] = useState(false);
+  const [showPostCall, setShowPostCall] = useState<string | null>(null); // outcome after "answered"
+  const [showCallLater, setShowCallLater] = useState(false);
 
-  const current: FlowLead | null = queue[currentIndex] || null;
+  const current = queue[currentIndex] || null;
   const remaining = Math.max(0, queue.length - currentIndex - 1);
 
+  const advance = useCallback(() => {
+    setNotes("");
+    setShowPostCall(null);
+    setShowCallLater(false);
+    setTimeout(() => {
+      setCurrentIndex((i) => i + 1);
+      setTransitioning(false);
+    }, 200);
+  }, []);
+
   const handleOutcome = useCallback(
-    async (status: string) => {
+    async (outcome: string) => {
       if (!current || transitioning) return;
+
+      // "answered" shows post-call options
+      if (outcome === "answered") {
+        setShowPostCall("answered");
+        return;
+      }
+
+      setTransitioning(true);
+      await handleOutcomeMut.mutateAsync({
+        leadId: current.lead.id,
+        outcome,
+        notes: notes || undefined,
+      });
+      advance();
+    },
+    [current, notes, transitioning, handleOutcomeMut, advance]
+  );
+
+  // Post-call follow-up choices after "Answered"
+  const handlePostCallChoice = useCallback(
+    async (choice: "follow_up" | "waiting" | "none") => {
+      if (!current) return;
       setTransitioning(true);
 
-      await updateStatus.mutateAsync({
-        leadId: current.id,
-        status,
+      // First log the call as answered
+      await handleOutcomeMut.mutateAsync({
+        leadId: current.lead.id,
+        outcome: "answered",
         notes: notes || undefined,
       });
 
-      setNotes("");
-      setTimeout(() => {
-        setCurrentIndex((i) => i + 1);
-        setTransitioning(false);
-      }, 200);
+      if (choice === "follow_up") {
+        await createAction.mutateAsync({
+          leadId: current.lead.id,
+          actionType: "follow_up_call",
+          scheduledFor: tomorrowMorning().toISOString(),
+          source: "call_outcome",
+          outcome: "answered",
+        });
+      } else if (choice === "waiting") {
+        await createAction.mutateAsync({
+          leadId: current.lead.id,
+          actionType: "wait_for_reply",
+          scheduledFor: tomorrowMorning().toISOString(),
+          source: "call_outcome",
+          outcome: "answered",
+        });
+      }
+
+      advance();
     },
-    [current, notes, transitioning, updateStatus]
+    [current, notes, handleOutcomeMut, createAction, advance]
+  );
+
+  // Call later options
+  const handleCallLater = useCallback(
+    async (when: "later_today" | "tomorrow" | "custom", customTime?: string) => {
+      if (!current) return;
+      setTransitioning(true);
+
+      const scheduledFor =
+        when === "later_today"
+          ? laterToday().toISOString()
+          : when === "tomorrow"
+          ? tomorrowMorning().toISOString()
+          : customTime || tomorrowMorning().toISOString();
+
+      await createAction.mutateAsync({
+        leadId: current.lead.id,
+        actionType: "retry_call",
+        scheduledFor,
+        source: "manual",
+      });
+
+      advance();
+    },
+    [current, createAction, advance]
   );
 
   // Session complete
@@ -79,7 +202,7 @@ export default function FlowSession() {
     );
   }
 
-  const action = deriveNextAction(current);
+  const { lead, action } = current;
 
   return (
     <div className="min-h-[calc(100vh-3.5rem)] flex flex-col">
@@ -89,9 +212,11 @@ export default function FlowSession() {
           <ArrowLeft className="h-4 w-4 mr-1" /> Exit
         </Button>
         <div className="text-sm text-muted-foreground flex items-center gap-3">
-          <span className="text-xs px-2 py-0.5 rounded-full bg-muted">
-            {action.type}
-          </span>
+          {action && (
+            <Badge variant="outline" className="text-xs">
+              {actionTypeLabels[action.action_type] || action.action_type}
+            </Badge>
+          )}
           <span>{currentIndex + 1} / {queue.length} · {remaining} remaining</span>
         </div>
       </div>
@@ -102,37 +227,39 @@ export default function FlowSession() {
         <div className="space-y-4">
           <Card className="border-border/40">
             <CardHeader className="pb-3">
-              <CardTitle className="text-lg">{current.name || "Unknown Contact"}</CardTitle>
-              {current.company && (
-                <p className="text-sm text-muted-foreground">{current.company}</p>
+              <CardTitle className="text-lg">{lead.name || "Unknown Contact"}</CardTitle>
+              {lead.company && (
+                <p className="text-sm text-muted-foreground">{lead.company}</p>
               )}
             </CardHeader>
             <CardContent className="space-y-3">
-              {current.phone && (
+              {lead.phone && (
                 <a
-                  href={`tel:${current.phone}`}
+                  href={`tel:${lead.phone}`}
                   className="flex items-center gap-2 text-primary hover:underline font-medium"
                 >
                   <Phone className="h-4 w-4" />
-                  {current.phone}
+                  {lead.phone}
                 </a>
               )}
-              {current.email && (
-                <p className="text-sm text-muted-foreground">{current.email}</p>
+              {lead.email && (
+                <p className="text-sm text-muted-foreground">{lead.email}</p>
               )}
               <div className="text-xs text-muted-foreground space-y-1">
-                <p>Attempts: {current.callAttempts}</p>
-                {current.lastContactedAt && (
-                  <p>Last contact: {new Date(current.lastContactedAt).toLocaleDateString()}</p>
+                <p>Attempts: {lead.callAttempts}</p>
+                {lead.lastContactedAt && (
+                  <p>Last contact: {new Date(lead.lastContactedAt).toLocaleDateString()}</p>
                 )}
-                {current.notes && (
-                  <p className="italic border-l-2 border-primary/30 pl-2 mt-2">{current.notes}</p>
+                {action?.outcome && (
+                  <p>Last outcome: {action.outcome}</p>
+                )}
+                {lead.notes && (
+                  <p className="italic border-l-2 border-primary/30 pl-2 mt-2">{lead.notes}</p>
                 )}
               </div>
             </CardContent>
           </Card>
 
-          {/* Notes */}
           <Card className="border-border/40">
             <CardContent className="p-4">
               <Textarea
@@ -154,7 +281,7 @@ export default function FlowSession() {
           </CardHeader>
           <CardContent>
             <div className="prose prose-invert prose-sm max-w-none whitespace-pre-wrap text-sm leading-relaxed text-foreground/80">
-              {defaultScript.replace("[Name]", current.name || "there")}
+              {defaultScript.replace("[Name]", lead.name || "there")}
             </div>
           </CardContent>
         </Card>
@@ -183,7 +310,7 @@ export default function FlowSession() {
           <Button
             size="lg"
             variant="outline"
-            onClick={() => handleOutcome("callback")}
+            onClick={() => setShowCallLater(true)}
           >
             <RotateCcw className="h-5 w-5 mr-2" />
             Call Later
@@ -205,8 +332,78 @@ export default function FlowSession() {
             <ThumbsDown className="h-5 w-5 mr-2" />
             Not Interested
           </Button>
+          <Button
+            size="lg"
+            variant="outline"
+            className="border-muted text-muted-foreground hover:bg-muted/30"
+            onClick={() => handleOutcome("wrong_number")}
+          >
+            <AlertCircle className="h-4 w-4 mr-2" />
+            Wrong #
+          </Button>
         </div>
       </div>
+
+      {/* Post-call dialog for "Answered" */}
+      <Dialog open={showPostCall === "answered"} onOpenChange={() => setShowPostCall(null)}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Call completed — what's next?</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 pt-2">
+            <Button
+              className="w-full justify-start"
+              variant="outline"
+              onClick={() => handlePostCallChoice("follow_up")}
+            >
+              <Calendar className="h-4 w-4 mr-2" />
+              Follow up tomorrow
+            </Button>
+            <Button
+              className="w-full justify-start"
+              variant="outline"
+              onClick={() => handlePostCallChoice("waiting")}
+            >
+              <Clock className="h-4 w-4 mr-2" />
+              Waiting for reply
+            </Button>
+            <Button
+              className="w-full justify-start"
+              variant="ghost"
+              onClick={() => handlePostCallChoice("none")}
+            >
+              No next action
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Call Later dialog */}
+      <Dialog open={showCallLater} onOpenChange={setShowCallLater}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Schedule call</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 pt-2">
+            <Button
+              className="w-full justify-start"
+              variant="outline"
+              onClick={() => handleCallLater("later_today")}
+            >
+              <Clock className="h-4 w-4 mr-2" />
+              Later today
+            </Button>
+            <Button
+              className="w-full justify-start"
+              variant="outline"
+              onClick={() => handleCallLater("tomorrow")}
+            >
+              <Calendar className="h-4 w-4 mr-2" />
+              Tomorrow morning
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

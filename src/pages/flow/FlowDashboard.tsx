@@ -1,57 +1,68 @@
 import { useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import { Phone, PhoneCall, ThumbsUp, TrendingUp, Clock, RotateCcw, CalendarClock, CheckCircle2, ArrowRight } from "lucide-react";
+import {
+  Phone, PhoneCall, ThumbsUp, TrendingUp, Clock, RotateCcw,
+  CalendarClock, CheckCircle2, ArrowRight, AlertTriangle,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { useFlowLeads, useTodayStats, deriveNextAction } from "@/hooks/useFlowLeads";
-import { format, isToday, isBefore, isPast } from "date-fns";
-
-const actionLabels: Record<string, string> = {
-  call: "Call",
-  retry: "Retry",
-  follow_up: "Follow up",
-  callback: "Callback",
-};
+import { useFlowLeads, useTodayStats } from "@/hooks/useFlowLeads";
+import {
+  useNextActions,
+  getEffectiveTime,
+  actionTypeLabels,
+  type NextAction,
+} from "@/hooks/useNextActions";
+import { format, isToday, isPast } from "date-fns";
 
 const actionIcons: Record<string, typeof Clock> = {
   call: Phone,
-  retry: RotateCcw,
-  follow_up: ArrowRight,
-  callback: CalendarClock,
+  retry_call: RotateCcw,
+  follow_up_call: ArrowRight,
+  wait_for_reply: Clock,
+  send_sms: ArrowRight,
+  send_email: ArrowRight,
+  meeting: CalendarClock,
+  custom: ArrowRight,
 };
 
 export default function FlowDashboard() {
   const navigate = useNavigate();
-  const { data: leads = [], isLoading } = useFlowLeads();
+  const { data: leads = [] } = useFlowLeads();
   const { data: stats } = useTodayStats();
+  const { data: actions = [], isLoading } = useNextActions();
 
-  const todayTasks = useMemo(() => {
-    const now = new Date();
-    return leads
-      .filter((l) => {
-        const action = deriveNextAction(l);
-        if (action.type === "none") return false;
-        if (l.status === "not_interested" || l.status === "won" || l.status === "lost") return false;
-        // Show if: no scheduled time, or scheduled for today/past
-        if (action.at) {
-          const d = new Date(action.at);
-          return isToday(d) || isBefore(d, now);
-        }
-        // Unscheduled new leads or retries always show
-        return true;
-      })
-      .sort((a, b) => {
-        const aa = deriveNextAction(a);
-        const ba = deriveNextAction(b);
-        // Scheduled items first, sorted by time
-        if (aa.at && ba.at) return new Date(aa.at).getTime() - new Date(ba.at).getTime();
-        if (aa.at) return -1;
-        if (ba.at) return 1;
-        return 0;
-      })
-      .slice(0, 15);
+  // Build lead lookup
+  const leadMap = useMemo(() => {
+    const m = new Map<string, (typeof leads)[0]>();
+    leads.forEach((l) => m.set(l.id, l));
+    return m;
   }, [leads]);
+
+  // Split actions into overdue vs today
+  const { overdue, today } = useMemo(() => {
+    const now = new Date();
+    const ov: (NextAction & { lead: (typeof leads)[0] | undefined })[] = [];
+    const td: (NextAction & { lead: (typeof leads)[0] | undefined })[] = [];
+
+    actions.forEach((a) => {
+      const t = getEffectiveTime(a);
+      const lead = leadMap.get(a.lead_id);
+      const item = { ...a, lead };
+
+      if (isPast(t) && !isToday(t)) {
+        ov.push(item);
+      } else if (isToday(t) || (!a.scheduled_for && !a.due_at && !a.snoozed_until)) {
+        td.push(item);
+      }
+      // future tasks are hidden in Simple Mode
+    });
+
+    ov.sort((a, b) => getEffectiveTime(a).getTime() - getEffectiveTime(b).getTime());
+    td.sort((a, b) => getEffectiveTime(a).getTime() - getEffectiveTime(b).getTime());
+    return { overdue: ov, today: td };
+  }, [actions, leadMap]);
 
   const statCards = [
     { label: "Calls today", value: stats?.calls ?? 0, icon: Phone, color: "text-primary" },
@@ -60,7 +71,9 @@ export default function FlowDashboard() {
     { label: "Conversion", value: `${stats?.conversionPct ?? 0}%`, icon: TrendingUp, color: "text-violet-400" },
   ];
 
-  const readyLeads = leads.filter((l) => l.status === "new" || l.status === "callback" || l.status === "no_answer").length;
+  const callableCount = actions.filter((a) =>
+    ["call", "retry_call", "follow_up_call"].includes(a.action_type)
+  ).length;
 
   return (
     <div className="max-w-5xl mx-auto px-4 py-8 space-y-8">
@@ -81,13 +94,13 @@ export default function FlowDashboard() {
         ))}
       </div>
 
-      {/* Start Calling — hero button */}
+      {/* Start Calling */}
       <Card className="border-primary/30 bg-gradient-to-r from-primary/10 to-primary/5">
         <CardContent className="p-6 flex flex-col sm:flex-row items-center justify-between gap-4">
           <div>
             <h2 className="text-xl font-semibold">Ready to call?</h2>
             <p className="text-sm text-muted-foreground mt-1">
-              {readyLeads} leads waiting
+              {callableCount} tasks waiting
             </p>
           </div>
           <Button
@@ -101,76 +114,121 @@ export default function FlowDashboard() {
         </CardContent>
       </Card>
 
+      {/* Overdue */}
+      {overdue.length > 0 && (
+        <TaskSection
+          title="⚠️ Overdue"
+          count={overdue.length}
+          items={overdue}
+          isOverdue
+          onCall={() => navigate("session")}
+        />
+      )}
+
       {/* Today's Tasks */}
-      <div>
-        <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
-          🔥 Today's Tasks
-          <span className="text-sm font-normal text-muted-foreground">({todayTasks.length})</span>
-        </h3>
+      <TaskSection
+        title="🔥 Today's Tasks"
+        count={today.length}
+        items={today}
+        isLoading={isLoading}
+        onCall={() => navigate("session")}
+      />
+    </div>
+  );
+}
 
-        {isLoading ? (
-          <div className="space-y-2">
-            {[1, 2, 3].map((i) => (
-              <div key={i} className="h-16 rounded-xl bg-muted/30 animate-pulse" />
-            ))}
-          </div>
-        ) : todayTasks.length === 0 ? (
-          <Card className="border-border/40">
-            <CardContent className="p-6 text-center text-muted-foreground">
-              <CheckCircle2 className="h-8 w-8 mx-auto mb-2 text-emerald-400" />
-              <p className="font-medium">All caught up!</p>
-              <p className="text-sm">No pending tasks for today</p>
-            </CardContent>
-          </Card>
-        ) : (
-          <div className="space-y-2">
-            {todayTasks.map((task) => {
-              const action = deriveNextAction(task);
-              const ActionIcon = actionIcons[action.type] || Phone;
-              const isOverdue = action.at && isPast(new Date(action.at));
+// ── Task section component ──────────────────────────────────────────
 
-              return (
-                <Card key={task.id} className="border-border/40 hover:border-primary/30 transition-colors">
-                  <CardContent className="p-4 flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="p-2 rounded-lg bg-muted/50">
-                        <ActionIcon className="h-4 w-4 text-primary" />
-                      </div>
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <p className="font-medium text-sm">{task.name || "Unknown"}</p>
-                          <Badge variant="outline" className="text-[10px] px-1.5 py-0">
-                            {actionLabels[action.type] || action.type}
-                          </Badge>
-                          {isOverdue && (
-                            <Badge variant="outline" className="text-[10px] px-1.5 py-0 border-destructive/30 text-destructive">
-                              Overdue
-                            </Badge>
-                          )}
-                        </div>
-                        <p className="text-xs text-muted-foreground">
-                          {task.company && `${task.company} · `}
-                          {task.phone}
-                          {action.at && ` · ${format(new Date(action.at), "HH:mm")}`}
-                        </p>
-                      </div>
+function TaskSection({
+  title,
+  count,
+  items,
+  isOverdue = false,
+  isLoading = false,
+  onCall,
+}: {
+  title: string;
+  count: number;
+  items: (NextAction & { lead: any })[];
+  isOverdue?: boolean;
+  isLoading?: boolean;
+  onCall: () => void;
+}) {
+  return (
+    <div>
+      <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
+        {title}
+        <span className="text-sm font-normal text-muted-foreground">({count})</span>
+      </h3>
+
+      {isLoading ? (
+        <div className="space-y-2">
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="h-16 rounded-xl bg-muted/30 animate-pulse" />
+          ))}
+        </div>
+      ) : items.length === 0 ? (
+        <Card className="border-border/40">
+          <CardContent className="p-6 text-center text-muted-foreground">
+            <CheckCircle2 className="h-8 w-8 mx-auto mb-2 text-emerald-400" />
+            <p className="font-medium">All caught up!</p>
+            <p className="text-sm">No pending tasks</p>
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="space-y-2">
+          {items.map((task) => {
+            const ActionIcon = actionIcons[task.action_type] || Phone;
+            const effectiveTime = getEffectiveTime(task);
+
+            return (
+              <Card key={task.id} className="border-border/40 hover:border-primary/30 transition-colors">
+                <CardContent className="p-4 flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 rounded-lg bg-muted/50">
+                      <ActionIcon className="h-4 w-4 text-primary" />
                     </div>
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      className="text-primary hover:bg-primary/10"
-                      onClick={() => navigate("session")}
-                    >
-                      <Phone className="h-4 w-4 mr-1" />
-                      Call
-                    </Button>
-                  </CardContent>
-                </Card>
-              );
-            })}
-          </div>
-        )}
-      </div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <p className="font-medium text-sm">
+                          {task.lead?.name || "Unknown"}
+                        </p>
+                        <Badge variant="outline" className="text-[10px] px-1.5 py-0">
+                          {actionTypeLabels[task.action_type] || task.action_type}
+                        </Badge>
+                        {isOverdue && (
+                          <Badge variant="outline" className="text-[10px] px-1.5 py-0 border-destructive/30 text-destructive">
+                            Overdue
+                          </Badge>
+                        )}
+                        {task.priority === "high" || task.priority === "urgent" ? (
+                          <Badge variant="outline" className="text-[10px] px-1.5 py-0 border-amber-500/30 text-amber-400">
+                            {task.priority}
+                          </Badge>
+                        ) : null}
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        {task.lead?.company && `${task.lead.company} · `}
+                        {task.lead?.phone}
+                        {task.scheduled_for && ` · ${format(effectiveTime, "HH:mm")}`}
+                      </p>
+                    </div>
+                  </div>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="text-primary hover:bg-primary/10"
+                    onClick={onCall}
+                  >
+                    <Phone className="h-4 w-4 mr-1" />
+                    Call
+                  </Button>
+                </CardContent>
+              </Card>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }

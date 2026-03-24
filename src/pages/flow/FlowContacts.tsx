@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useMemo } from "react";
 import { Upload, Plus, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,23 +8,28 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { useFlowLeads } from "@/hooks/useFlowLeads";
+import { useNextActions, actionTypeLabels, getEffectiveTime, type NextAction } from "@/hooks/useNextActions";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useTenant } from "@/hooks/useTenant";
 import { useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
+import { format } from "date-fns";
 
 const statusColors: Record<string, string> = {
   new: "bg-amber-500/10 text-amber-400 border-amber-500/20",
+  contacted: "bg-blue-500/10 text-blue-400 border-blue-500/20",
   answered: "bg-blue-500/10 text-blue-400 border-blue-500/20",
   interested: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20",
   not_interested: "bg-red-500/10 text-red-400 border-red-500/20",
   callback: "bg-violet-500/10 text-violet-400 border-violet-500/20",
   no_answer: "bg-muted text-muted-foreground border-border",
+  lost: "bg-red-500/10 text-red-400 border-red-500/20",
 };
 
 export default function FlowContacts() {
   const { data: leads = [], isLoading } = useFlowLeads();
+  const { data: actions = [] } = useNextActions();
   const { user } = useAuth();
   const { tenant } = useTenant();
   const qc = useQueryClient();
@@ -32,6 +37,12 @@ export default function FlowContacts() {
   const [search, setSearch] = useState("");
   const [addOpen, setAddOpen] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
+
+  const actionMap = useMemo(() => {
+    const m = new Map<string, NextAction>();
+    actions.forEach((a) => m.set(a.lead_id, a));
+    return m;
+  }, [actions]);
 
   const filtered = search
     ? leads.filter(
@@ -172,6 +183,7 @@ export default function FlowContacts() {
                 <TableHead className="hidden sm:table-cell">Company</TableHead>
                 <TableHead>Phone</TableHead>
                 <TableHead className="hidden md:table-cell">Status</TableHead>
+                <TableHead className="hidden md:table-cell">Next Action</TableHead>
                 <TableHead className="hidden lg:table-cell">Notes</TableHead>
               </TableRow>
             </TableHeader>
@@ -179,31 +191,45 @@ export default function FlowContacts() {
               {isLoading ? (
                 [1, 2, 3, 4, 5].map((i) => (
                   <TableRow key={i}>
-                    <TableCell colSpan={5}><div className="h-5 bg-muted/30 rounded animate-pulse" /></TableCell>
+                    <TableCell colSpan={6}><div className="h-5 bg-muted/30 rounded animate-pulse" /></TableCell>
                   </TableRow>
                 ))
               ) : filtered.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
+                  <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
                     No contacts found. Import a CSV or add manually.
                   </TableCell>
                 </TableRow>
               ) : (
-                filtered.map((l) => (
-                  <TableRow key={l.id}>
-                    <TableCell className="font-medium">{l.name || "—"}</TableCell>
-                    <TableCell className="hidden sm:table-cell text-muted-foreground">{l.company || "—"}</TableCell>
-                    <TableCell className="font-mono text-sm">{l.phone || "—"}</TableCell>
-                    <TableCell className="hidden md:table-cell">
-                      <Badge variant="outline" className={statusColors[l.status] || ""}>
-                        {l.status}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="hidden lg:table-cell text-muted-foreground text-sm truncate max-w-[200px]">
-                      {l.notes || "—"}
-                    </TableCell>
-                  </TableRow>
-                ))
+                filtered.map((l) => {
+                  const nextAction = actionMap.get(l.id);
+                  return (
+                    <TableRow key={l.id}>
+                      <TableCell className="font-medium">{l.name || "—"}</TableCell>
+                      <TableCell className="hidden sm:table-cell text-muted-foreground">{l.company || "—"}</TableCell>
+                      <TableCell className="font-mono text-sm">{l.phone || "—"}</TableCell>
+                      <TableCell className="hidden md:table-cell">
+                        <Badge variant="outline" className={statusColors[l.status] || ""}>
+                          {l.status}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="hidden md:table-cell">
+                        {nextAction ? (
+                          <Badge variant="outline" className="text-[10px]">
+                            {actionTypeLabels[nextAction.action_type] || nextAction.action_type}
+                            {nextAction.scheduled_for &&
+                              ` · ${format(getEffectiveTime(nextAction), "MMM d")}`}
+                          </Badge>
+                        ) : (
+                          <span className="text-xs text-muted-foreground">—</span>
+                        )}
+                      </TableCell>
+                      <TableCell className="hidden lg:table-cell text-muted-foreground text-sm truncate max-w-[200px]">
+                        {l.notes || "—"}
+                      </TableCell>
+                    </TableRow>
+                  );
+                })
               )}
             </TableBody>
           </Table>
