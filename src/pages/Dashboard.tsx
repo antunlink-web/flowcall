@@ -401,7 +401,7 @@ export default function Dashboard() {
                       <p className="text-xs text-muted-foreground">{t.leadsWaiting}</p>
                     </div>
                   </div>
-                  <Button size="sm" variant="outline" className="border-destructive/30 text-destructive hover:bg-destructive/10" onClick={() => navigate("/work")}>
+                  <Button size="sm" variant="outline" className="border-destructive/30 text-destructive hover:bg-destructive/10" onClick={() => navigate(tPath("/work"))}>
                     {t.view}
                   </Button>
                 </CardContent>
