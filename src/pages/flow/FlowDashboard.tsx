@@ -2,12 +2,12 @@ import { useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Phone, PhoneCall, ThumbsUp, TrendingUp, Clock, RotateCcw,
-  CalendarClock, CheckCircle2, ArrowRight, Upload, Plus,
+  CalendarClock, CheckCircle2, ArrowRight, Upload, Plus, User,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { useFlowLeads, useTodayStats } from "@/hooks/useFlowLeads";
+import { useFlowLeads, useTodayStats, type FlowLead } from "@/hooks/useFlowLeads";
 import {
   useNextActions,
   getEffectiveTime,
