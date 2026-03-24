@@ -320,7 +320,7 @@ export default function Work() {
                   onClick={handleNext}
                   disabled={currentIndex >= filteredLeads.length - 1}
                 >
-                  Next
+                  {t.next}
                 </Button>
               </div>
             </div>
