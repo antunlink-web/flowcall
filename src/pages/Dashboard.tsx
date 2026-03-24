@@ -487,7 +487,7 @@ export default function Dashboard() {
                 <PhoneCall className="w-4 h-4 text-primary" />
                 <h3 className="text-sm font-semibold text-foreground">{t.nextLeadsToCall}</h3>
               </div>
-              <Button variant="link" className="text-primary gap-1 p-0 h-auto text-xs" onClick={() => navigate("/work")}>
+              <Button variant="link" className="text-primary gap-1 p-0 h-auto text-xs" onClick={() => navigate(tPath("/work"))}>
                 {t.viewQueue} <ChevronRight className="w-3 h-3" />
               </Button>
             </div>
