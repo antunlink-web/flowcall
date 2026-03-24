@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useTenantLinkPath } from "@/hooks/useTenantPath";
 import { Lead } from "@/types/crm";
 import {
   Phone,
@@ -40,10 +41,14 @@ interface CallLog {
   lead_id: string;
 }
 
+type ListField = { name: string; type?: string };
+
 interface QueueLead {
   id: string;
   name: string;
+  company: string;
   phone: string;
+  email: string;
   status: string;
   isOverdue: boolean;
   callbackAt: string | null;
@@ -51,11 +56,13 @@ interface QueueLead {
 
 export default function Dashboard() {
   const [leads, setLeads] = useState<Lead[]>([]);
+  const [listFieldsById, setListFieldsById] = useState<Record<string, ListField[]>>({});
   const [callLogs, setCallLogs] = useState<CallLog[]>([]);
   const [yesterdayCallCount, setYesterdayCallCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const { user } = useAuth();
   const navigate = useNavigate();
+  const tPath = useTenantLinkPath();
   const t = useTranslation();
 
   const firstName = user?.user_metadata?.full_name?.split(" ")[0] || "there";
@@ -89,10 +96,28 @@ export default function Dashboard() {
         .lt("created_at", todayStart.toISOString()),
     ]);
 
-    setLeads((leadsRes.data || []).map((l) => ({
+    const normalizedLeads = (leadsRes.data || []).map((l) => ({
       ...l,
       data: (l.data as Record<string, unknown>) || {},
-    })) as Lead[]);
+    })) as Lead[];
+
+    const listIds = [...new Set(normalizedLeads.map((l) => l.list_id).filter(Boolean))] as string[];
+    if (listIds.length > 0) {
+      const { data: listsData } = await supabase
+        .from("lists")
+        .select("id, fields")
+        .in("id", listIds);
+
+      const nextMap: Record<string, ListField[]> = {};
+      (listsData || []).forEach((list) => {
+        nextMap[list.id] = (Array.isArray(list.fields) ? list.fields : []) as ListField[];
+      });
+      setListFieldsById(nextMap);
+    } else {
+      setListFieldsById({});
+    }
+
+    setLeads(normalizedLeads);
     setCallLogs(callsRes.data || []);
     setYesterdayCallCount(yesterdayRes.count || 0);
     setLoading(false);
@@ -102,30 +127,98 @@ export default function Dashboard() {
     if (user) fetchData();
   }, [user, fetchData]);
 
-  // Helpers
-  const getLeadDisplayName = (data: Record<string, unknown> | null): string => {
-    if (!data) return "Unknown";
-    const entries = Object.entries(data);
-    const companyFields = ["pavadinimas", "company", "company name", "įmonė", "firma", "business"];
-    for (const [key, value] of entries) {
-      if (companyFields.includes(key.toLowerCase()) && typeof value === "string" && value.trim()) return value;
+  const getLeadData = (lead: Lead): Record<string, unknown> => (lead.data as Record<string, unknown>) || {};
+  const getListFields = (lead: Lead): ListField[] => (lead.list_id ? listFieldsById[lead.list_id] || [] : []);
+
+  const getLeadDisplayName = (lead: Lead): string => {
+    const data = getLeadData(lead);
+    const listFields = getListFields(lead);
+
+    if (listFields.length > 0) {
+      const primaryKey = listFields[0].name;
+      const primaryValue = data[primaryKey];
+      if (typeof primaryValue === "string" && primaryValue.trim()) return primaryValue.trim();
+      if (primaryValue !== null && primaryValue !== undefined && String(primaryValue).trim()) return String(primaryValue).trim();
     }
-    const nameFields = ["name", "full_name", "first_name", "vardas", "contact"];
-    for (const [key, value] of entries) {
-      if (nameFields.some(f => key.toLowerCase().includes(f)) && typeof value === "string" && value.trim()) return value;
+
+    const fallbackKeys = ["full_name", "name", "first_name", "ime", "company_name", "company", "tvrtka", "firma", "phone", "telefon", "mobile", "email", "e-mail"];
+    for (const key of fallbackKeys) {
+      const value = data[key];
+      if (typeof value === "string" && value.trim()) return value.trim();
     }
-    for (const [, value] of entries) {
-      if (typeof value === "string" && value.trim()) return value;
+
+    for (const [, value] of Object.entries(data)) {
+      if (typeof value === "string" && value.trim()) return value.trim();
     }
-    return "Unknown";
+
+    return "Unknown contact";
   };
 
-  const getLeadPhone = (data: Record<string, unknown> | null): string => {
-    if (!data) return "";
+  const getLeadPhone = (lead: Lead): string => {
+    const data = getLeadData(lead);
+    const listFields = getListFields(lead);
+
+    for (const field of listFields) {
+      if (field.type?.toLowerCase() === "phone") {
+        const value = data[field.name];
+        if (typeof value === "string" && value.trim()) return value.trim();
+      }
+    }
+
     for (const [key, value] of Object.entries(data)) {
       const k = key.toLowerCase();
-      if ((k.includes("phone") || k.includes("tel") || k.includes("mobile")) && typeof value === "string" && value.trim()) return value;
+      if ((k.includes("phone") || k.includes("tel") || k.includes("mobile") || k.includes("mobitel")) && typeof value === "string" && value.trim()) {
+        return value.trim();
+      }
     }
+
+    for (const [, value] of Object.entries(data)) {
+      if (typeof value === "string" && /^[+]?[\d\s().-]{7,}$/.test(value.trim())) return value.trim();
+    }
+
+    return "";
+  };
+
+  const getLeadEmail = (lead: Lead): string => {
+    const data = getLeadData(lead);
+    const listFields = getListFields(lead);
+
+    for (const field of listFields) {
+      if (field.type?.toLowerCase() === "email") {
+        const value = data[field.name];
+        if (typeof value === "string" && value.trim()) return value.trim();
+      }
+    }
+
+    for (const [key, value] of Object.entries(data)) {
+      const k = key.toLowerCase();
+      if ((k.includes("email") || k.includes("e-mail") || k === "mail") && typeof value === "string" && value.trim()) return value.trim();
+    }
+
+    for (const [, value] of Object.entries(data)) {
+      if (typeof value === "string" && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim())) return value.trim();
+    }
+
+    return "";
+  };
+
+  const getLeadCompany = (lead: Lead): string => {
+    const data = getLeadData(lead);
+    const listFields = getListFields(lead);
+
+    for (const field of listFields) {
+      if (/company|tvrtka|firma|organization|business|poduze/i.test(field.name)) {
+        const value = data[field.name];
+        if (typeof value === "string" && value.trim()) return value.trim();
+      }
+    }
+
+    const fallbackKeys = ["company", "company_name", "tvrtka", "firma", "organization", "business"];
+    for (const key of fallbackKeys) {
+      const value = data[key];
+      if (typeof value === "string" && value.trim()) return value.trim();
+    }
+
     return "";
   };
 
