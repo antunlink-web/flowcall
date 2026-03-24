@@ -12,7 +12,6 @@ import {
   Settings,
   CheckCircle2,
   MessageSquare,
-  HelpCircle,
 } from "lucide-react";
 
 interface OnboardingStep {
