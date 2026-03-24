@@ -148,6 +148,7 @@ export default function FlowDashboard() {
           items={today}
           isLoading={isLoading}
           onCall={() => navigate("session")}
+          onRowClick={(leadId) => navigate(`lead/${leadId}`)}
         />
       )}
     </div>
