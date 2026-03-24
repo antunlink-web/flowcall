@@ -554,7 +554,7 @@ export default function Dashboard() {
         <div>
           <div className="flex items-center justify-between mb-3">
             <h2 className="text-sm font-semibold text-foreground">{t.pipeline}</h2>
-            <Button variant="link" className="text-primary gap-1 p-0 h-auto text-xs" onClick={() => navigate("/leads")}>
+            <Button variant="link" className="text-primary gap-1 p-0 h-auto text-xs" onClick={() => navigate(tPath("/leads"))}>
               {t.viewAll} <ChevronRight className="w-3 h-3" />
             </Button>
           </div>
