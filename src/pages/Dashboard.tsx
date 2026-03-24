@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useTenantLinkPath } from "@/hooks/useTenantPath";
 import { Lead } from "@/types/crm";
 import {
   Phone,
@@ -40,10 +41,14 @@ interface CallLog {
   lead_id: string;
 }
 
+type ListField = { name: string; type?: string };
+
 interface QueueLead {
   id: string;
   name: string;
+  company: string;
   phone: string;
+  email: string;
   status: string;
   isOverdue: boolean;
   callbackAt: string | null;
@@ -51,11 +56,13 @@ interface QueueLead {
 
 export default function Dashboard() {
   const [leads, setLeads] = useState<Lead[]>([]);
+  const [listFieldsById, setListFieldsById] = useState<Record<string, ListField[]>>({});
   const [callLogs, setCallLogs] = useState<CallLog[]>([]);
   const [yesterdayCallCount, setYesterdayCallCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const { user } = useAuth();
   const navigate = useNavigate();
+  const tPath = useTenantLinkPath();
   const t = useTranslation();
 
   const firstName = user?.user_metadata?.full_name?.split(" ")[0] || "there";
@@ -89,10 +96,28 @@ export default function Dashboard() {
         .lt("created_at", todayStart.toISOString()),
     ]);
 
-    setLeads((leadsRes.data || []).map((l) => ({
+    const normalizedLeads = (leadsRes.data || []).map((l) => ({
       ...l,
       data: (l.data as Record<string, unknown>) || {},
-    })) as Lead[]);
+    })) as Lead[];
+
+    const listIds = [...new Set(normalizedLeads.map((l) => l.list_id).filter(Boolean))] as string[];
+    if (listIds.length > 0) {
+      const { data: listsData } = await supabase
+        .from("lists")
+        .select("id, fields")
+        .in("id", listIds);
+
+      const nextMap: Record<string, ListField[]> = {};
+      (listsData || []).forEach((list) => {
+        nextMap[list.id] = (Array.isArray(list.fields) ? list.fields : []) as ListField[];
+      });
+      setListFieldsById(nextMap);
+    } else {
+      setListFieldsById({});
+    }
+
+    setLeads(normalizedLeads);
     setCallLogs(callsRes.data || []);
     setYesterdayCallCount(yesterdayRes.count || 0);
     setLoading(false);
@@ -102,30 +127,105 @@ export default function Dashboard() {
     if (user) fetchData();
   }, [user, fetchData]);
 
-  // Helpers
-  const getLeadDisplayName = (data: Record<string, unknown> | null): string => {
-    if (!data) return "Unknown";
-    const entries = Object.entries(data);
-    const companyFields = ["pavadinimas", "company", "company name", "įmonė", "firma", "business"];
-    for (const [key, value] of entries) {
-      if (companyFields.includes(key.toLowerCase()) && typeof value === "string" && value.trim()) return value;
+  const getLeadData = (lead: Lead): Record<string, unknown> => (lead.data as Record<string, unknown>) || {};
+  const getListFields = (lead: Lead): ListField[] => (lead.list_id ? listFieldsById[lead.list_id] || [] : []);
+
+  const getLeadDisplayName = (lead: Lead): string => {
+    const data = getLeadData(lead);
+
+    const nameKeys = ["full_name", "name", "first_name", "ime", "contact", "kontakt"];
+    for (const key of nameKeys) {
+      const value = data[key];
+      if (typeof value === "string" && value.trim()) return value.trim();
     }
-    const nameFields = ["name", "full_name", "first_name", "vardas", "contact"];
-    for (const [key, value] of entries) {
-      if (nameFields.some(f => key.toLowerCase().includes(f)) && typeof value === "string" && value.trim()) return value;
+
+    const company = getLeadCompany(lead);
+    if (company) return company;
+
+    const phone = getLeadPhone(lead);
+    if (phone) return phone;
+
+    const email = getLeadEmail(lead);
+    if (email) return email;
+
+    // Last fallback: list primary field if it contains something meaningful
+    const listFields = getListFields(lead);
+    if (listFields.length > 0) {
+      const primaryKey = listFields[0].name;
+      const primaryValue = data[primaryKey];
+      if (primaryValue !== null && primaryValue !== undefined && String(primaryValue).trim()) {
+        return String(primaryValue).trim();
+      }
     }
-    for (const [, value] of entries) {
-      if (typeof value === "string" && value.trim()) return value;
-    }
-    return "Unknown";
+
+    return "Unknown contact";
   };
 
-  const getLeadPhone = (data: Record<string, unknown> | null): string => {
-    if (!data) return "";
+  const getLeadPhone = (lead: Lead): string => {
+    const data = getLeadData(lead);
+    const listFields = getListFields(lead);
+
+    for (const field of listFields) {
+      if (field.type?.toLowerCase() === "phone") {
+        const value = data[field.name];
+        if (typeof value === "string" && value.trim()) return value.trim();
+      }
+    }
+
     for (const [key, value] of Object.entries(data)) {
       const k = key.toLowerCase();
-      if ((k.includes("phone") || k.includes("tel") || k.includes("mobile")) && typeof value === "string" && value.trim()) return value;
+      if ((k.includes("phone") || k.includes("tel") || k.includes("mobile") || k.includes("mobitel")) && typeof value === "string" && value.trim()) {
+        return value.trim();
+      }
     }
+
+    for (const [, value] of Object.entries(data)) {
+      if (typeof value === "string" && /^[+]?[\d\s().-]{7,}$/.test(value.trim())) return value.trim();
+    }
+
+    return "";
+  };
+
+  const getLeadEmail = (lead: Lead): string => {
+    const data = getLeadData(lead);
+    const listFields = getListFields(lead);
+
+    for (const field of listFields) {
+      if (field.type?.toLowerCase() === "email") {
+        const value = data[field.name];
+        if (typeof value === "string" && value.trim()) return value.trim();
+      }
+    }
+
+    for (const [key, value] of Object.entries(data)) {
+      const k = key.toLowerCase();
+      if ((k.includes("email") || k.includes("e-mail") || k === "mail") && typeof value === "string" && value.trim()) return value.trim();
+    }
+
+    for (const [, value] of Object.entries(data)) {
+      if (typeof value === "string" && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim())) return value.trim();
+    }
+
+    return "";
+  };
+
+  const getLeadCompany = (lead: Lead): string => {
+    const data = getLeadData(lead);
+    const listFields = getListFields(lead);
+
+    for (const field of listFields) {
+      if (/company|tvrtka|firma|organization|business|poduze/i.test(field.name)) {
+        const value = data[field.name];
+        if (typeof value === "string" && value.trim()) return value.trim();
+      }
+    }
+
+    const fallbackKeys = ["company", "company_name", "tvrtka", "firma", "organization", "business"];
+    for (const key of fallbackKeys) {
+      const value = data[key];
+      if (typeof value === "string" && value.trim()) return value.trim();
+    }
+
     return "";
   };
 
@@ -183,22 +283,26 @@ export default function Dashboard() {
   // Call queue - overdue first, then new leads
   const queueLeads: QueueLead[] = useMemo(() => {
     const queue: QueueLead[] = [];
-    overdueCallbacks.slice(0, 5).forEach(l => {
+    overdueCallbacks.slice(0, 5).forEach((l) => {
       queue.push({
         id: l.id,
-        name: getLeadDisplayName(l.data),
-        phone: getLeadPhone(l.data),
+        name: getLeadDisplayName(l),
+        company: getLeadCompany(l),
+        phone: getLeadPhone(l),
+        email: getLeadEmail(l),
         status: "overdue",
         isOverdue: true,
         callbackAt: l.callback_scheduled_at,
       });
     });
     if (queue.length < 5) {
-      newLeads.slice(0, 5 - queue.length).forEach(l => {
+      newLeads.slice(0, 5 - queue.length).forEach((l) => {
         queue.push({
           id: l.id,
-          name: getLeadDisplayName(l.data),
-          phone: getLeadPhone(l.data),
+          name: getLeadDisplayName(l),
+          company: getLeadCompany(l),
+          phone: getLeadPhone(l),
+          email: getLeadEmail(l),
           status: "new",
           isOverdue: false,
           callbackAt: null,
@@ -206,7 +310,7 @@ export default function Dashboard() {
       });
     }
     return queue;
-  }, [leads]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [overdueCallbacks, newLeads, listFieldsById]);
 
   // Daily goal (target 50 calls)
   const dailyGoal = 50;
@@ -280,7 +384,7 @@ export default function Dashboard() {
               <Button
                 size="lg"
                 className="bg-primary hover:bg-primary/90 text-primary-foreground px-8 gap-2 font-semibold w-full sm:w-auto"
-                onClick={() => navigate("/work?autostart=true")}
+                onClick={() => navigate(tPath("/work?autostart=true"))}
               >
                 <Phone className="w-5 h-5" />
                 {t.startCalling}
@@ -304,7 +408,7 @@ export default function Dashboard() {
                       <p className="text-xs text-muted-foreground">{t.leadsWaiting}</p>
                     </div>
                   </div>
-                  <Button size="sm" variant="outline" className="border-destructive/30 text-destructive hover:bg-destructive/10" onClick={() => navigate("/work")}>
+                  <Button size="sm" variant="outline" className="border-destructive/30 text-destructive hover:bg-destructive/10" onClick={() => navigate(tPath("/work"))}>
                     {t.view}
                   </Button>
                 </CardContent>
@@ -322,7 +426,7 @@ export default function Dashboard() {
                       <p className="text-xs text-muted-foreground">{t.scheduledWithin2h}</p>
                     </div>
                   </div>
-                  <Button size="sm" variant="outline" className="border-warning/30 text-warning hover:bg-warning/10" onClick={() => navigate("/work")}>
+                  <Button size="sm" variant="outline" className="border-warning/30 text-warning hover:bg-warning/10" onClick={() => navigate(tPath("/work"))}>
                     {t.view}
                   </Button>
                 </CardContent>
@@ -390,58 +494,75 @@ export default function Dashboard() {
                 <PhoneCall className="w-4 h-4 text-primary" />
                 <h3 className="text-sm font-semibold text-foreground">{t.nextLeadsToCall}</h3>
               </div>
-              <Button variant="link" className="text-primary gap-1 p-0 h-auto text-xs" onClick={() => navigate("/work")}>
+              <Button variant="link" className="text-primary gap-1 p-0 h-auto text-xs" onClick={() => navigate(tPath("/work"))}>
                 {t.viewQueue} <ChevronRight className="w-3 h-3" />
               </Button>
             </div>
 
             {queueLeads.length > 0 ? (
               <div className="space-y-2">
-                {queueLeads.map((lead) => (
-                  <div
-                    key={lead.id}
-                    className={`flex items-center justify-between p-3 rounded-lg border transition-colors ${
-                      lead.isOverdue
-                        ? "bg-destructive/5 border-destructive/20 hover:border-destructive/40"
-                        : "bg-muted/30 border-border/50 hover:border-primary/30"
-                    }`}
-                  >
-                    <div className="flex items-center gap-3 min-w-0">
-                      {lead.isOverdue && (
-                        <AlertTriangle className="w-4 h-4 text-destructive shrink-0" />
-                      )}
-                      <div className="min-w-0">
-                        <p className="text-sm font-medium text-foreground truncate">{lead.name}</p>
-                        <p className="text-xs text-muted-foreground truncate">
-                          {lead.phone || t.noPhone}
+                {queueLeads.map((lead) => {
+                  const secondary = [
+                    lead.company && lead.company !== lead.name ? lead.company : null,
+                    lead.phone || t.noPhone,
+                    !lead.phone && lead.email ? lead.email : null,
+                  ].filter(Boolean).join(" • ");
+
+                  return (
+                    <div
+                      key={lead.id}
+                      role="button"
+                      tabIndex={0}
+                      onClick={() => navigate(tPath(`/leads?id=${lead.id}`))}
+                      onKeyDown={(e) => e.key === "Enter" && navigate(tPath(`/leads?id=${lead.id}`))}
+                      className={`flex items-center justify-between p-3 rounded-lg border transition-colors cursor-pointer ${
+                        lead.isOverdue
+                          ? "bg-destructive/5 border-destructive/20 hover:border-destructive/40"
+                          : "bg-muted/30 border-border/50 hover:border-primary/30"
+                      }`}
+                    >
+                      <div className="flex items-center gap-3 min-w-0">
+                        {lead.isOverdue && (
+                          <AlertTriangle className="w-4 h-4 text-destructive shrink-0" />
+                        )}
+                        <div className="min-w-0">
+                          <p className="text-sm font-semibold text-foreground truncate">{lead.name}</p>
+                          <p className="text-xs text-muted-foreground truncate">{secondary}</p>
                           {lead.callbackAt && (
-                            <span className="ml-2">
-                              · Callback {new Date(lead.callbackAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-                            </span>
+                            <p className="text-xs text-muted-foreground/80 truncate mt-0.5">
+                              Callback {new Date(lead.callbackAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                            </p>
                           )}
-                        </p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0">
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="h-8 text-xs text-muted-foreground hover:text-foreground"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            navigate(tPath(`/leads?id=${lead.id}`));
+                          }}
+                        >
+                          Details
+                        </Button>
+                        <Button
+                          size="sm"
+                          className="h-8 gap-1 bg-primary/20 text-primary hover:bg-primary/30 border-0"
+                          disabled={!lead.phone}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            navigate(tPath(`/leads?id=${lead.id}`));
+                          }}
+                        >
+                          <Phone className="w-3.5 h-3.5" />
+                          Call
+                        </Button>
                       </div>
                     </div>
-                    <div className="flex items-center gap-2 shrink-0">
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        className="h-8 text-xs text-muted-foreground hover:text-foreground"
-                        onClick={() => navigate(`/leads?id=${lead.id}`)}
-                      >
-                        Details
-                      </Button>
-                      <Button
-                        size="sm"
-                        className="h-8 gap-1 bg-primary/20 text-primary hover:bg-primary/30 border-0"
-                        onClick={() => navigate(`/leads?id=${lead.id}`)}
-                      >
-                        <Phone className="w-3.5 h-3.5" />
-                        Call
-                      </Button>
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             ) : (
               <div className="text-center py-6">
@@ -457,7 +578,7 @@ export default function Dashboard() {
         <div>
           <div className="flex items-center justify-between mb-3">
             <h2 className="text-sm font-semibold text-foreground">{t.pipeline}</h2>
-            <Button variant="link" className="text-primary gap-1 p-0 h-auto text-xs" onClick={() => navigate("/leads")}>
+            <Button variant="link" className="text-primary gap-1 p-0 h-auto text-xs" onClick={() => navigate(tPath("/leads"))}>
               {t.viewAll} <ChevronRight className="w-3 h-3" />
             </Button>
           </div>
@@ -485,15 +606,15 @@ export default function Dashboard() {
                               isOverdue ? "bg-destructive/10 border border-destructive/20" : "bg-muted/40 hover:bg-muted/60"
                             }`}
                           >
-                            <p className="text-sm font-medium text-foreground truncate">{getLeadDisplayName(lead.data)}</p>
-                            <p className="text-xs text-muted-foreground truncate">{getLeadPhone(lead.data) || t.noPhone}</p>
+                            <p className="text-sm font-medium text-foreground truncate">{getLeadDisplayName(lead)}</p>
+                            <p className="text-xs text-muted-foreground truncate">{getLeadPhone(lead) || t.noPhone}</p>
                             {/* Action buttons */}
                             <div className="flex items-center gap-1 mt-2 opacity-70 group-hover:opacity-100 transition-opacity">
                               <Button
                                 size="sm"
                                 variant="ghost"
                                 className="h-7 px-2 text-xs gap-1"
-                                onClick={() => navigate(`/leads?id=${lead.id}`)}
+                                onClick={() => navigate(tPath(`/leads?id=${lead.id}`))}
                               >
                                 <Phone className="w-3 h-3" /> {t.call}
                               </Button>
@@ -501,7 +622,7 @@ export default function Dashboard() {
                                 size="sm"
                                 variant="ghost"
                                 className="h-7 px-2 text-xs gap-1"
-                                onClick={() => navigate(`/leads?id=${lead.id}`)}
+                                onClick={() => navigate(tPath(`/leads?id=${lead.id}`))}
                               >
                                 <Calendar className="w-3 h-3" /> {t.schedule}
                               </Button>
@@ -509,7 +630,7 @@ export default function Dashboard() {
                                 size="sm"
                                 variant="ghost"
                                 className="h-7 px-2 text-xs"
-                                onClick={() => navigate(`/leads?id=${lead.id}`)}
+                                onClick={() => navigate(tPath(`/leads?id=${lead.id}`))}
                               >
                                 {t.note}
                               </Button>
@@ -522,7 +643,7 @@ export default function Dashboard() {
                           variant="ghost"
                           size="sm"
                           className="w-full text-xs text-muted-foreground"
-                          onClick={() => navigate(`/leads?status=${stage.status}`)}
+                          onClick={() => navigate(tPath(`/leads?status=${stage.status}`))}
                         >
                           +{stage.leads.length - 3} {t.more} <ArrowRight className="w-3 h-3 ml-1" />
                         </Button>
