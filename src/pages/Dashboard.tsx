@@ -494,51 +494,68 @@ export default function Dashboard() {
 
             {queueLeads.length > 0 ? (
               <div className="space-y-2">
-                {queueLeads.map((lead) => (
-                  <div
-                    key={lead.id}
-                    className={`flex items-center justify-between p-3 rounded-lg border transition-colors ${
-                      lead.isOverdue
-                        ? "bg-destructive/5 border-destructive/20 hover:border-destructive/40"
-                        : "bg-muted/30 border-border/50 hover:border-primary/30"
-                    }`}
-                  >
-                    <div className="flex items-center gap-3 min-w-0">
-                      {lead.isOverdue && (
-                        <AlertTriangle className="w-4 h-4 text-destructive shrink-0" />
-                      )}
-                      <div className="min-w-0">
-                        <p className="text-sm font-medium text-foreground truncate">{lead.name}</p>
-                        <p className="text-xs text-muted-foreground truncate">
-                          {lead.phone || t.noPhone}
+                {queueLeads.map((lead) => {
+                  const secondary = [
+                    lead.company && lead.company !== lead.name ? lead.company : null,
+                    lead.phone || t.noPhone,
+                    !lead.phone && lead.email ? lead.email : null,
+                  ].filter(Boolean).join(" • ");
+
+                  return (
+                    <div
+                      key={lead.id}
+                      role="button"
+                      tabIndex={0}
+                      onClick={() => navigate(tPath(`/leads?id=${lead.id}`))}
+                      onKeyDown={(e) => e.key === "Enter" && navigate(tPath(`/leads?id=${lead.id}`))}
+                      className={`flex items-center justify-between p-3 rounded-lg border transition-colors cursor-pointer ${
+                        lead.isOverdue
+                          ? "bg-destructive/5 border-destructive/20 hover:border-destructive/40"
+                          : "bg-muted/30 border-border/50 hover:border-primary/30"
+                      }`}
+                    >
+                      <div className="flex items-center gap-3 min-w-0">
+                        {lead.isOverdue && (
+                          <AlertTriangle className="w-4 h-4 text-destructive shrink-0" />
+                        )}
+                        <div className="min-w-0">
+                          <p className="text-sm font-semibold text-foreground truncate">{lead.name}</p>
+                          <p className="text-xs text-muted-foreground truncate">{secondary}</p>
                           {lead.callbackAt && (
-                            <span className="ml-2">
-                              · Callback {new Date(lead.callbackAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-                            </span>
+                            <p className="text-xs text-muted-foreground/80 truncate mt-0.5">
+                              Callback {new Date(lead.callbackAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                            </p>
                           )}
-                        </p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0">
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="h-8 text-xs text-muted-foreground hover:text-foreground"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            navigate(tPath(`/leads?id=${lead.id}`));
+                          }}
+                        >
+                          Details
+                        </Button>
+                        <Button
+                          size="sm"
+                          className="h-8 gap-1 bg-primary/20 text-primary hover:bg-primary/30 border-0"
+                          disabled={!lead.phone}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            navigate(tPath(`/leads?id=${lead.id}`));
+                          }}
+                        >
+                          <Phone className="w-3.5 h-3.5" />
+                          Call
+                        </Button>
                       </div>
                     </div>
-                    <div className="flex items-center gap-2 shrink-0">
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        className="h-8 text-xs text-muted-foreground hover:text-foreground"
-                        onClick={() => navigate(tPath(`/leads?id=${lead.id}`))}
-                      >
-                        Details
-                      </Button>
-                      <Button
-                        size="sm"
-                        className="h-8 gap-1 bg-primary/20 text-primary hover:bg-primary/30 border-0"
-                        onClick={() => navigate(tPath(`/leads?id=${lead.id}`))}
-                      >
-                        <Phone className="w-3.5 h-3.5" />
-                        Call
-                      </Button>
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             ) : (
               <div className="text-center py-6">
