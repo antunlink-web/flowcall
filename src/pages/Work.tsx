@@ -434,9 +434,9 @@ export default function Work() {
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
                               <DropdownMenuItem onClick={() => handleStartCalling(list.id)}>
-                                Start Calling
+                                {t.startCallingAction}
                               </DropdownMenuItem>
-                              <DropdownMenuItem>View Details</DropdownMenuItem>
+                              <DropdownMenuItem>{t.viewDetails}</DropdownMenuItem>
                             </DropdownMenuContent>
                           </DropdownMenu>
                         </div>
