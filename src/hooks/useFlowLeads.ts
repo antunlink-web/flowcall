@@ -11,7 +11,7 @@ export type FlowLead = {
   email: string;
   status: string;
   notes: string;
-  nextActionType: string | null; // call | follow_up | retry | none
+  nextActionType: string | null;
   nextActionAt: string | null;
   callbackAt: string | null;
   lastContactedAt: string | null;
@@ -19,20 +19,98 @@ export type FlowLead = {
   rawData: Record<string, unknown>;
 };
 
-function parseLeadData(row: any): FlowLead {
-  const d = (row.data as Record<string, unknown>) || {};
+type ListFields = { name: string; type?: string }[];
 
-  // Flexible field mapping — supports English, Croatian, and common aliases
-  const name =
-    String(d.name || d.Name || d.ime || d.Ime || d.full_name || d.contact || d.Contact || "");
-  const company =
-    String(d.company || d.Company || d.tvrtka || d.Tvrtka || d.firma || d.Firma || "");
-  const phone =
-    String(d.phone || d.Phone || d.telefon || d.Telefon || d.tel || d.Tel || d.mobitel || "");
-  const email =
-    String(d.email || d.Email || d.e_mail || d["e-mail"] || "");
-  const notes =
-    String(d.notes || d.Notes || d.napomena || d.Napomena || d.komentar || "");
+// ── Phone detection helpers ────────────────────────────────────
+
+const PHONE_NAME_PATTERNS = /^(phone|telefon|tel|mobile|mobitel|mob|gsm|fax|cell|cellular|telephone)$/i;
+const PHONE_VALUE_PATTERN = /^[\s+]?[\d\s\-().]{7,}$/;
+
+function isPhoneValue(val: string): boolean {
+  return PHONE_VALUE_PATTERN.test(val.trim()) && val.trim().length >= 7;
+}
+
+function findPhoneValue(data: Record<string, unknown>, fields?: ListFields): string {
+  // 1. Check list field config for type=Phone
+  if (fields) {
+    for (const f of fields) {
+      if (f.type === "Phone" || f.type === "phone") {
+        const v = data[f.name];
+        if (v) return String(v);
+      }
+    }
+  }
+  // 2. Check by field name pattern
+  for (const [key, val] of Object.entries(data)) {
+    if (PHONE_NAME_PATTERNS.test(key) && val) return String(val);
+  }
+  // 3. Check by value pattern (skip if looks like email or OIB/ID)
+  for (const [, val] of Object.entries(data)) {
+    if (typeof val === "string" && isPhoneValue(val) && !val.includes("@")) return val;
+  }
+  return "";
+}
+
+// ── Email detection ────────────────────────────────────────────
+
+const EMAIL_NAME_PATTERNS = /^(email|e-mail|e_mail|mail|eposta)$/i;
+const EMAIL_VALUE_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+function findEmailValue(data: Record<string, unknown>, fields?: ListFields): string {
+  if (fields) {
+    for (const f of fields) {
+      if (f.type === "Email" || f.type === "email" || EMAIL_NAME_PATTERNS.test(f.name)) {
+        const v = data[f.name];
+        if (v) return String(v);
+      }
+    }
+  }
+  for (const [key, val] of Object.entries(data)) {
+    if (EMAIL_NAME_PATTERNS.test(key) && val) return String(val);
+  }
+  for (const [, val] of Object.entries(data)) {
+    if (typeof val === "string" && EMAIL_VALUE_PATTERN.test(val.trim())) return val.trim();
+  }
+  return "";
+}
+
+// ── Parse lead using list field config ─────────────────────────
+
+function parseLeadData(row: any, listFieldsMap: Map<string, ListFields>): FlowLead {
+  const d = (row.data as Record<string, unknown>) || {};
+  const listFields = row.list_id ? listFieldsMap.get(row.list_id) : undefined;
+
+  // Primary name: use first field from list config
+  let name = "";
+  if (listFields && listFields.length > 0) {
+    const primaryKey = listFields[0].name;
+    const val = d[primaryKey];
+    if (val) name = String(val);
+  }
+  // Fallback to common name patterns
+  if (!name) {
+    name = String(
+      d.name || d.Name || d.ime || d.Ime || d.full_name || d.contact || d.Contact || ""
+    );
+  }
+
+  // Company: try list fields with "company"-like names, then fallback
+  let company = "";
+  if (listFields) {
+    for (const f of listFields) {
+      if (/^(company|tvrtka|firma|organization|org)$/i.test(f.name)) {
+        const v = d[f.name];
+        if (v) { company = String(v); break; }
+      }
+    }
+  }
+  if (!company) {
+    company = String(d.company || d.Company || d.tvrtka || d.Tvrtka || d.firma || d.Firma || "");
+  }
+
+  const phone = findPhoneValue(d, listFields);
+  const email = findEmailValue(d, listFields);
+  const notes = String(d.notes || d.Notes || d.napomena || d.Napomena || d.komentar || "");
 
   return {
     id: row.id,
@@ -71,6 +149,18 @@ export function useFlowLeads() {
     queryKey: ["flow-leads", tenant?.id],
     enabled: !!user && !!tenant?.id,
     queryFn: async () => {
+      // Fetch lists for field config
+      const { data: lists } = await supabase
+        .from("lists")
+        .select("id, fields")
+        .eq("tenant_id", tenant!.id);
+
+      const listFieldsMap = new Map<string, ListFields>();
+      (lists || []).forEach((l: any) => {
+        const fields = Array.isArray(l.fields) ? l.fields : [];
+        listFieldsMap.set(l.id, fields as ListFields);
+      });
+
       const { data, error } = await supabase
         .from("leads")
         .select("*")
@@ -78,7 +168,7 @@ export function useFlowLeads() {
         .order("created_at", { ascending: false })
         .limit(500);
       if (error) throw error;
-      return (data || []).map(parseLeadData);
+      return (data || []).map((row: any) => parseLeadData(row, listFieldsMap));
     },
   });
 }
@@ -107,20 +197,18 @@ export function useUpdateLeadStatus() {
         updated_at: new Date().toISOString(),
       };
 
-      // Map outcome to next action fields
       if (nextActionType !== undefined) {
         updates.next_action_type = nextActionType;
         updates.next_action_at = nextActionAt || null;
       } else {
-        // Auto-derive next action from status
         switch (status) {
           case "interested":
             updates.next_action_type = "follow_up";
-            updates.next_action_at = new Date(Date.now() + 86400000).toISOString(); // +1 day
+            updates.next_action_at = new Date(Date.now() + 86400000).toISOString();
             break;
           case "no_answer":
             updates.next_action_type = "retry";
-            updates.next_action_at = new Date(Date.now() + 7200000).toISOString(); // +2 hours
+            updates.next_action_at = new Date(Date.now() + 7200000).toISOString();
             break;
           case "callback":
             updates.next_action_type = "call";
@@ -148,7 +236,6 @@ export function useUpdateLeadStatus() {
         .eq("id", leadId);
       if (error) throw error;
 
-      // Log the call in call_logs (activity history)
       if (user && tenant) {
         await supabase.from("call_logs").insert({
           lead_id: leadId,
