@@ -531,7 +531,7 @@ export default function ControlPanel() {
                     </Link>
                   ))}
                 </div>
-                <Button onClick={() => navigate("/work")} className="w-full">Start Working Callbacks</Button>
+                <Button onClick={() => navigate("/work")} className="w-full">{t.startWorkingCallbacks}</Button>
               </div>
             )}
           </div>
