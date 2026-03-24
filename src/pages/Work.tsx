@@ -374,7 +374,7 @@ export default function Work() {
               {lists.length === 0 ? (
                 <Card>
                   <CardContent className="py-12 text-center">
-                    <p className="text-muted-foreground">No lists assigned to you. Ask an admin to assign you to a list.</p>
+                    <p className="text-muted-foreground">{t.noListsAssigned}</p>
                   </CardContent>
                 </Card>
               ) : (
