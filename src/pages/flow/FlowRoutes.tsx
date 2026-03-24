@@ -10,6 +10,7 @@ const FlowDashboard = lazy(() => import("@/pages/flow/FlowDashboard"));
 const FlowSession = lazy(() => import("@/pages/flow/FlowSession"));
 const FlowPipeline = lazy(() => import("@/pages/flow/FlowPipeline"));
 const FlowContacts = lazy(() => import("@/pages/flow/FlowContacts"));
+const FlowLeadDetail = lazy(() => import("@/pages/flow/FlowLeadDetail"));
 
 function FlowLoader() {
   return (
