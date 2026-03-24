@@ -275,6 +275,9 @@ export function TopNavbar() {
             )}
           </div>
 
+          {/* Mode Switcher */}
+          <ModeSwitcher />
+
           {/* Dashboard Icon */}
           <Button 
             variant="ghost"
