@@ -49,6 +49,9 @@ const ProductOwnerDashboard = lazy(() => import("./pages/ProductOwnerDashboard")
 const CompanionApp = lazy(() => import("./pages/CompanionApp"));
 const InsuranceLandingPage = lazy(() => import("./pages/InsuranceLandingPage"));
 
+// FlowCall standalone minimal calling app
+import { FlowRoutes } from "./pages/flow/FlowRoutes";
+
 function PageLoader() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-background">
