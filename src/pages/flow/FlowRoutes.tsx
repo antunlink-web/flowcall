@@ -31,6 +31,7 @@ export function FlowRoutes() {
               <Route path="session" element={<FlowSession />} />
               <Route path="pipeline" element={<FlowPipeline />} />
               <Route path="contacts" element={<FlowContacts />} />
+              <Route path="lead/:leadId" element={<FlowLeadDetail />} />
             </Routes>
           </Suspense>
         </FlowLayout>
