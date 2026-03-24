@@ -447,6 +447,16 @@ export const appTranslations = {
     language: "Language",
     languageEnglish: "English",
     languageCroatian: "Hrvatski",
+
+    // ── Additional UI ──
+    team: "Team",
+    tryCallingMode: "Try Calling Mode — faster way to work your leads",
+    claimedLeadsTitle: "Claimed Leads",
+    allClearCallbacks: "All clear! No callbacks waiting for you.",
+    startWorkingCallbacks: "Start Working Callbacks",
+    workLogComingSoon: "Work log coming soon.",
+    noScheduledCallbacksLong: "No scheduled callbacks. Work your queue to schedule some.",
+    noLockedLeadsLong: "You have no locked leads. Find a lead and start calling!",
   },
 
   hr: {
