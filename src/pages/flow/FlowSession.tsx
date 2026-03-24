@@ -121,6 +121,19 @@ export default function FlowSession() {
         outcome,
         notes: notes || undefined,
       });
+
+      // Toast feedback
+      const toastMessages: Record<string, string> = {
+        no_answer: "Retry scheduled for tomorrow at 10:00",
+        interested: "Follow-up scheduled for tomorrow",
+        not_interested: "Lead marked as not interested",
+        wrong_number: "Lead marked as wrong number",
+        callback_requested: "Callback scheduled",
+      };
+      if (toastMessages[outcome]) {
+        toast.success(toastMessages[outcome]);
+      }
+
       advance();
     },
     [current, notes, transitioning, handleOutcomeMut, advance]
