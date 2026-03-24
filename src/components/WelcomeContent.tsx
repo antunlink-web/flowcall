@@ -1,6 +1,7 @@
 import { useAuth } from "@/hooks/useAuth";
 import { useBranding } from "@/hooks/useBranding";
 import { Link } from "react-router-dom";
+import { useTenantLinkPath } from "@/hooks/useTenantPath";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
@@ -11,7 +12,6 @@ import {
   Settings,
   CheckCircle2,
   MessageSquare,
-  HelpCircle,
 } from "lucide-react";
 
 interface OnboardingStep {
@@ -25,6 +25,7 @@ interface OnboardingStep {
 export function WelcomeContent() {
   const { user } = useAuth();
   const { branding } = useBranding();
+  const tPath = useTenantLinkPath();
 
   const userName = user?.user_metadata?.full_name?.split(" ")[0] || "there";
   const appName = branding?.app_name || "the CRM";
@@ -87,7 +88,7 @@ export function WelcomeContent() {
           {onboardingSteps.map((step, index) => (
             <Link
               key={index}
-              to={step.link}
+              to={tPath(step.link)}
               className="flex items-start gap-4 group hover:bg-muted/50 p-3 rounded-lg transition-colors -ml-3"
             >
               <div className="relative mt-1">

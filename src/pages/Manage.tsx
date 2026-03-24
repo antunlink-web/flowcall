@@ -7,6 +7,7 @@ import {
   Settings
 } from "lucide-react";
 import { Link } from "react-router-dom";
+import { useTenantLinkPath } from "@/hooks/useTenantPath";
 
 const menuItems = [
   {
@@ -47,6 +48,8 @@ const menuItems = [
 ];
 
 export default function Manage() {
+  const tPath = useTenantLinkPath();
+
   return (
     <DashboardLayout>
       <div className="p-8 max-w-4xl">
@@ -75,7 +78,7 @@ export default function Manage() {
             ) : (
               <Link
                 key={item.title}
-                to={item.href}
+                to={tPath(item.href)}
                 className="flex items-start gap-4 group"
               >
                 <item.icon className="h-6 w-6 text-foreground mt-0.5 shrink-0" />
