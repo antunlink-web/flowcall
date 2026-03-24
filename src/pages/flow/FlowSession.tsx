@@ -199,6 +199,9 @@ export default function FlowSession() {
         source: "manual",
       });
 
+      const label = when === "later_today" ? "later today" : when === "tomorrow" ? "tomorrow at 10:00" : "scheduled time";
+      toast.success(`Retry scheduled for ${label}`);
+
       advance();
     },
     [current, createAction, advance]
