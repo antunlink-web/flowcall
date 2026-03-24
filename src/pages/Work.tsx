@@ -414,7 +414,7 @@ export default function Work() {
                           variant="secondary" 
                           className="bg-primary/10 text-primary border-0 text-xs px-2 py-0.5"
                         >
-                          {list.dueCount} due
+                          {list.dueCount} {t.due}
                         </Badge>
 
                         <div className="flex items-center border rounded">
