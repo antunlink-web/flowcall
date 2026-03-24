@@ -166,6 +166,9 @@ function AppContent() {
         <Route path="/auth/callback" element={<AuthCallback />} />
         <Route path="/reset-password" element={<ResetPassword />} />
 
+        {/* FlowCall standalone minimal calling assistant */}
+        <Route path="/flow/*" element={<FlowRoutes />} />
+
         {/* Product owner dashboard (root level, no tenant) */}
         <Route path="/aiculedssul" element={
           <ProtectedRoute requiredRoles={["product_owner"]}>
