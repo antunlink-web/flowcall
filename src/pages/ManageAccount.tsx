@@ -50,6 +50,7 @@ const sidebarItems = [
 export default function ManageAccount() {
   const { isOwner } = useUserRole();
   const { branding, refetch: refetchBranding } = useBranding();
+  const tPath = useTenantLinkPath();
   const [activeSection, setActiveSection] = useState<string | null>(null);
   const [seats, setSeats] = useState("1");
   const [usedSeats, setUsedSeats] = useState(0);
@@ -1065,7 +1066,7 @@ export default function ManageAccount() {
               </p>
               <p className="text-sm">
                 <span className="text-primary">If</span> you intend to remove seats you may want to delete some users from the{" "}
-                <Link to="/manage/users" className="text-primary underline">user management section</Link> first.
+                <Link to={tPath("/manage/users")} className="text-primary underline">user management section</Link> first.
               </p>
 
               <div className="flex items-center gap-4 pt-4">
