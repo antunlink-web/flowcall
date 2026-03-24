@@ -479,7 +479,7 @@ export default function ControlPanel() {
         {/* Locked Tab */}
         {activeTab === "locked" && (
           <div className="space-y-6">
-            <h2 className="text-2xl font-semibold text-primary">Your Locked Leads</h2>
+            <h2 className="text-2xl font-semibold text-primary">{t.lockedLeadsTitle}</h2>
             {dataLoading ? (
               <div className="flex justify-center py-12">
                 <div className="animate-spin h-8 w-8 border-2 border-primary border-t-transparent rounded-full" />
