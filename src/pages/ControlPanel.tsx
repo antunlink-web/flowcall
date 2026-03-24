@@ -509,7 +509,7 @@ export default function ControlPanel() {
         {activeTab === "due" && (
           <div className="space-y-6">
             <div className="flex items-center gap-3">
-              <h2 className="text-2xl font-semibold text-primary">Due Callbacks</h2>
+              <h2 className="text-2xl font-semibold text-primary">{t.dueCallbacksTitle}</h2>
               {dueCallbacks.length > 0 && <Badge variant="destructive">{dueCallbacks.length}</Badge>}
             </div>
             {dueCallbacks.length === 0 ? (
