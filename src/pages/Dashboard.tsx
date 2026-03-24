@@ -531,7 +531,7 @@ export default function Dashboard() {
                       <Button
                         size="sm"
                         className="h-8 gap-1 bg-primary/20 text-primary hover:bg-primary/30 border-0"
-                        onClick={() => navigate(`/leads?id=${lead.id}`)}
+                        onClick={() => navigate(tPath(`/leads?id=${lead.id}`))}
                       >
                         <Phone className="w-3.5 h-3.5" />
                         Call
