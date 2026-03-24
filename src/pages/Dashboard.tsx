@@ -377,7 +377,7 @@ export default function Dashboard() {
               <Button
                 size="lg"
                 className="bg-primary hover:bg-primary/90 text-primary-foreground px-8 gap-2 font-semibold w-full sm:w-auto"
-                onClick={() => navigate("/work?autostart=true")}
+                onClick={() => navigate(tPath("/work?autostart=true"))}
               >
                 <Phone className="w-5 h-5" />
                 {t.startCalling}
