@@ -232,11 +232,13 @@ export default function Work() {
 
   const filteredLeads = currentLead ? [currentLead] : [];
 
+  const t = useTranslation();
+
   const tabs = [
-    { id: "queues" as WorkTab, label: "Queues" },
-    { id: "scheduled" as WorkTab, label: "Scheduled" },
-    { id: "claimed" as WorkTab, label: "Claimed" },
-    { id: "worklog" as WorkTab, label: "Work log" },
+    { id: "queues" as WorkTab, label: t.queues },
+    { id: "scheduled" as WorkTab, label: t.scheduled },
+    { id: "claimed" as WorkTab, label: t.claimed },
+    { id: "worklog" as WorkTab, label: t.workLog },
   ];
 
   // Show loading when auth loading, initial loading, or autostarting
