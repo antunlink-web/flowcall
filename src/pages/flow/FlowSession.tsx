@@ -160,6 +160,7 @@ export default function FlowSession() {
           source: "call_outcome",
           outcome: "answered",
         });
+        toast.success("Follow-up scheduled for tomorrow");
       } else if (choice === "waiting") {
         await createAction.mutateAsync({
           leadId: current.lead.id,
@@ -168,6 +169,9 @@ export default function FlowSession() {
           source: "call_outcome",
           outcome: "answered",
         });
+        toast.success("Waiting for reply — will remind you tomorrow");
+      } else {
+        toast.success("Call completed — no follow-up needed");
       }
 
       advance();
