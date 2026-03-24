@@ -276,22 +276,26 @@ export default function Dashboard() {
   // Call queue - overdue first, then new leads
   const queueLeads: QueueLead[] = useMemo(() => {
     const queue: QueueLead[] = [];
-    overdueCallbacks.slice(0, 5).forEach(l => {
+    overdueCallbacks.slice(0, 5).forEach((l) => {
       queue.push({
         id: l.id,
-        name: getLeadDisplayName(l.data),
-        phone: getLeadPhone(l.data),
+        name: getLeadDisplayName(l),
+        company: getLeadCompany(l),
+        phone: getLeadPhone(l),
+        email: getLeadEmail(l),
         status: "overdue",
         isOverdue: true,
         callbackAt: l.callback_scheduled_at,
       });
     });
     if (queue.length < 5) {
-      newLeads.slice(0, 5 - queue.length).forEach(l => {
+      newLeads.slice(0, 5 - queue.length).forEach((l) => {
         queue.push({
           id: l.id,
-          name: getLeadDisplayName(l.data),
-          phone: getLeadPhone(l.data),
+          name: getLeadDisplayName(l),
+          company: getLeadCompany(l),
+          phone: getLeadPhone(l),
+          email: getLeadEmail(l),
           status: "new",
           isOverdue: false,
           callbackAt: null,
@@ -299,7 +303,7 @@ export default function Dashboard() {
       });
     }
     return queue;
-  }, [leads]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [overdueCallbacks, newLeads, listFieldsById]);
 
   // Daily goal (target 50 calls)
   const dailyGoal = 50;
