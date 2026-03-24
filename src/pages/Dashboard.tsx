@@ -524,7 +524,7 @@ export default function Dashboard() {
                         size="sm"
                         variant="ghost"
                         className="h-8 text-xs text-muted-foreground hover:text-foreground"
-                        onClick={() => navigate(`/leads?id=${lead.id}`)}
+                        onClick={() => navigate(tPath(`/leads?id=${lead.id}`))}
                       >
                         Details
                       </Button>
