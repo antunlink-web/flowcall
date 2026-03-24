@@ -529,7 +529,7 @@ export default function Work() {
             
             <Card>
               <CardContent className="py-12 text-center">
-                <p className="text-muted-foreground">Work log coming soon.</p>
+                <p className="text-muted-foreground">{t.workLogComingSoon}</p>
               </CardContent>
             </Card>
           </div>
