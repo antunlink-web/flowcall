@@ -92,6 +92,7 @@ const reviewItems = [
 ];
 
 export default function ControlPanel() {
+  const { mode } = useFlowMode();
   const [activeTab, setActiveTab] = useState<TabType>("main");
   const [recentLeads, setRecentLeads] = useState<RecentLead[]>([]);
   const [scheduledLeads, setScheduledLeads] = useState<ScheduledLead[]>([]);
