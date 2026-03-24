@@ -211,6 +211,7 @@ const App = () => (
                   </BrowserRouter>
                   <GlobalUploadProgressBar />
                 </UploadProgressProvider>
+                </FlowModeProvider>
               </BrandingProvider>
             </ErrorBoundary>
           </AuthProvider>
