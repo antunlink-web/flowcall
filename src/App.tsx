@@ -15,6 +15,7 @@ import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { TenantProvider } from "@/hooks/useTenant";
 import { TenantPathProvider } from "@/hooks/useTenantPath";
 import { SubscriptionProvider } from "@/hooks/useSubscription";
+import { FlowModeProvider } from "@/hooks/useFlowMode";
 import { isNativeApp } from "@/lib/native-dialer";
 import { OfflineBanner } from "@/components/OfflineBanner";
 import { LandingOrRedirect } from "@/components/LandingOrRedirect";
@@ -198,6 +199,7 @@ const App = () => (
           <AuthProvider>
             <ErrorBoundary>
               <BrandingProvider>
+                <FlowModeProvider>
                 <UploadProgressProvider>
                   <OfflineBanner />
                   <Toaster />
@@ -209,6 +211,7 @@ const App = () => (
                   </BrowserRouter>
                   <GlobalUploadProgressBar />
                 </UploadProgressProvider>
+                </FlowModeProvider>
               </BrandingProvider>
             </ErrorBoundary>
           </AuthProvider>

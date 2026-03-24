@@ -31,6 +31,12 @@ import {
   Flag,
   CreditCard,
 } from "lucide-react";
+import { useFlowMode } from "@/hooks/useFlowMode";
+import { CallingModeBanner } from "@/components/CallingModeBanner";
+import { ModeSelectModal } from "@/components/ModeSelectModal";
+import { Suspense, lazy } from "react";
+
+const FlowDashboard = lazy(() => import("@/pages/flow/FlowDashboard"));
 
 type TabType = "main" | "work" | "manage" | "review" | "history" | "scheduled" | "locked" | "due";
 
@@ -86,6 +92,7 @@ const reviewItems = [
 ];
 
 export default function ControlPanel() {
+  const { mode } = useFlowMode();
   const [activeTab, setActiveTab] = useState<TabType>("main");
   const [recentLeads, setRecentLeads] = useState<RecentLead[]>([]);
   const [scheduledLeads, setScheduledLeads] = useState<ScheduledLead[]>([]);
@@ -245,8 +252,22 @@ export default function ControlPanel() {
     }
   };
 
+  // Calling Mode → show Flow Dashboard instead of CRM grid
+  if (mode === "calling") {
+    return (
+      <DashboardLayout>
+        <ModeSelectModal />
+        <Suspense fallback={<div className="flex items-center justify-center min-h-[60vh]"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" /></div>}>
+          <FlowDashboard />
+        </Suspense>
+      </DashboardLayout>
+    );
+  }
+
   return (
     <DashboardLayout>
+      <ModeSelectModal />
+      <CallingModeBanner />
       {/* Section Header - shows when in a sub-section */}
       {isSubSection && currentSection && (
         <div className="bg-[hsl(215,25%,27%)] sticky top-14 z-40 shadow-md">
