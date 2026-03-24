@@ -494,7 +494,7 @@ export default function ControlPanel() {
                       <Lock className="w-5 h-5 text-yellow-500" />
                       <div>
                         <p className="font-medium">{lead.company_name}</p>
-                        <p className="text-sm text-muted-foreground">Locked {formatDistanceToNow(new Date(lead.claimed_at), { addSuffix: true })}</p>
+                        <p className="text-sm text-muted-foreground">{t.locked} {formatDistanceToNow(new Date(lead.claimed_at), { addSuffix: true })}</p>
                       </div>
                     </div>
                     <ChevronRight className="w-5 h-5 text-muted-foreground" />
