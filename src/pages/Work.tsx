@@ -365,7 +365,7 @@ export default function Work() {
           <div className="space-y-6">
             {/* Section Header */}
             <div>
-              <h2 className="text-2xl font-light italic text-primary">Your lists</h2>
+              <h2 className="text-2xl font-light italic text-primary">{t.yourLists}</h2>
               <div className="w-16 h-0.5 bg-primary mt-2" />
             </div>
 
