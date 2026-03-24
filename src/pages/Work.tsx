@@ -490,7 +490,7 @@ export default function Work() {
         {activeTab === "claimed" && (
           <div className="space-y-6">
             <div>
-              <h2 className="text-2xl font-light italic text-primary">Claimed leads</h2>
+              <h2 className="text-2xl font-light italic text-primary">{t.claimedLeadsTitle}</h2>
               <div className="w-16 h-0.5 bg-primary mt-2" />
             </div>
             
