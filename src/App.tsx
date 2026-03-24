@@ -173,6 +173,9 @@ function AppContent() {
         {/* CRM tenant routes */}
         <Route path="/t/:tenantSlug/*" element={<TenantCrmApp />} />
 
+        {/* Legacy root manage paths */}
+        <Route path="/manage/*" element={<Navigate to="/" replace />} />
+
         {/* Catch-all */}
         <Route path="*" element={<NotFound />} />
       </Routes>
