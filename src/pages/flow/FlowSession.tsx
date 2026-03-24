@@ -4,6 +4,7 @@ import {
   ArrowLeft, Phone, X, RotateCcw, ThumbsUp, ThumbsDown,
   CheckCircle2, Clock, AlertCircle, Calendar,
 } from "lucide-react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
@@ -120,6 +121,19 @@ export default function FlowSession() {
         outcome,
         notes: notes || undefined,
       });
+
+      // Toast feedback
+      const toastMessages: Record<string, string> = {
+        no_answer: "Retry scheduled for tomorrow at 10:00",
+        interested: "Follow-up scheduled for tomorrow",
+        not_interested: "Lead marked as not interested",
+        wrong_number: "Lead marked as wrong number",
+        callback_requested: "Callback scheduled",
+      };
+      if (toastMessages[outcome]) {
+        toast.success(toastMessages[outcome]);
+      }
+
       advance();
     },
     [current, notes, transitioning, handleOutcomeMut, advance]
@@ -146,6 +160,7 @@ export default function FlowSession() {
           source: "call_outcome",
           outcome: "answered",
         });
+        toast.success("Follow-up scheduled for tomorrow");
       } else if (choice === "waiting") {
         await createAction.mutateAsync({
           leadId: current.lead.id,
@@ -154,6 +169,9 @@ export default function FlowSession() {
           source: "call_outcome",
           outcome: "answered",
         });
+        toast.success("Waiting for reply — will remind you tomorrow");
+      } else {
+        toast.success("Call completed — no follow-up needed");
       }
 
       advance();
@@ -180,6 +198,9 @@ export default function FlowSession() {
         scheduledFor,
         source: "manual",
       });
+
+      const label = when === "later_today" ? "later today" : when === "tomorrow" ? "tomorrow at 10:00" : "scheduled time";
+      toast.success(`Retry scheduled for ${label}`);
 
       advance();
     },
