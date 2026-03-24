@@ -31,6 +31,12 @@ import {
   Flag,
   CreditCard,
 } from "lucide-react";
+import { useFlowMode } from "@/hooks/useFlowMode";
+import { CallingModeBanner } from "@/components/CallingModeBanner";
+import { ModeSelectModal } from "@/components/ModeSelectModal";
+import { Suspense, lazy } from "react";
+
+const FlowDashboard = lazy(() => import("@/pages/flow/FlowDashboard"));
 
 type TabType = "main" | "work" | "manage" | "review" | "history" | "scheduled" | "locked" | "due";
 
