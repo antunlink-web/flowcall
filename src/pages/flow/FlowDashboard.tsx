@@ -137,6 +137,7 @@ export default function FlowDashboard() {
           items={overdue}
           isOverdue
           onCall={() => navigate("session")}
+          onRowClick={(leadId) => navigate(`lead/${leadId}`)}
         />
       )}
 
@@ -147,10 +148,31 @@ export default function FlowDashboard() {
           items={today}
           isLoading={isLoading}
           onCall={() => navigate("session")}
+          onRowClick={(leadId) => navigate(`lead/${leadId}`)}
         />
       )}
     </div>
   );
+}
+
+/* ── Contact display helper ───────────────────────────────────── */
+
+function getContactLabel(lead: TaskItem["lead"]) {
+  const name = lead?.name?.trim();
+  const company = lead?.company?.trim();
+  const phone = lead?.phone?.trim();
+  const email = lead?.email?.trim();
+
+  const primary = name || company || phone || email || "Unknown contact";
+  // Secondary: show company if name was used, then phone, then email
+  const parts: string[] = [];
+  if (name && company) parts.push(company);
+  if (phone) parts.push(phone);
+  else parts.push("No phone number");
+  if (email && !name && !company) { /* already used as primary */ }
+  else if (email) parts.push(email);
+
+  return { primary, secondary: parts.join(" · "), hasPhone: !!phone };
 }
 
 /* ── Task Queue Section ──────────────────────────────────────── */
@@ -162,6 +184,7 @@ function TaskQueue({
   isOverdue = false,
   isLoading = false,
   onCall,
+  onRowClick,
 }: {
   title: string;
   badge?: "destructive" | "default";
@@ -169,9 +192,10 @@ function TaskQueue({
   isOverdue?: boolean;
   isLoading?: boolean;
   onCall: () => void;
+  onRowClick: (leadId: string) => void;
 }) {
   return (
-    <div className="space-y-2">
+    <div className="space-y-3">
       <div className="flex items-center gap-2 px-1">
         <h3 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
           {title}
@@ -187,29 +211,36 @@ function TaskQueue({
       {isLoading ? (
         <div className="space-y-2">
           {[1, 2, 3].map((i) => (
-            <div key={i} className="h-14 rounded-xl bg-muted/20 animate-pulse" />
+            <div key={i} className="h-16 rounded-xl bg-muted/20 animate-pulse" />
           ))}
         </div>
       ) : (
-        <div className="space-y-1.5">
+        <div className="space-y-2">
           {items.map((task) => {
             const ActionIcon = actionIcons[task.action_type] || Phone;
             const effectiveTime = getEffectiveTime(task);
             const typeLabel = actionTypeLabels[task.action_type] || task.action_type;
+            const { primary, secondary, hasPhone } = getContactLabel(task.lead);
 
             return (
               <div
                 key={task.id}
-                className="flex items-center gap-3 rounded-xl border border-border/40 bg-card px-4 py-3 hover:border-primary/30 transition-colors"
+                className="flex items-center gap-3 rounded-xl border border-border/40 bg-card px-4 py-3.5 hover:bg-accent/50 hover:border-primary/30 transition-colors cursor-pointer group"
+                onClick={() => task.lead && onRowClick(task.lead.id)}
+                role="button"
+                tabIndex={0}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && task.lead) onRowClick(task.lead.id);
+                }}
               >
-                <div className="p-1.5 rounded-lg bg-muted/40">
+                <div className="p-2 rounded-lg bg-muted/40 group-hover:bg-primary/10 transition-colors">
                   <ActionIcon className="h-4 w-4 text-primary" />
                 </div>
 
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
-                    <p className="text-sm font-medium truncate">
-                      {task.lead?.name || "Unknown"}
+                    <p className="text-sm font-semibold truncate text-foreground">
+                      {primary}
                     </p>
                     <Badge variant="outline" className="text-[10px] px-1.5 py-0 shrink-0">
                       {typeLabel}
@@ -220,9 +251,8 @@ function TaskQueue({
                       </Badge>
                     )}
                   </div>
-                  <p className="text-xs text-muted-foreground truncate">
-                    {task.lead?.company && `${task.lead.company} · `}
-                    {task.lead?.phone}
+                  <p className="text-xs text-muted-foreground truncate mt-0.5">
+                    {secondary}
                     {task.scheduled_for && ` · ${format(effectiveTime, "HH:mm")}`}
                   </p>
                 </div>
@@ -230,7 +260,11 @@ function TaskQueue({
                 <Button
                   size="sm"
                   className="shrink-0"
-                  onClick={onCall}
+                  disabled={!hasPhone}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onCall();
+                  }}
                 >
                   <Phone className="h-3.5 w-3.5 mr-1" />
                   Call
