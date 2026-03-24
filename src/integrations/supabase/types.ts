@@ -445,6 +445,8 @@ export type Database = {
           id: string
           last_contacted_at: string | null
           list_id: string | null
+          next_action_at: string | null
+          next_action_type: string | null
           status: string
           tenant_id: string | null
           updated_at: string
@@ -461,6 +463,8 @@ export type Database = {
           id?: string
           last_contacted_at?: string | null
           list_id?: string | null
+          next_action_at?: string | null
+          next_action_type?: string | null
           status?: string
           tenant_id?: string | null
           updated_at?: string
@@ -477,6 +481,8 @@ export type Database = {
           id?: string
           last_contacted_at?: string | null
           list_id?: string | null
+          next_action_at?: string | null
+          next_action_type?: string | null
           status?: string
           tenant_id?: string | null
           updated_at?: string
@@ -1027,6 +1033,8 @@ export type Database = {
           id: string
           last_contacted_at: string | null
           list_id: string | null
+          next_action_at: string | null
+          next_action_type: string | null
           status: string
           tenant_id: string | null
           updated_at: string
@@ -1052,6 +1060,8 @@ export type Database = {
           id: string
           last_contacted_at: string | null
           list_id: string | null
+          next_action_at: string | null
+          next_action_type: string | null
           status: string
           tenant_id: string | null
           updated_at: string

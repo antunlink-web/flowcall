@@ -4,7 +4,7 @@ import { ArrowLeft, Phone, X, RotateCcw, ThumbsUp, ThumbsDown, CheckCircle2 } fr
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
-import { useFlowLeads, useUpdateLeadStatus, type FlowLead } from "@/hooks/useFlowLeads";
+import { useFlowLeads, useUpdateLeadStatus, deriveNextAction, type FlowLead } from "@/hooks/useFlowLeads";
 
 const defaultScript = `**Opening**
 "Hi [Name], this is [Your Name] from [Company]. I'm calling because..."
@@ -27,10 +27,13 @@ export default function FlowSession() {
   const { data: allLeads = [] } = useFlowLeads();
   const updateStatus = useUpdateLeadStatus();
 
+  // Queue: leads that have actionable next actions
   const queue = useMemo(() => {
-    return allLeads.filter(
-      (l) => l.status === "new" || l.status === "callback"
-    );
+    return allLeads.filter((l) => {
+      if (l.status === "not_interested" || l.status === "won" || l.status === "lost") return false;
+      const action = deriveNextAction(l);
+      return action.type !== "none";
+    });
   }, [allLeads]);
 
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -45,14 +48,9 @@ export default function FlowSession() {
       if (!current || transitioning) return;
       setTransitioning(true);
 
-      const callbackAt = status === "callback"
-        ? new Date(Date.now() + 3600000).toISOString()
-        : null;
-
       await updateStatus.mutateAsync({
         leadId: current.id,
         status,
-        callbackAt,
         notes: notes || undefined,
       });
 
@@ -81,6 +79,8 @@ export default function FlowSession() {
     );
   }
 
+  const action = deriveNextAction(current);
+
   return (
     <div className="min-h-[calc(100vh-3.5rem)] flex flex-col">
       {/* Top bar */}
@@ -88,9 +88,12 @@ export default function FlowSession() {
         <Button variant="ghost" size="sm" onClick={() => navigate("/flow")}>
           <ArrowLeft className="h-4 w-4 mr-1" /> Exit
         </Button>
-        <span className="text-sm text-muted-foreground">
-          {currentIndex + 1} / {queue.length} · {remaining} remaining
-        </span>
+        <div className="text-sm text-muted-foreground flex items-center gap-3">
+          <span className="text-xs px-2 py-0.5 rounded-full bg-muted">
+            {action.type}
+          </span>
+          <span>{currentIndex + 1} / {queue.length} · {remaining} remaining</span>
+        </div>
       </div>
 
       {/* Main content */}
@@ -121,6 +124,9 @@ export default function FlowSession() {
                 <p>Attempts: {current.callAttempts}</p>
                 {current.lastContactedAt && (
                   <p>Last contact: {new Date(current.lastContactedAt).toLocaleDateString()}</p>
+                )}
+                {current.notes && (
+                  <p className="italic border-l-2 border-primary/30 pl-2 mt-2">{current.notes}</p>
                 )}
               </div>
             </CardContent>
@@ -168,7 +174,7 @@ export default function FlowSession() {
           <Button
             size="lg"
             variant="outline"
-            className="border-red-500/30 text-red-400 hover:bg-red-500/10"
+            className="border-destructive/30 text-destructive hover:bg-destructive/10"
             onClick={() => handleOutcome("no_answer")}
           >
             <X className="h-5 w-5 mr-2" />

@@ -1,10 +1,25 @@
 import { useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import { Phone, PhoneCall, ThumbsUp, TrendingUp, Clock, RotateCcw, CalendarClock, CheckCircle2 } from "lucide-react";
+import { Phone, PhoneCall, ThumbsUp, TrendingUp, Clock, RotateCcw, CalendarClock, CheckCircle2, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { useFlowLeads, useTodayStats } from "@/hooks/useFlowLeads";
-import { format, isToday, isBefore } from "date-fns";
+import { Badge } from "@/components/ui/badge";
+import { useFlowLeads, useTodayStats, deriveNextAction } from "@/hooks/useFlowLeads";
+import { format, isToday, isBefore, isPast } from "date-fns";
+
+const actionLabels: Record<string, string> = {
+  call: "Call",
+  retry: "Retry",
+  follow_up: "Follow up",
+  callback: "Callback",
+};
+
+const actionIcons: Record<string, typeof Clock> = {
+  call: Phone,
+  retry: RotateCcw,
+  follow_up: ArrowRight,
+  callback: CalendarClock,
+};
 
 export default function FlowDashboard() {
   const navigate = useNavigate();
@@ -15,17 +30,27 @@ export default function FlowDashboard() {
     const now = new Date();
     return leads
       .filter((l) => {
-        if (l.status === "new" && l.callAttempts === 0) return true;
-        if (l.callbackAt && (isToday(new Date(l.callbackAt)) || isBefore(new Date(l.callbackAt), now))) return true;
-        if (l.status === "callback") return true;
-        return false;
+        const action = deriveNextAction(l);
+        if (action.type === "none") return false;
+        if (l.status === "not_interested" || l.status === "won" || l.status === "lost") return false;
+        // Show if: no scheduled time, or scheduled for today/past
+        if (action.at) {
+          const d = new Date(action.at);
+          return isToday(d) || isBefore(d, now);
+        }
+        // Unscheduled new leads or retries always show
+        return true;
       })
-      .slice(0, 10)
-      .map((l) => ({
-        ...l,
-        actionType: l.callbackAt ? "callback" : l.callAttempts > 0 ? "retry" : "call",
-        actionTime: l.callbackAt ? format(new Date(l.callbackAt), "HH:mm") : null,
-      }));
+      .sort((a, b) => {
+        const aa = deriveNextAction(a);
+        const ba = deriveNextAction(b);
+        // Scheduled items first, sorted by time
+        if (aa.at && ba.at) return new Date(aa.at).getTime() - new Date(ba.at).getTime();
+        if (aa.at) return -1;
+        if (ba.at) return 1;
+        return 0;
+      })
+      .slice(0, 15);
   }, [leads]);
 
   const statCards = [
@@ -35,11 +60,7 @@ export default function FlowDashboard() {
     { label: "Conversion", value: `${stats?.conversionPct ?? 0}%`, icon: TrendingUp, color: "text-violet-400" },
   ];
 
-  const actionIcons: Record<string, typeof Clock> = {
-    callback: CalendarClock,
-    retry: RotateCcw,
-    call: Phone,
-  };
+  const readyLeads = leads.filter((l) => l.status === "new" || l.status === "callback" || l.status === "no_answer").length;
 
   return (
     <div className="max-w-5xl mx-auto px-4 py-8 space-y-8">
@@ -66,7 +87,7 @@ export default function FlowDashboard() {
           <div>
             <h2 className="text-xl font-semibold">Ready to call?</h2>
             <p className="text-sm text-muted-foreground mt-1">
-              {leads.filter((l) => l.status === "new").length} new leads waiting
+              {readyLeads} leads waiting
             </p>
           </div>
           <Button
@@ -104,7 +125,10 @@ export default function FlowDashboard() {
         ) : (
           <div className="space-y-2">
             {todayTasks.map((task) => {
-              const ActionIcon = actionIcons[task.actionType] || Phone;
+              const action = deriveNextAction(task);
+              const ActionIcon = actionIcons[action.type] || Phone;
+              const isOverdue = action.at && isPast(new Date(action.at));
+
               return (
                 <Card key={task.id} className="border-border/40 hover:border-primary/30 transition-colors">
                   <CardContent className="p-4 flex items-center justify-between">
@@ -113,11 +137,21 @@ export default function FlowDashboard() {
                         <ActionIcon className="h-4 w-4 text-primary" />
                       </div>
                       <div>
-                        <p className="font-medium text-sm">{task.name || "Unknown"}</p>
+                        <div className="flex items-center gap-2">
+                          <p className="font-medium text-sm">{task.name || "Unknown"}</p>
+                          <Badge variant="outline" className="text-[10px] px-1.5 py-0">
+                            {actionLabels[action.type] || action.type}
+                          </Badge>
+                          {isOverdue && (
+                            <Badge variant="outline" className="text-[10px] px-1.5 py-0 border-destructive/30 text-destructive">
+                              Overdue
+                            </Badge>
+                          )}
+                        </div>
                         <p className="text-xs text-muted-foreground">
                           {task.company && `${task.company} · `}
                           {task.phone}
-                          {task.actionTime && ` · ${task.actionTime}`}
+                          {action.at && ` · ${format(new Date(action.at), "HH:mm")}`}
                         </p>
                       </div>
                     </div>
