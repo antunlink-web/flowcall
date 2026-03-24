@@ -404,7 +404,7 @@ export default function Work() {
                       <div className="flex items-baseline gap-1.5 mb-2">
                         <span className="text-2xl font-light">{list.followupsNow}</span>
                         <span className="text-sm text-muted-foreground">
-                          Followups now, {list.followupsLater} later today
+                          {t.followupsNow}, {list.followupsLater} {t.laterToday}
                         </span>
                       </div>
 
