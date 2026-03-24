@@ -476,8 +476,8 @@ export default function Work() {
                         </p>
                       </div>
                       <Button size="sm" variant="outline">
-                        <Phone className="w-4 h-4 mr-2" />
-                        Call
+                         <Phone className="w-4 h-4 mr-2" />
+                         {t.call}
                       </Button>
                     </CardContent>
                   </Card>
