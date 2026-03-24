@@ -393,11 +393,11 @@ export default function Work() {
 
                       {/* Row 2: Stats */}
                       <div className="flex items-center gap-1.5 text-xs text-muted-foreground mb-2">
-                        <span>{list.totalLeads.toLocaleString()} TOTAL</span>
+                        <span>{list.totalLeads.toLocaleString()} {t.total}</span>
                         <ArrowRight className="w-3 h-3" />
-                        <span>{list.donePercentage.toFixed(2)}% DONE</span>
+                        <span>{list.donePercentage.toFixed(2)}% {t.done}</span>
                         <ArrowRight className="w-3 h-3" />
-                        <span>{list.queuedNow > 1000 ? "1000+" : list.queuedNow} QUEUED NOW</span>
+                        <span>{list.queuedNow > 1000 ? "1000+" : list.queuedNow} {t.queuedNow}</span>
                       </div>
 
                       {/* Row 3: Followups */}
