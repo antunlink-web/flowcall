@@ -35,7 +35,7 @@ import { useFlowMode } from "@/hooks/useFlowMode";
 import { CallingModeBanner } from "@/components/CallingModeBanner";
 import { ModeSelectModal } from "@/components/ModeSelectModal";
 import { Suspense, lazy } from "react";
-
+import { useTranslation } from "@/hooks/useTranslation";
 const FlowDashboard = lazy(() => import("@/pages/flow/FlowDashboard"));
 
 type TabType = "main" | "work" | "manage" | "review" | "history" | "scheduled" | "locked" | "due";
@@ -59,38 +59,6 @@ interface LockedLead {
   claimed_at: string;
 }
 
-// Main category items
-const categoryItems = [
-  { id: "work" as TabType, name: "Work", icon: Briefcase, description: "Dialer & your workflow", roles: ["agent", "owner", "account_manager"] },
-  { id: "manage" as TabType, name: "Manage", icon: Cog, description: "Settings & team", roles: ["owner", "account_manager"] },
-  { id: "review" as TabType, name: "Review", icon: Eye, description: "Reports & campaigns", roles: ["owner", "account_manager"] },
-];
-
-// Work section items
-const workItems = [
-  { id: "dialer", name: "Dialer", href: "/work?autostart=true", icon: Phone, description: "Start & manage calls" },
-  { id: "history" as TabType, name: "History", icon: History, description: "Recently worked leads", isTab: true },
-  { id: "scheduled" as TabType, name: "Scheduled", icon: Calendar, description: "Upcoming callbacks", isTab: true },
-  { id: "locked" as TabType, name: "Locked", icon: Lock, description: "Your claimed leads", isTab: true },
-  { id: "due" as TabType, name: "Due", icon: Bell, description: "Callbacks due now", isTab: true },
-];
-
-// Manage section items
-const manageItems = [
-  { name: "Lists", href: "/manage/lists", icon: ListChecks, description: "Configure lead lists" },
-  { name: "Users", href: "/team", icon: Users, description: "View & manage team" },
-  { name: "Duplicates", href: "/manage/duplicates", icon: Copy, description: "Merge duplicate leads" },
-  { name: "Claims", href: "/manage/claims", icon: Flag, description: "Review claimed leads" },
-  { name: "Settings", href: "/preferences", icon: Settings, description: "System preferences" },
-  { name: "Account", href: "/manage/account", icon: CreditCard, description: "Billing & subscription" },
-];
-
-// Review section items
-const reviewItems = [
-  { name: "Reports", href: "/reports", icon: BarChart3, description: "Performance & stats" },
-  { name: "Campaigns", href: "/campaigns", icon: Megaphone, description: "Cold call campaigns" },
-];
-
 export default function ControlPanel() {
   const { mode } = useFlowMode();
   const [activeTab, setActiveTab] = useState<TabType>("main");
@@ -105,6 +73,36 @@ export default function ControlPanel() {
   const navigate = useTenantNavigate();
   const tPath = useTenantLinkPath();
   const [searchParams, setSearchParams] = useSearchParams();
+  const t = useTranslation();
+
+  // Main category items - defined inside component for translation access
+  const categoryItems = [
+    { id: "work" as TabType, name: t.work, icon: Briefcase, description: t.dialerWorkflow, roles: ["agent", "owner", "account_manager"] },
+    { id: "manage" as TabType, name: t.manage, icon: Cog, description: t.settingsTeam, roles: ["owner", "account_manager"] },
+    { id: "review" as TabType, name: t.review, icon: Eye, description: t.reportsCampaigns, roles: ["owner", "account_manager"] },
+  ];
+
+  const workItems = [
+    { id: "dialer", name: t.dialer, href: "/work?autostart=true", icon: Phone, description: t.startManageCalls },
+    { id: "history" as TabType, name: t.history, icon: History, description: t.recentlyWorked, isTab: true },
+    { id: "scheduled" as TabType, name: t.scheduled, icon: Calendar, description: t.upcomingCallbacks, isTab: true },
+    { id: "locked" as TabType, name: t.locked, icon: Lock, description: t.claimedLeads, isTab: true },
+    { id: "due" as TabType, name: t.due, icon: Bell, description: t.callbacksDueNow, isTab: true },
+  ];
+
+  const manageItems = [
+    { name: t.lists, href: "/manage/lists", icon: ListChecks, description: t.configureLists },
+    { name: t.users, href: "/team", icon: Users, description: t.viewManageTeam },
+    { name: t.duplicates, href: "/manage/duplicates", icon: Copy, description: t.mergeDuplicates },
+    { name: t.claims, href: "/manage/claims", icon: Flag, description: t.reviewClaims },
+    { name: t.settings, href: "/preferences", icon: Settings, description: t.systemPrefs },
+    { name: t.account, href: "/manage/account", icon: CreditCard, description: t.billingSubscription },
+  ];
+
+  const reviewItems = [
+    { name: t.reports, href: "/reports", icon: BarChart3, description: t.perfStats },
+    { name: t.campaigns, href: "/campaigns", icon: Megaphone, description: t.coldCallCampaigns },
+  ];
 
   // Reset to main grid when reset param is present
   useEffect(() => {
@@ -423,13 +421,13 @@ export default function ControlPanel() {
         {/* History Tab */}
         {activeTab === "history" && (
           <div className="space-y-6">
-            <h2 className="text-2xl font-semibold text-primary">Recently Worked</h2>
+            <h2 className="text-2xl font-semibold text-primary">{t.recentlyWorkedTitle}</h2>
             {dataLoading ? (
               <div className="flex justify-center py-12">
                 <div className="animate-spin h-8 w-8 border-2 border-primary border-t-transparent rounded-full" />
               </div>
             ) : recentLeads.length === 0 ? (
-              <Card><CardContent className="p-8 text-center text-muted-foreground">No recent activity</CardContent></Card>
+              <Card><CardContent className="p-8 text-center text-muted-foreground">{t.noRecentActivity}</CardContent></Card>
             ) : (
               <div className="grid gap-3">
                 {recentLeads.map((lead) => (
@@ -452,13 +450,13 @@ export default function ControlPanel() {
         {/* Scheduled Tab */}
         {activeTab === "scheduled" && (
           <div className="space-y-6">
-            <h2 className="text-2xl font-semibold text-primary">Scheduled Callbacks</h2>
+            <h2 className="text-2xl font-semibold text-primary">{t.scheduledCallbacksTitle}</h2>
             {dataLoading ? (
               <div className="flex justify-center py-12">
                 <div className="animate-spin h-8 w-8 border-2 border-primary border-t-transparent rounded-full" />
               </div>
             ) : scheduledLeads.length === 0 ? (
-              <Card><CardContent className="p-8 text-center text-muted-foreground">No scheduled callbacks. Work your queue to schedule some.</CardContent></Card>
+              <Card><CardContent className="p-8 text-center text-muted-foreground">{t.noScheduledCallbacksLong}</CardContent></Card>
             ) : (
               <div className="grid gap-3">
                 {scheduledLeads.map((lead) => (
@@ -481,13 +479,13 @@ export default function ControlPanel() {
         {/* Locked Tab */}
         {activeTab === "locked" && (
           <div className="space-y-6">
-            <h2 className="text-2xl font-semibold text-primary">Your Locked Leads</h2>
+            <h2 className="text-2xl font-semibold text-primary">{t.lockedLeadsTitle}</h2>
             {dataLoading ? (
               <div className="flex justify-center py-12">
                 <div className="animate-spin h-8 w-8 border-2 border-primary border-t-transparent rounded-full" />
               </div>
             ) : lockedLeads.length === 0 ? (
-              <Card><CardContent className="p-8 text-center text-muted-foreground">You have no locked leads. Find a lead and start calling!</CardContent></Card>
+              <Card><CardContent className="p-8 text-center text-muted-foreground">{t.noLockedLeadsLong}</CardContent></Card>
             ) : (
               <div className="grid gap-3">
                 {lockedLeads.map((lead) => (
@@ -496,7 +494,7 @@ export default function ControlPanel() {
                       <Lock className="w-5 h-5 text-yellow-500" />
                       <div>
                         <p className="font-medium">{lead.company_name}</p>
-                        <p className="text-sm text-muted-foreground">Locked {formatDistanceToNow(new Date(lead.claimed_at), { addSuffix: true })}</p>
+                        <p className="text-sm text-muted-foreground">{t.locked} {formatDistanceToNow(new Date(lead.claimed_at), { addSuffix: true })}</p>
                       </div>
                     </div>
                     <ChevronRight className="w-5 h-5 text-muted-foreground" />
@@ -511,11 +509,11 @@ export default function ControlPanel() {
         {activeTab === "due" && (
           <div className="space-y-6">
             <div className="flex items-center gap-3">
-              <h2 className="text-2xl font-semibold text-primary">Due Callbacks</h2>
+              <h2 className="text-2xl font-semibold text-primary">{t.dueCallbacksTitle}</h2>
               {dueCallbacks.length > 0 && <Badge variant="destructive">{dueCallbacks.length}</Badge>}
             </div>
             {dueCallbacks.length === 0 ? (
-              <Card><CardContent className="p-8 text-center text-muted-foreground">All clear! No callbacks waiting for you.</CardContent></Card>
+              <Card><CardContent className="p-8 text-center text-muted-foreground">{t.allClearCallbacks}</CardContent></Card>
             ) : (
               <div className="space-y-4">
                 <div className="grid gap-3">
@@ -533,7 +531,7 @@ export default function ControlPanel() {
                     </Link>
                   ))}
                 </div>
-                <Button onClick={() => navigate("/work")} className="w-full">Start Working Callbacks</Button>
+                <Button onClick={() => navigate("/work")} className="w-full">{t.startWorkingCallbacks}</Button>
               </div>
             )}
           </div>

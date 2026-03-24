@@ -3,6 +3,7 @@ import { useSearchParams } from "react-router-dom";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { LeadDetailView } from "@/components/leads/LeadDetailView";
 import { Button } from "@/components/ui/button";
+import { useTranslation } from "@/hooks/useTranslation";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -231,11 +232,13 @@ export default function Work() {
 
   const filteredLeads = currentLead ? [currentLead] : [];
 
+  const t = useTranslation();
+
   const tabs = [
-    { id: "queues" as WorkTab, label: "Queues" },
-    { id: "scheduled" as WorkTab, label: "Scheduled" },
-    { id: "claimed" as WorkTab, label: "Claimed" },
-    { id: "worklog" as WorkTab, label: "Work log" },
+    { id: "queues" as WorkTab, label: t.queues },
+    { id: "scheduled" as WorkTab, label: t.scheduled },
+    { id: "claimed" as WorkTab, label: t.claimed },
+    { id: "worklog" as WorkTab, label: t.workLog },
   ];
 
   // Show loading when auth loading, initial loading, or autostarting
@@ -270,18 +273,18 @@ export default function Work() {
           <div className="max-w-7xl mx-auto px-4 py-6 space-y-6">
             <Button variant="ghost" onClick={handleBackToQueues} className="mb-2 -ml-2 text-muted-foreground">
               <ArrowLeft className="w-4 h-4 mr-2" />
-              Back to Queues
+              {t.backToQueues}
             </Button>
             <Card className="text-center py-16">
               <CardContent>
                 <div className="w-16 h-16 mx-auto rounded-full bg-green-100 flex items-center justify-center mb-4">
                   <Phone className="w-8 h-8 text-green-600" />
                 </div>
-                <h3 className="text-xl font-semibold mb-2">Queue Complete!</h3>
+                <h3 className="text-xl font-semibold mb-2">{t.queueComplete}</h3>
                 <p className="text-muted-foreground mb-4">
-                  No more leads to call in this queue.
+                  {t.noMoreLeadsInQueue}
                 </p>
-                <Button onClick={handleBackToQueues}>Back to Queues</Button>
+                <Button onClick={handleBackToQueues}>{t.backToQueues}</Button>
               </CardContent>
             </Card>
           </div>
@@ -296,11 +299,11 @@ export default function Work() {
           <div className="flex items-center justify-between mb-2">
             <Button variant="ghost" onClick={handleBackToQueues} className="-ml-2 text-muted-foreground">
               <ArrowLeft className="w-4 h-4 mr-2" />
-              Back to Queues
+              {t.backToQueues}
             </Button>
             <div className="flex items-center gap-4">
               <span className="text-sm text-muted-foreground">
-                {list?.name}: {currentIndex + 1} of {filteredLeads.length}
+                {list?.name}: {currentIndex + 1} {t.of} {filteredLeads.length}
               </span>
               <div className="flex gap-2">
                 <Button 
@@ -309,7 +312,7 @@ export default function Work() {
                   onClick={handlePrevious}
                   disabled={currentIndex === 0}
                 >
-                  Previous
+                  {t.previous}
                 </Button>
                 <Button 
                   variant="outline" 
@@ -317,7 +320,7 @@ export default function Work() {
                   onClick={handleNext}
                   disabled={currentIndex >= filteredLeads.length - 1}
                 >
-                  Next
+                  {t.next}
                 </Button>
               </div>
             </div>
@@ -336,7 +339,7 @@ export default function Work() {
   return (
     <DashboardLayout>
       {/* Sub-navigation Tabs */}
-      <div className="bg-white border-b">
+      <div className="bg-card border-b">
         <div className="max-w-7xl mx-auto px-4">
           <div className="flex gap-6">
             {tabs.map((tab) => (
@@ -362,7 +365,7 @@ export default function Work() {
           <div className="space-y-6">
             {/* Section Header */}
             <div>
-              <h2 className="text-2xl font-light italic text-primary">Your lists</h2>
+              <h2 className="text-2xl font-light italic text-primary">{t.yourLists}</h2>
               <div className="w-16 h-0.5 bg-primary mt-2" />
             </div>
 
@@ -371,7 +374,7 @@ export default function Work() {
               {lists.length === 0 ? (
                 <Card>
                   <CardContent className="py-12 text-center">
-                    <p className="text-muted-foreground">No lists assigned to you. Ask an admin to assign you to a list.</p>
+                    <p className="text-muted-foreground">{t.noListsAssigned}</p>
                   </CardContent>
                 </Card>
               ) : (
@@ -390,18 +393,18 @@ export default function Work() {
 
                       {/* Row 2: Stats */}
                       <div className="flex items-center gap-1.5 text-xs text-muted-foreground mb-2">
-                        <span>{list.totalLeads.toLocaleString()} TOTAL</span>
+                        <span>{list.totalLeads.toLocaleString()} {t.total}</span>
                         <ArrowRight className="w-3 h-3" />
-                        <span>{list.donePercentage.toFixed(2)}% DONE</span>
+                        <span>{list.donePercentage.toFixed(2)}% {t.done}</span>
                         <ArrowRight className="w-3 h-3" />
-                        <span>{list.queuedNow > 1000 ? "1000+" : list.queuedNow} QUEUED NOW</span>
+                        <span>{list.queuedNow > 1000 ? "1000+" : list.queuedNow} {t.queuedNow}</span>
                       </div>
 
                       {/* Row 3: Followups */}
                       <div className="flex items-baseline gap-1.5 mb-2">
                         <span className="text-2xl font-light">{list.followupsNow}</span>
                         <span className="text-sm text-muted-foreground">
-                          Followups now, {list.followupsLater} later today
+                          {t.followupsNow}, {list.followupsLater} {t.laterToday}
                         </span>
                       </div>
 
@@ -411,7 +414,7 @@ export default function Work() {
                           variant="secondary" 
                           className="bg-primary/10 text-primary border-0 text-xs px-2 py-0.5"
                         >
-                          {list.dueCount} due
+                          {list.dueCount} {t.due}
                         </Badge>
 
                         <div className="flex items-center border rounded">
@@ -431,9 +434,9 @@ export default function Work() {
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
                               <DropdownMenuItem onClick={() => handleStartCalling(list.id)}>
-                                Start Calling
+                                {t.startCallingAction}
                               </DropdownMenuItem>
-                              <DropdownMenuItem>View Details</DropdownMenuItem>
+                              <DropdownMenuItem>{t.viewDetails}</DropdownMenuItem>
                             </DropdownMenuContent>
                           </DropdownMenu>
                         </div>
@@ -449,14 +452,14 @@ export default function Work() {
         {activeTab === "scheduled" && (
           <div className="space-y-6">
             <div>
-              <h2 className="text-2xl font-light italic text-primary">Scheduled callbacks</h2>
+              <h2 className="text-2xl font-light italic text-primary">{t.scheduledCallbacksTitle}</h2>
               <div className="w-16 h-0.5 bg-primary mt-2" />
             </div>
             
             {scheduledLeads.length === 0 ? (
               <Card>
                 <CardContent className="py-12 text-center">
-                  <p className="text-muted-foreground">No scheduled callbacks.</p>
+                  <p className="text-muted-foreground">{t.noScheduledCallbacksWork}</p>
                 </CardContent>
               </Card>
             ) : (
@@ -473,8 +476,8 @@ export default function Work() {
                         </p>
                       </div>
                       <Button size="sm" variant="outline">
-                        <Phone className="w-4 h-4 mr-2" />
-                        Call
+                         <Phone className="w-4 h-4 mr-2" />
+                         {t.call}
                       </Button>
                     </CardContent>
                   </Card>
@@ -487,14 +490,14 @@ export default function Work() {
         {activeTab === "claimed" && (
           <div className="space-y-6">
             <div>
-              <h2 className="text-2xl font-light italic text-primary">Claimed leads</h2>
+              <h2 className="text-2xl font-light italic text-primary">{t.claimedLeadsTitle}</h2>
               <div className="w-16 h-0.5 bg-primary mt-2" />
             </div>
             
             {claimedLeads.length === 0 ? (
               <Card>
                 <CardContent className="py-12 text-center">
-                  <p className="text-muted-foreground">No claimed leads.</p>
+                  <p className="text-muted-foreground">{t.noClaimedLeads}</p>
                 </CardContent>
               </Card>
             ) : (
@@ -508,7 +511,7 @@ export default function Work() {
                         </p>
                         <p className="text-sm text-muted-foreground capitalize">{lead.status}</p>
                       </div>
-                      <Badge variant="secondary">{lead.call_attempts} calls</Badge>
+                      <Badge variant="secondary">{lead.call_attempts} {t.calls}</Badge>
                     </CardContent>
                   </Card>
                 ))}
@@ -520,13 +523,13 @@ export default function Work() {
         {activeTab === "worklog" && (
           <div className="space-y-6">
             <div>
-              <h2 className="text-2xl font-light italic text-primary">Work log</h2>
+              <h2 className="text-2xl font-light italic text-primary">{t.workLog}</h2>
               <div className="w-16 h-0.5 bg-primary mt-2" />
             </div>
             
             <Card>
               <CardContent className="py-12 text-center">
-                <p className="text-muted-foreground">Work log coming soon.</p>
+                <p className="text-muted-foreground">{t.workLogComingSoon}</p>
               </CardContent>
             </Card>
           </div>

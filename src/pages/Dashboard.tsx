@@ -530,7 +530,7 @@ export default function Dashboard() {
                           <p className="text-xs text-muted-foreground truncate">{secondary}</p>
                           {lead.callbackAt && (
                             <p className="text-xs text-muted-foreground/80 truncate mt-0.5">
-                              Callback {new Date(lead.callbackAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                              {t.callback} {new Date(lead.callbackAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
                             </p>
                           )}
                         </div>
@@ -545,7 +545,7 @@ export default function Dashboard() {
                             navigate(tPath(`/leads?id=${lead.id}`));
                           }}
                         >
-                          Details
+                          {t.details}
                         </Button>
                         <Button
                           size="sm"
@@ -557,7 +557,7 @@ export default function Dashboard() {
                           }}
                         >
                           <Phone className="w-3.5 h-3.5" />
-                          Call
+                          {t.call}
                         </Button>
                       </div>
                     </div>

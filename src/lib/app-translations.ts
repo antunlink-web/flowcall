@@ -447,6 +447,16 @@ export const appTranslations = {
     language: "Language",
     languageEnglish: "English",
     languageCroatian: "Hrvatski",
+
+    // ── Additional UI ──
+    team: "Team",
+    tryCallingMode: "Try Calling Mode — faster way to work your leads",
+    claimedLeadsTitle: "Claimed Leads",
+    allClearCallbacks: "All clear! No callbacks waiting for you.",
+    startWorkingCallbacks: "Start Working Callbacks",
+    workLogComingSoon: "Work log coming soon.",
+    noScheduledCallbacksLong: "No scheduled callbacks. Work your queue to schedule some.",
+    noLockedLeadsLong: "You have no locked leads. Find a lead and start calling!",
   },
 
   hr: {
@@ -897,6 +907,16 @@ export const appTranslations = {
     language: "Jezik",
     languageEnglish: "English",
     languageCroatian: "Hrvatski",
+
+    // ── Additional UI ──
+    team: "Tim",
+    tryCallingMode: "Isprobajte način pozivanja — brži način rada s leadovima",
+    claimedLeadsTitle: "Zauzeti leadovi",
+    allClearCallbacks: "Sve čisto! Nema poziva koji vas čekaju.",
+    startWorkingCallbacks: "Počni raditi povratne pozive",
+    workLogComingSoon: "Dnevnik rada uskoro dolazi.",
+    noScheduledCallbacksLong: "Nema zakazanih povratnih poziva. Radite na svom redu da zakazete neke.",
+    noLockedLeadsLong: "Nemate zaključanih leadova. Pronađite lead i počnite pozivati!",
   },
 } as const;
 

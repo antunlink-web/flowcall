@@ -4,6 +4,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useBranding } from "@/hooks/useBranding";
 import { useTenantPath, useTenantLinkPath } from "@/hooks/useTenantPath";
+import { useTranslation } from "@/hooks/useTranslation";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
@@ -38,30 +39,14 @@ import {
 import { useState } from "react";
 import flowcallLogo from "@/assets/flowcall-logo.png";
 
-const navItems = [
-  { to: "/", icon: Home, label: "Dashboard", roles: ["owner", "account_manager", "agent"] },
-  { to: "/control-panel", icon: LayoutDashboard, label: "Control Panel", roles: ["owner", "account_manager", "agent"] },
-  { to: "/work", icon: Phone, label: "Dialer", roles: ["owner", "account_manager", "agent"] },
-  { to: "/campaigns", icon: LayoutGrid, label: "Campaigns", roles: ["owner", "account_manager"] },
-  { to: "/reports", icon: BarChart3, label: "Reports", roles: ["owner", "account_manager"] },
-  { to: "/aiculedssul", icon: Briefcase, label: "Platform Admin", roles: ["product_owner"] },
-];
-
-const manageSubItems = [
-  { to: "/manage/lists", icon: List, label: "Lists" },
-  { to: "/team", icon: Users, label: "Team" },
-  { to: "/manage/duplicates", icon: Copy, label: "Duplicates" },
-  { to: "/manage/claims", icon: Flag, label: "Claims" },
-  { to: "/preferences", icon: Settings, label: "Settings" },
-];
-
 export function AppSidebar() {
   const { user, signOut } = useAuth();
   const { roles, primaryRole } = useUserRole();
   const { branding } = useBranding();
   const location = useLocation();
-  const t = useTenantLinkPath();
+  const tPath = useTenantLinkPath();
   const { basePath } = useTenantPath();
+  const tr = useTranslation();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [manageOpen, setManageOpen] = useState(
     location.pathname.includes("/manage") || 
@@ -69,9 +54,26 @@ export function AppSidebar() {
     location.pathname.endsWith("/preferences")
   );
 
+  const navItems = [
+    { to: "/", icon: Home, label: tr.dashboard, roles: ["owner", "account_manager", "agent"] },
+    { to: "/control-panel", icon: LayoutDashboard, label: tr.controlPanel, roles: ["owner", "account_manager", "agent"] },
+    { to: "/work", icon: Phone, label: tr.dialer, roles: ["owner", "account_manager", "agent"] },
+    { to: "/campaigns", icon: LayoutGrid, label: tr.campaigns, roles: ["owner", "account_manager"] },
+    { to: "/reports", icon: BarChart3, label: tr.reports, roles: ["owner", "account_manager"] },
+    { to: "/aiculedssul", icon: Briefcase, label: tr.platformAdmin, roles: ["product_owner"] },
+  ];
+
+  const manageSubItems = [
+    { to: "/manage/lists", icon: List, label: tr.lists },
+    { to: "/team", icon: Users, label: tr.team },
+    { to: "/manage/duplicates", icon: Copy, label: tr.duplicates },
+    { to: "/manage/claims", icon: Flag, label: tr.claims },
+    { to: "/preferences", icon: Settings, label: tr.settings },
+  ];
+
   // Resolve nav items to tenant-scoped paths
-  const resolvedNavItems = navItems.map(item => ({ ...item, to: t(item.to) }));
-  const resolvedManageItems = manageSubItems.map(item => ({ ...item, to: t(item.to) }));
+  const resolvedNavItems = navItems.map(item => ({ ...item, to: tPath(item.to) }));
+  const resolvedManageItems = manageSubItems.map(item => ({ ...item, to: tPath(item.to) }));
 
   const appName = branding?.app_name || "FlowCall";
   const logoUrl = branding?.logo_url || flowcallLogo;
@@ -80,16 +82,12 @@ export function AppSidebar() {
     (item) => roles.some(r => item.roles.includes(r)) || (roles.length === 0 && item.roles.includes("agent"))
   );
 
-  // Check if Manage section should be shown (owner or account_manager)
   const showManageSection = roles.includes("owner") || roles.includes("account_manager");
-
-  // Check if current route is a manage sub-route
   const isManageSubRoute = resolvedManageItems.some(item => location.pathname === item.to);
 
-  // Format roles for display
   const displayRole = roles.length > 0 
-    ? roles.map(r => r === "owner" ? "Owner" : r === "account_manager" ? "Manager" : "Agent").join(", ")
-    : "Agent";
+    ? roles.map(r => r === "owner" ? tr.owner : r === "account_manager" ? tr.manager : tr.agent).join(", ")
+    : tr.agent;
 
   const userInitials = user?.user_metadata?.full_name
     ?.split(" ")
@@ -142,13 +140,12 @@ export function AppSidebar() {
               </NavLink>
             ))}
             
-            {/* Manage Section - Mobile */}
             {showManageSection && (
               <Collapsible open={manageOpen} onOpenChange={setManageOpen}>
                 <CollapsibleTrigger className="w-full flex items-center justify-between gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors text-sidebar-foreground hover:bg-sidebar-accent">
                   <div className="flex items-center gap-3">
                     <Briefcase className="w-5 h-5" />
-                    Manage
+                    {tr.manage}
                   </div>
                   <ChevronDown className={cn("w-4 h-4 transition-transform", manageOpen && "rotate-180")} />
                 </CollapsibleTrigger>
@@ -178,13 +175,11 @@ export function AppSidebar() {
 
       {/* Desktop Sidebar */}
       <aside className="hidden lg:flex fixed left-0 top-0 bottom-0 w-64 bg-sidebar border-r border-sidebar-border flex-col z-40">
-        {/* Logo */}
         <div className="h-16 flex items-center gap-3 px-6 border-b border-sidebar-border">
           <img src={logoUrl} alt={appName} className="w-9 h-9 object-contain" />
           <span className="font-display font-bold text-lg text-sidebar-foreground">{appName}</span>
         </div>
 
-        {/* Navigation */}
         <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
           {visibleItems.map((item) => (
             <NavLink
@@ -202,13 +197,12 @@ export function AppSidebar() {
             </NavLink>
           ))}
           
-          {/* Manage Section - Desktop */}
           {showManageSection && (
             <Collapsible open={manageOpen} onOpenChange={setManageOpen}>
               <CollapsibleTrigger className="w-full flex items-center justify-between gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground">
                 <div className="flex items-center gap-3">
                   <Briefcase className="w-5 h-5" />
-                  Manage
+                  {tr.manage}
                 </div>
                 <ChevronDown className={cn("w-4 h-4 transition-transform", manageOpen && "rotate-180")} />
               </CollapsibleTrigger>
@@ -233,7 +227,6 @@ export function AppSidebar() {
           )}
         </nav>
 
-        {/* User Menu */}
         <div className="p-4 border-t border-sidebar-border">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -253,15 +246,15 @@ export function AppSidebar() {
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-56">
               <DropdownMenuItem asChild>
-                <NavLink to={t("/preferences")} className="flex items-center gap-2">
+                <NavLink to={tPath("/preferences")} className="flex items-center gap-2">
                   <Settings className="w-4 h-4" />
-                  Settings
+                  {tr.settings}
                 </NavLink>
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem onClick={signOut} className="text-destructive">
                 <LogOut className="w-4 h-4 mr-2" />
-                Sign out
+                {tr.signOut}
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
