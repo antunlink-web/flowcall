@@ -427,7 +427,7 @@ export default function ControlPanel() {
                 <div className="animate-spin h-8 w-8 border-2 border-primary border-t-transparent rounded-full" />
               </div>
             ) : recentLeads.length === 0 ? (
-              <Card><CardContent className="p-8 text-center text-muted-foreground">No recent activity</CardContent></Card>
+              <Card><CardContent className="p-8 text-center text-muted-foreground">{t.noRecentActivity}</CardContent></Card>
             ) : (
               <div className="grid gap-3">
                 {recentLeads.map((lead) => (
