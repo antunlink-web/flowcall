@@ -42,7 +42,6 @@ export default function FlowDashboard() {
 
   // Split actions into overdue vs today
   const { overdue, today } = useMemo(() => {
-    const now = new Date();
     const ov: (NextAction & { lead: (typeof leads)[0] | undefined })[] = [];
     const td: (NextAction & { lead: (typeof leads)[0] | undefined })[] = [];
 
