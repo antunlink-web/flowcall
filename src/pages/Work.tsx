@@ -459,7 +459,7 @@ export default function Work() {
             {scheduledLeads.length === 0 ? (
               <Card>
                 <CardContent className="py-12 text-center">
-                  <p className="text-muted-foreground">No scheduled callbacks.</p>
+                  <p className="text-muted-foreground">{t.noScheduledCallbacksWork}</p>
                 </CardContent>
               </Card>
             ) : (
