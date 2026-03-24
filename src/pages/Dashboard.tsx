@@ -598,7 +598,7 @@ export default function Dashboard() {
                                 size="sm"
                                 variant="ghost"
                                 className="h-7 px-2 text-xs gap-1"
-                                onClick={() => navigate(`/leads?id=${lead.id}`)}
+                                onClick={() => navigate(tPath(`/leads?id=${lead.id}`))}
                               >
                                 <Calendar className="w-3 h-3" /> {t.schedule}
                               </Button>
