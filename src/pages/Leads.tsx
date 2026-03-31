@@ -511,15 +511,7 @@ export default function Leads() {
                   <TableRow key={lead.id}>
                     {displayFields.map((field) => (
                       <TableCell key={field}>
-                        {field === "phone" ? (
-                          <a
-                            href={`tel:${lead.data?.[field]}`}
-                            className="text-primary hover:underline flex items-center gap-1"
-                          >
-                            <Phone className="w-3 h-3" />
-                            {String(lead.data?.[field] || "-")}
-                          </a>
-                        ) : field.toLowerCase().includes("email") || field.toLowerCase().includes("e-mail") || (typeof lead.data?.[field] === "string" && String(lead.data[field]).includes("@") && String(lead.data[field]).includes(".")) ? (
+                        {field.toLowerCase().includes("email") || field.toLowerCase().includes("e-mail") || (typeof lead.data?.[field] === "string" && String(lead.data[field]).includes("@") && String(lead.data[field]).includes(".")) ? (
                           <a
                             href={`mailto:${lead.data?.[field]}`}
                             className="text-primary hover:underline flex items-center gap-1"
