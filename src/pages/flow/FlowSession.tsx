@@ -264,7 +264,9 @@ export default function FlowSession() {
                 </a>
               )}
               {lead.email && (
-                <p className="text-sm text-muted-foreground">{lead.email}</p>
+                <a href={`mailto:${lead.email}`} className="text-sm text-primary hover:underline block">
+                  {lead.email}
+                </a>
               )}
               <div className="text-xs text-muted-foreground space-y-1">
                 <p>Attempts: {lead.callAttempts}</p>
