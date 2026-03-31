@@ -613,7 +613,7 @@ export function LeadDetailView({ leadId, onClose }: LeadDetailViewProps) {
     if (!lead?.data) return [];
     const phones: { label: string; value: string }[] = [];
     for (const [key, value] of Object.entries(lead.data)) {
-      if (typeof value === "string" && value.trim() && (isPhoneField(key) || isPhoneValue(value))) {
+      if (typeof value === "string" && value.trim() && isPhoneField(key)) {
         phones.push({ label: key, value });
       }
     }
