@@ -595,13 +595,7 @@ export function LeadDetailView({ leadId, onClose }: LeadDetailViewProps) {
     return "Unknown";
   };
 
-  // Check if a value looks like a phone number
-  const isPhoneValue = (value: unknown): boolean => {
-    if (typeof value !== "string" || !value.trim()) return false;
-    // Remove common formatting chars and check if mostly digits
-    const cleaned = value.replace(/[\s\-()+./]/g, "");
-    return cleaned.length >= 6 && cleaned.length <= 20 && /^\d+$/.test(cleaned);
-  };
+  // No longer auto-detect phone by value pattern — only use field type/name
 
   // Check if a field is a phone field by list type or name pattern
   const isPhoneField = (key: string): boolean => {
