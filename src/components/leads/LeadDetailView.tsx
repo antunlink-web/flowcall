@@ -849,6 +849,13 @@ export function LeadDetailView({ leadId, onClose }: LeadDetailViewProps) {
                     >
                       {String(value)}
                     </a>
+                  ) : typeof value === "string" && value.includes("@") && value.includes(".") ? (
+                    <a
+                      href={`mailto:${value}`}
+                      className="text-primary hover:underline"
+                    >
+                      {value}
+                    </a>
                   ) : (
                     String(value || "-")
                   )}
