@@ -275,7 +275,7 @@ export default function Leads() {
   };
 
   // Determine which fields to show in table
-  const displayFields = ["Pavadinimas", "Vadovas"];
+  const displayFields = allFields.slice(0, 2);
 
   if (loading) {
     return (
