@@ -296,7 +296,10 @@ export default function Leads() {
   };
 
   // Determine which fields to show in table
-  const displayFields = allFields.slice(0, 2);
+  // Use list field config order if available, otherwise fall back to data keys
+  const displayFields = listFields.length > 0
+    ? listFields.slice(0, 2)
+    : allFields.slice(0, 2);
 
   if (loading) {
     return (
