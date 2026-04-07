@@ -69,6 +69,7 @@ export default function Leads() {
 
   const [leads, setLeads] = useState<Lead[]>([]);
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
+  const [listFields, setListFields] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
@@ -108,8 +109,28 @@ export default function Leads() {
 
     const { data: campaignData } = await supabase.from("campaigns").select("*");
 
-    setLeads((leadsResult as Lead[]) || []);
+    const fetchedLeads = (leadsResult as Lead[]) || [];
+    setLeads(fetchedLeads);
     setCampaigns((campaignData as Campaign[]) || []);
+
+    // Fetch list fields configuration for column ordering
+    const listIds = [...new Set(fetchedLeads.map(l => l.list_id).filter(Boolean))];
+    if (listIds.length > 0) {
+      const { data: listsData } = await supabase
+        .from("lists")
+        .select("fields")
+        .in("id", listIds)
+        .limit(1);
+      
+      if (listsData?.[0]?.fields) {
+        const fields = listsData[0].fields as Array<{ name: string; show?: boolean }>;
+        const fieldNames = fields
+          .filter(f => f.show !== false)
+          .map(f => f.name);
+        setListFields(fieldNames);
+      }
+    }
+
     setLoading(false);
   };
 
@@ -275,7 +296,10 @@ export default function Leads() {
   };
 
   // Determine which fields to show in table
-  const displayFields = allFields.slice(0, 2);
+  // Use list field config order if available, otherwise fall back to data keys
+  const displayFields = listFields.length > 0
+    ? listFields.slice(0, 2)
+    : allFields.slice(0, 2);
 
   if (loading) {
     return (
