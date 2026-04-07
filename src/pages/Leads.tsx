@@ -109,8 +109,28 @@ export default function Leads() {
 
     const { data: campaignData } = await supabase.from("campaigns").select("*");
 
-    setLeads((leadsResult as Lead[]) || []);
+    const fetchedLeads = (leadsResult as Lead[]) || [];
+    setLeads(fetchedLeads);
     setCampaigns((campaignData as Campaign[]) || []);
+
+    // Fetch list fields configuration for column ordering
+    const listIds = [...new Set(fetchedLeads.map(l => l.list_id).filter(Boolean))];
+    if (listIds.length > 0) {
+      const { data: listsData } = await supabase
+        .from("lists")
+        .select("fields")
+        .in("id", listIds)
+        .limit(1);
+      
+      if (listsData?.[0]?.fields) {
+        const fields = listsData[0].fields as Array<{ name: string; show?: boolean }>;
+        const fieldNames = fields
+          .filter(f => f.show !== false)
+          .map(f => f.name);
+        setListFields(fieldNames);
+      }
+    }
+
     setLoading(false);
   };
 
