@@ -2,17 +2,19 @@ import { ReactNode } from "react";
 import { NavLink, useLocation } from "react-router-dom";
 import { LayoutDashboard, Phone, Kanban, Users, CalendarDays } from "lucide-react";
 import { cn } from "@/lib/utils";
-
-const navItems = [
-  { to: "", icon: LayoutDashboard, label: "Dashboard" },
-  { to: "pipeline", icon: Kanban, label: "Pipeline" },
-  { to: "contacts", icon: Users, label: "Kontakti" },
-  { to: "calendar", icon: CalendarDays, label: "Kalendar" },
-];
+import { useTranslation } from "@/hooks/useTranslation";
 
 function FlowNav() {
   const location = useLocation();
   const basePath = location.pathname.match(/^\/flow/)?.[0] || "/flow";
+  const t = useTranslation();
+
+  const navItems = [
+    { to: "", icon: LayoutDashboard, label: t.flowNavDashboard },
+    { to: "pipeline", icon: Kanban, label: t.flowNavPipeline },
+    { to: "contacts", icon: Users, label: t.flowNavContacts },
+    { to: "calendar", icon: CalendarDays, label: t.flowNavCalendar },
+  ];
 
   return (
     <header className="fixed top-0 left-0 right-0 z-50 h-14 border-b border-border/50 bg-background/80 backdrop-blur-xl">
