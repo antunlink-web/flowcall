@@ -1,5 +1,6 @@
 import { useMemo } from "react";
 import { useNavigate } from "react-router-dom";
+import { useTenantNavigate } from "@/hooks/useTenantPath";
 import {
   Phone, PhoneCall, ThumbsUp, TrendingUp, Clock, RotateCcw,
   CalendarClock, CheckCircle2, ArrowRight, Upload, Plus, CalendarDays,
@@ -31,6 +32,7 @@ type TaskItem = NextAction & { lead: ReturnType<typeof useFlowLeads>["data"] ext
 
 export default function FlowDashboard() {
   const navigate = useNavigate();
+  const tNavigate = useTenantNavigate();
   const t = useTranslation();
   const { data: leads = [] } = useFlowLeads();
   const { data: stats } = useTodayStats();
@@ -150,10 +152,10 @@ export default function FlowDashboard() {
               <p className="text-sm text-muted-foreground mt-1">{t.flowNoTasks}</p>
             </div>
             <div className="flex items-center justify-center gap-3">
-              <Button variant="outline" onClick={() => navigate("/manage/lists")}>
+              <Button variant="outline" onClick={() => tNavigate("/manage/lists")}>
                 <Upload className="h-4 w-4 mr-2" />{t.flowImportLeads}
               </Button>
-              <Button variant="outline" onClick={() => navigate("/manage/lists")}>
+              <Button variant="outline" onClick={() => tNavigate("/manage/lists")}>
                 <Plus className="h-4 w-4 mr-2" />{t.flowNewList}
               </Button>
             </div>
