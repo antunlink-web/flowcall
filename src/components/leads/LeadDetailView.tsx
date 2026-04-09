@@ -1361,6 +1361,8 @@ export function LeadDetailView({ leadId, onClose }: LeadDetailViewProps) {
                             ? "bg-indigo-100"
                             : item.type === "comment"
                             ? "bg-purple-100"
+                            : item.type === "scheduled"
+                            ? "bg-cyan-100"
                             : "bg-gray-100"
                         }`}>
                           {item.type === "call" ? (
@@ -1379,6 +1381,8 @@ export function LeadDetailView({ leadId, onClose }: LeadDetailViewProps) {
                             <Flag className="w-5 h-5 text-indigo-600" />
                           ) : item.type === "comment" ? (
                             <MessageSquare className="w-5 h-5 text-purple-600" />
+                          ) : item.type === "scheduled" ? (
+                            <CalendarClock className="w-5 h-5 text-cyan-600" />
                           ) : null}
                         </div>
                         <div className="flex-1 min-w-0">
@@ -1411,6 +1415,15 @@ export function LeadDetailView({ leadId, onClose }: LeadDetailViewProps) {
                             {item.type === "comment" && (
                               <>
                                 <span className="font-semibold">Comment</span>
+                                <span className="text-muted-foreground font-normal"> by {item.user_name}</span>
+                              </>
+                            )}
+                            {item.type === "scheduled" && (
+                              <>
+                                <span className="font-semibold">Scheduled {item.action_type?.replace(/_/g, " ")}</span>
+                                {item.scheduled_for && (
+                                  <span className="text-muted-foreground font-normal"> for {new Date(item.scheduled_for).toLocaleDateString()} {new Date(item.scheduled_for).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", hour12: false })}</span>
+                                )}
                                 <span className="text-muted-foreground font-normal"> by {item.user_name}</span>
                               </>
                             )}
