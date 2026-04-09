@@ -11,6 +11,7 @@ const FlowSession = lazy(() => import("@/pages/flow/FlowSession"));
 const FlowPipeline = lazy(() => import("@/pages/flow/FlowPipeline"));
 const FlowContacts = lazy(() => import("@/pages/flow/FlowContacts"));
 const FlowLeadDetail = lazy(() => import("@/pages/flow/FlowLeadDetail"));
+const FlowCalendar = lazy(() => import("@/pages/flow/FlowCalendar"));
 
 function FlowLoader() {
   return (
@@ -31,6 +32,7 @@ export function FlowRoutes() {
               <Route path="session" element={<FlowSession />} />
               <Route path="pipeline" element={<FlowPipeline />} />
               <Route path="contacts" element={<FlowContacts />} />
+              <Route path="calendar" element={<FlowCalendar />} />
               <Route path="lead/:leadId" element={<FlowLeadDetail />} />
             </Routes>
           </Suspense>
