@@ -1033,6 +1033,12 @@ export const appTranslations = {
     flowSms: "SMS",
     flowEmail: "Email",
     flowMeeting: "Sastanak",
+
+    // ── Flow Nav ──
+    flowNavDashboard: "Nadzorna ploča",
+    flowNavPipeline: "Pipeline",
+    flowNavContacts: "Kontakti",
+    flowNavCalendar: "Kalendar",
   },
 } as const;
 
