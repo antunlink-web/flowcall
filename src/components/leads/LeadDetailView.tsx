@@ -1561,11 +1561,10 @@ export function LeadDetailView({ leadId, onClose }: LeadDetailViewProps) {
               />
             </div>
             <div>
-              <label className="text-sm font-medium mb-1.5 block">Vrijeme</label>
-              <Input
-                type="time"
+              <label className="text-sm font-medium mb-1.5 block">{t.calTime}</label>
+              <TimePicker24h
                 value={calendarTime}
-                onChange={(e) => setCalendarTime(e.target.value)}
+                onChange={setCalendarTime}
               />
             </div>
           </div>

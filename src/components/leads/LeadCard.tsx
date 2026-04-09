@@ -634,10 +634,9 @@ export function LeadCard({
             </div>
             <div className="space-y-2">
               <Label>Time</Label>
-              <Input
-                type="time"
+              <TimePicker24h
                 value={callbackTime}
-                onChange={(e) => setCallbackTime(e.target.value)}
+                onChange={setCallbackTime}
               />
             </div>
             <Button
