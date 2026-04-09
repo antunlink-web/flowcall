@@ -48,11 +48,6 @@ interface RecentLead {
   updated_at: string;
 }
 
-interface ScheduledLead {
-  id: string;
-  company_name: string;
-  callback_scheduled_at: string;
-}
 
 interface LockedLead {
   id: string;
