@@ -64,7 +64,7 @@ export default function ControlPanel() {
   const { mode } = useFlowMode();
   const [activeTab, setActiveTab] = useState<TabType>("main");
   const [recentLeads, setRecentLeads] = useState<RecentLead[]>([]);
-  const [scheduledLeads, setScheduledLeads] = useState<ScheduledLead[]>([]);
+  
   const [lockedLeads, setLockedLeads] = useState<LockedLead[]>([]);
   const [dataLoading, setDataLoading] = useState(false);
 
@@ -122,7 +122,6 @@ export default function ControlPanel() {
 
   useEffect(() => {
     if (activeTab === "history") fetchRecentLeads();
-    else if (activeTab === "scheduled") fetchScheduledLeads();
     else if (activeTab === "locked") fetchLockedLeads();
   }, [activeTab, user]);
 
@@ -164,32 +163,6 @@ export default function ControlPanel() {
     }
   };
 
-  const fetchScheduledLeads = async () => {
-    if (!user) return;
-    setDataLoading(true);
-    try {
-      const { data } = await supabase
-        .from("leads")
-        .select("id, data, callback_scheduled_at, list_id, lists(fields)")
-        .eq("claimed_by", user.id)
-        .eq("status", "callback")
-        .not("callback_scheduled_at", "is", null)
-        .order("callback_scheduled_at", { ascending: true })
-        .limit(10);
-
-      if (data) {
-        setScheduledLeads(data.map(lead => ({
-          id: lead.id,
-          company_name: getLeadDisplayName(lead.data, (lead as any).lists?.fields),
-          callback_scheduled_at: lead.callback_scheduled_at!
-        })));
-      }
-    } catch (error) {
-      console.error("Error fetching scheduled leads:", error);
-    } finally {
-      setDataLoading(false);
-    }
-  };
 
   const fetchLockedLeads = async () => {
     if (!user) return;
