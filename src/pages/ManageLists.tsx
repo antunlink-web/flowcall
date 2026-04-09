@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { DashboardLayout } from "@/components/DashboardLayout";
-import { Link, useLocation, useSearchParams } from "react-router-dom";
+import { useSearchParams } from "react-router-dom";
+import { useTenantNavigate } from "@/hooks/useTenantPath";
 import { supabase } from "@/integrations/supabase/client";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -112,7 +113,7 @@ interface UserWithAccess {
 }
 
 export default function ManageLists() {
-  const location = useLocation();
+  const navigate = useTenantNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const { toast } = useToast();
   const { lists, loading, uploadProgress, createList, updateList, deleteList, importLeadsFromData } = useLists();
@@ -627,15 +628,15 @@ export default function ManageLists() {
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end" className="w-56 bg-background border shadow-md z-50">
-                        <DropdownMenuItem className="cursor-pointer">
+                        <DropdownMenuItem className="cursor-pointer" onClick={() => navigate(`/work?listId=${list.id}&autostart=true`)}>
                           <PhoneCall className="h-4 w-4 mr-2" />
                           Call the next lead in queue
                         </DropdownMenuItem>
-                        <DropdownMenuItem className="cursor-pointer">
+                        <DropdownMenuItem className="cursor-pointer" onClick={() => navigate(`/work?listId=${list.id}`)}>
                           <ListOrdered className="h-4 w-4 mr-2" />
                           View queue
                         </DropdownMenuItem>
-                        <DropdownMenuItem className="cursor-pointer">
+                        <DropdownMenuItem className="cursor-pointer" onClick={() => navigate(`/leads?listId=${list.id}`)}>
                           <Eye className="h-4 w-4 mr-2" />
                           View all leads
                         </DropdownMenuItem>
