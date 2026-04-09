@@ -512,6 +512,12 @@ export const appTranslations = {
     flowSms: "SMS",
     flowEmail: "Email",
     flowMeeting: "Meeting",
+
+    // ── Flow Nav ──
+    flowNavDashboard: "Dashboard",
+    flowNavPipeline: "Pipeline",
+    flowNavContacts: "Contacts",
+    flowNavCalendar: "Calendar",
   },
 
   hr: {
