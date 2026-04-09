@@ -1,5 +1,4 @@
 import { useState, useMemo } from "react";
-import { useNavigate } from "react-router-dom";
 import { Calendar } from "@/components/ui/calendar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -40,15 +39,16 @@ const actionIcons: Record<string, typeof Clock> = {
 };
 
 interface ScheduleCalendarProps {
-  leadBasePath?: string;
-  sessionPath?: string;
+  /** Called when user clicks a lead row */
+  onLeadClick?: (leadId: string) => void;
+  /** Called when user clicks "Call" button */
+  onCallClick?: () => void;
 }
 
 export function ScheduleCalendar({
-  leadBasePath = "/flow",
-  sessionPath = "/flow/session",
+  onLeadClick,
+  onCallClick,
 }: ScheduleCalendarProps) {
-  const navigate = useNavigate();
   const t = useTranslation();
   const { lang } = useLanguage();
   const dateLocale = lang === "hr" ? hr : enUS;
@@ -147,7 +147,7 @@ export function ScheduleCalendar({
     return (
       <div
         className="flex items-center gap-3 rounded-xl border border-border/40 bg-card px-4 py-3 hover:bg-accent/50 hover:border-primary/30 transition-colors cursor-pointer group"
-        onClick={() => action.lead && navigate(`${leadBasePath}/lead/${action.lead.id}`)}
+        onClick={() => action.lead && onLeadClick?.(action.lead.id)}
         role="button" tabIndex={0}
       >
         <div className="p-2 rounded-lg bg-muted/40 group-hover:bg-primary/10 transition-colors">
@@ -165,7 +165,7 @@ export function ScheduleCalendar({
           {secondary && <p className="text-xs text-muted-foreground truncate mt-0.5">{secondary}</p>}
         </div>
         <Button size="sm" className="shrink-0" disabled={!action.lead?.phone}
-          onClick={(e) => { e.stopPropagation(); navigate(sessionPath); }}>
+          onClick={(e) => { e.stopPropagation(); onCallClick?.(); }}>
           <Phone className="h-3.5 w-3.5 mr-1" />{t.calCall}
         </Button>
       </div>
