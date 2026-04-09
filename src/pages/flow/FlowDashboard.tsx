@@ -32,6 +32,7 @@ type TaskItem = NextAction & { lead: ReturnType<typeof useFlowLeads>["data"] ext
 
 export default function FlowDashboard() {
   const navigate = useNavigate();
+  const tNavigate = useTenantNavigate();
   const t = useTranslation();
   const { data: leads = [] } = useFlowLeads();
   const { data: stats } = useTodayStats();
