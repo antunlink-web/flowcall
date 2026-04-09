@@ -185,6 +185,7 @@ export function ScheduleCalendar({
               mode="single" selected={selectedDate}
               onSelect={(d) => d && setSelectedDate(d)}
               month={month} onMonthChange={setMonth}
+              weekStartsOn={1}
               className="pointer-events-auto"
               modifiers={{ hasAction: (date) => datesWithActions.has(format(date, "yyyy-MM-dd")) }}
               modifiersClassNames={{ hasAction: "bg-primary/15 font-bold text-primary" }}
