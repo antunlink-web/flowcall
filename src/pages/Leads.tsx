@@ -66,6 +66,7 @@ export default function Leads() {
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
   const selectedLeadId = searchParams.get("id");
+  const listIdFilter = searchParams.get("listId");
 
   const [leads, setLeads] = useState<Lead[]>([]);
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
