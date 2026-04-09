@@ -113,7 +113,7 @@ interface UserWithAccess {
 }
 
 export default function ManageLists() {
-  const navigate = useNavigate();
+  const navigate = useTenantNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const { toast } = useToast();
   const { lists, loading, uploadProgress, createList, updateList, deleteList, importLeadsFromData } = useLists();
