@@ -2,7 +2,7 @@ import { useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Phone, PhoneCall, ThumbsUp, TrendingUp, Clock, RotateCcw,
-  CalendarClock, CheckCircle2, ArrowRight, Upload, Plus,
+  CalendarClock, CheckCircle2, ArrowRight, Upload, Plus, CalendarDays,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
