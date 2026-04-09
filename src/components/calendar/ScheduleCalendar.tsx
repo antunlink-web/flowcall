@@ -1,5 +1,4 @@
 import { useState, useMemo } from "react";
-import { useNavigate } from "react-router-dom";
 import { Calendar } from "@/components/ui/calendar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -50,7 +49,6 @@ export function ScheduleCalendar({
   onLeadClick,
   onCallClick,
 }: ScheduleCalendarProps) {
-  const navigate = useNavigate();
   const t = useTranslation();
   const { lang } = useLanguage();
   const dateLocale = lang === "hr" ? hr : enUS;
