@@ -347,6 +347,7 @@ export function LeadDetailView({ leadId, onClose }: LeadDetailViewProps) {
     emailLogs?.forEach(l => userIds.add(l.user_id));
     smsLogs?.forEach(l => userIds.add(l.user_id));
     comments?.forEach(c => userIds.add(c.user_id));
+    scheduledActions?.forEach(a => { if (a.created_by) userIds.add(a.created_by); });
     if (leadData?.claimed_by) {
       userIds.add(leadData.claimed_by);
     }
