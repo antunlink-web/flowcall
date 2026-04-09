@@ -89,20 +89,31 @@ export default function FlowDashboard() {
         ))}
       </div>
 
-      {/* Start Calling — dominant CTA */}
-      <Button
-        size="lg"
-        className="w-full text-lg py-7 rounded-2xl shadow-lg shadow-primary/25 font-semibold"
-        onClick={() => navigate("session")}
-      >
-        <Phone className="h-6 w-6 mr-3" />
-        Start Calling Session
-        {callableCount > 0 && (
-          <Badge variant="secondary" className="ml-3 text-xs">
-            {callableCount}
-          </Badge>
-        )}
-      </Button>
+      {/* Action buttons */}
+      <div className="grid grid-cols-2 gap-3">
+        <Button
+          size="lg"
+          className="text-lg py-7 rounded-2xl shadow-lg shadow-primary/25 font-semibold"
+          onClick={() => navigate("session")}
+        >
+          <Phone className="h-6 w-6 mr-3" />
+          Pokreni pozive
+          {callableCount > 0 && (
+            <Badge variant="secondary" className="ml-3 text-xs">
+              {callableCount}
+            </Badge>
+          )}
+        </Button>
+        <Button
+          size="lg"
+          variant="outline"
+          className="text-lg py-7 rounded-2xl font-semibold"
+          onClick={() => navigate("calendar")}
+        >
+          <CalendarDays className="h-6 w-6 mr-3" />
+          Kalendar
+        </Button>
+      </div>
 
       {/* Empty state */}
       {isEmpty && (
