@@ -1,5 +1,6 @@
 import { useMemo } from "react";
 import { useNavigate } from "react-router-dom";
+import { useTenantNavigate } from "@/hooks/useTenantPath";
 import {
   Phone, PhoneCall, ThumbsUp, TrendingUp, Clock, RotateCcw,
   CalendarClock, CheckCircle2, ArrowRight, Upload, Plus, CalendarDays,
