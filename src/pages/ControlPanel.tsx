@@ -36,6 +36,7 @@ import { CallingModeBanner } from "@/components/CallingModeBanner";
 import { ModeSelectModal } from "@/components/ModeSelectModal";
 import { Suspense, lazy } from "react";
 import { useTranslation } from "@/hooks/useTranslation";
+import { ScheduleCalendar } from "@/components/calendar/ScheduleCalendar";
 const FlowDashboard = lazy(() => import("@/pages/flow/FlowDashboard"));
 
 type TabType = "main" | "work" | "manage" | "review" | "history" | "scheduled" | "locked" | "due";
