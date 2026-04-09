@@ -447,32 +447,11 @@ export default function ControlPanel() {
           </div>
         )}
 
-        {/* Scheduled Tab */}
+        {/* Scheduled Tab - Full Calendar */}
         {activeTab === "scheduled" && (
           <div className="space-y-6">
             <h2 className="text-2xl font-semibold text-primary">{t.scheduledCallbacksTitle}</h2>
-            {dataLoading ? (
-              <div className="flex justify-center py-12">
-                <div className="animate-spin h-8 w-8 border-2 border-primary border-t-transparent rounded-full" />
-              </div>
-            ) : scheduledLeads.length === 0 ? (
-              <Card><CardContent className="p-8 text-center text-muted-foreground">{t.noScheduledCallbacksLong}</CardContent></Card>
-            ) : (
-              <div className="grid gap-3">
-                {scheduledLeads.map((lead) => (
-                  <Link key={lead.id} to={tPath(`/work?leadId=${lead.id}`)} className="flex items-center justify-between p-4 rounded-lg border bg-card hover:bg-muted transition-colors">
-                    <div className="flex items-center gap-3">
-                      <Calendar className="w-5 h-5 text-primary" />
-                      <div>
-                        <p className="font-medium">{lead.company_name}</p>
-                        <p className="text-sm text-amber-600">{format(new Date(lead.callback_scheduled_at), "MMM d, HH:mm")}</p>
-                      </div>
-                    </div>
-                    <ChevronRight className="w-5 h-5 text-muted-foreground" />
-                  </Link>
-                ))}
-              </div>
-            )}
+            <ScheduleCalendar leadBasePath="" sessionPath="/work?autostart=true" />
           </div>
         )}
 
