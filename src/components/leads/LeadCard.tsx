@@ -20,6 +20,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
+import { TimePicker24h } from "@/components/ui/time-picker-24h";
 import { Label } from "@/components/ui/label";
 import {
   Phone,
