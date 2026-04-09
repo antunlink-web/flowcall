@@ -420,7 +420,10 @@ export default function ControlPanel() {
         {activeTab === "scheduled" && (
           <div className="space-y-6">
             <h2 className="text-2xl font-semibold text-primary">{t.scheduledCallbacksTitle}</h2>
-            <ScheduleCalendar leadBasePath="" sessionPath="/work?autostart=true" />
+            <ScheduleCalendar
+              onLeadClick={(leadId) => navigate(tPath(`/leads?id=${leadId}`))}
+              onCallClick={() => navigate(tPath("/work?autostart=true"))}
+            />
           </div>
         )}
 
