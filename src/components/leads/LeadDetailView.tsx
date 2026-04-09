@@ -1013,29 +1013,20 @@ export function LeadDetailView({ leadId, onClose }: LeadDetailViewProps) {
                     </PopoverContent>
                   </Popover>
                   <div className="flex-1" />
-                  <span className="text-sm text-muted-foreground">Follow-up</span>
-                  <Select defaultValue="after">
-                    <SelectTrigger className="w-20 h-8">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="after">after</SelectItem>
-                      <SelectItem value="on">on</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <Select defaultValue="27">
-                    <SelectTrigger className="w-28 h-8">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="1">1 hour</SelectItem>
-                      <SelectItem value="3">3 hours</SelectItem>
-                      <SelectItem value="24">24 hours</SelectItem>
-                      <SelectItem value="27">27 hours</SelectItem>
-                      <SelectItem value="48">2 days</SelectItem>
-                      <SelectItem value="168">1 week</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="gap-1.5 h-8"
+                    onClick={() => {
+                      setCalendarDate(new Date());
+                      setCalendarTime("10:00");
+                      setCalendarActionType("follow_up_call");
+                      setShowCalendarDialog(true);
+                    }}
+                  >
+                    <CalendarClock className="w-4 h-4" />
+                    Zakaži u kalendar
+                  </Button>
                 </div>
                 
                 {/* Action Buttons with Subcategory Dropdowns */}
@@ -1535,6 +1526,80 @@ export function LeadDetailView({ leadId, onClose }: LeadDetailViewProps) {
           </div>
         </div>
       </div>
+
+      {/* Calendar Scheduling Dialog */}
+      <Dialog open={showCalendarDialog} onOpenChange={setShowCalendarDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Zakaži u kalendar</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div>
+              <label className="text-sm font-medium mb-1.5 block">Tip akcije</label>
+              <Select value={calendarActionType} onValueChange={(v) => setCalendarActionType(v as ActionType)}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="follow_up_call">Follow-up poziv</SelectItem>
+                  <SelectItem value="call">Poziv</SelectItem>
+                  <SelectItem value="retry_call">Ponovni poziv</SelectItem>
+                  <SelectItem value="send_sms">SMS</SelectItem>
+                  <SelectItem value="send_email">Email</SelectItem>
+                  <SelectItem value="meeting">Sastanak</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <label className="text-sm font-medium mb-1.5 block">Datum</label>
+              <Calendar
+                mode="single"
+                selected={calendarDate}
+                onSelect={setCalendarDate}
+                className="pointer-events-auto rounded-md border mx-auto"
+                disabled={(date) => date < new Date(new Date().setHours(0,0,0,0))}
+              />
+            </div>
+            <div>
+              <label className="text-sm font-medium mb-1.5 block">Vrijeme</label>
+              <Input
+                type="time"
+                value={calendarTime}
+                onChange={(e) => setCalendarTime(e.target.value)}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowCalendarDialog(false)}>
+              Odustani
+            </Button>
+            <Button
+              disabled={!calendarDate || createAction.isPending}
+              onClick={() => {
+                if (!calendarDate || !lead) return;
+                const dateStr = `${calendarDate.getFullYear()}-${String(calendarDate.getMonth() + 1).padStart(2, '0')}-${String(calendarDate.getDate()).padStart(2, '0')}`;
+                const scheduledFor = new Date(`${dateStr}T${calendarTime}:00`).toISOString();
+                createAction.mutate(
+                  {
+                    leadId: lead.id,
+                    actionType: calendarActionType,
+                    scheduledFor,
+                    source: "manual",
+                  },
+                  {
+                    onSuccess: () => {
+                      toast({ title: "Akcija zakazana u kalendar" });
+                      setShowCalendarDialog(false);
+                    },
+                  }
+                );
+              }}
+            >
+              {createAction.isPending ? "Spremanje..." : "Zakaži"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
