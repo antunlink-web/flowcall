@@ -1,10 +1,10 @@
-import { useNavigate } from "react-router-dom";
 import { ScheduleCalendar } from "@/components/calendar/ScheduleCalendar";
 import { useTranslation } from "@/hooks/useTranslation";
+import { useTenantNavigate } from "@/hooks/useTenantPath";
 
 export default function FlowCalendar() {
   const t = useTranslation();
-  const navigate = useNavigate();
+  const navigate = useTenantNavigate();
 
   return (
     <div className="max-w-5xl mx-auto px-4 py-8">
