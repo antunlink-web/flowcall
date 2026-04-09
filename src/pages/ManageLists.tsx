@@ -627,15 +627,15 @@ export default function ManageLists() {
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end" className="w-56 bg-background border shadow-md z-50">
-                        <DropdownMenuItem className="cursor-pointer">
+                        <DropdownMenuItem className="cursor-pointer" onClick={() => navigate(`/work?listId=${list.id}&autostart=true`)}>
                           <PhoneCall className="h-4 w-4 mr-2" />
                           Call the next lead in queue
                         </DropdownMenuItem>
-                        <DropdownMenuItem className="cursor-pointer">
+                        <DropdownMenuItem className="cursor-pointer" onClick={() => navigate(`/work?listId=${list.id}`)}>
                           <ListOrdered className="h-4 w-4 mr-2" />
                           View queue
                         </DropdownMenuItem>
-                        <DropdownMenuItem className="cursor-pointer">
+                        <DropdownMenuItem className="cursor-pointer" onClick={() => navigate(`/leads?listId=${list.id}`)}>
                           <Eye className="h-4 w-4 mr-2" />
                           View all leads
                         </DropdownMenuItem>
