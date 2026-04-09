@@ -421,8 +421,8 @@ export default function ControlPanel() {
           <div className="space-y-6">
             <h2 className="text-2xl font-semibold text-primary">{t.scheduledCallbacksTitle}</h2>
             <ScheduleCalendar
-              onLeadClick={(leadId) => navigate(tPath(`/leads?id=${leadId}`))}
-              onCallClick={() => navigate(tPath("/work?autostart=true"))}
+              onLeadClick={(leadId) => navigate(`/leads?id=${leadId}`)}
+              onCallClick={() => navigate("/work?autostart=true")}
             />
           </div>
         )}
