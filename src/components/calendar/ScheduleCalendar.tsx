@@ -50,8 +50,8 @@ export function ScheduleCalendar({
 }: ScheduleCalendarProps) {
   const navigate = useNavigate();
   const t = useTranslation();
-  const { language } = useLanguage();
-  const dateLocale = language === "hr" ? hr : enUS;
+  const { lang } = useLanguage();
+  const dateLocale = lang === "hr" ? hr : enUS;
 
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [month, setMonth] = useState<Date>(new Date());
