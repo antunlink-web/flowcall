@@ -327,6 +327,13 @@ export function LeadDetailView({ leadId, onClose }: LeadDetailViewProps) {
       .eq("lead_id", leadId)
       .order("created_at", { ascending: false });
 
+    // Fetch scheduled actions (calendar entries)
+    const { data: scheduledActions } = await supabase
+      .from("next_actions")
+      .select("id, created_at, action_type, scheduled_for, created_by, source")
+      .eq("lead_id", leadId)
+      .order("created_at", { ascending: false });
+
     // Fetch lead info for claimed activity
     const { data: leadData } = await supabase
       .from("leads")
