@@ -109,7 +109,7 @@ interface List {
 
 interface ActivityItem {
   id: string;
-  type: "call" | "email" | "sms" | "claimed" | "comment";
+  type: "call" | "email" | "sms" | "claimed" | "comment" | "scheduled";
   created_at: string;
   user_name: string | null;
   outcome?: string;
@@ -119,6 +119,8 @@ interface ActivityItem {
   message?: string;
   duration_seconds?: number;
   content?: string;
+  action_type?: string;
+  scheduled_for?: string;
 }
 
 export function LeadDetailView({ leadId, onClose }: LeadDetailViewProps) {
