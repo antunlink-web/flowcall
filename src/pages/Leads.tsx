@@ -100,11 +100,15 @@ export default function Leads() {
       console.log("RPC result:", { data, error });
       leadsResult = data;
     } else {
-      const { data } = await supabase
+      let query = supabase
         .from("leads")
         .select("*")
         .order("created_at", { ascending: false })
-        .limit(100);
+        .limit(500);
+      if (listIdFilter) {
+        query = query.eq("list_id", listIdFilter);
+      }
+      const { data } = await query;
       leadsResult = data;
     }
 
