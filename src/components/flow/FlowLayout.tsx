@@ -1,12 +1,13 @@
 import { ReactNode } from "react";
 import { NavLink, useLocation } from "react-router-dom";
-import { LayoutDashboard, Phone, Kanban, Users } from "lucide-react";
+import { LayoutDashboard, Phone, Kanban, Users, CalendarDays } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const navItems = [
   { to: "", icon: LayoutDashboard, label: "Dashboard" },
   { to: "pipeline", icon: Kanban, label: "Pipeline" },
-  { to: "contacts", icon: Users, label: "Contacts" },
+  { to: "contacts", icon: Users, label: "Kontakti" },
+  { to: "calendar", icon: CalendarDays, label: "Kalendar" },
 ];
 
 function FlowNav() {
