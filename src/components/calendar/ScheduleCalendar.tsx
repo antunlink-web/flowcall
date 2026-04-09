@@ -40,13 +40,15 @@ const actionIcons: Record<string, typeof Clock> = {
 };
 
 interface ScheduleCalendarProps {
-  leadBasePath?: string;
-  sessionPath?: string;
+  /** Called when user clicks a lead row */
+  onLeadClick?: (leadId: string) => void;
+  /** Called when user clicks "Call" button */
+  onCallClick?: () => void;
 }
 
 export function ScheduleCalendar({
-  leadBasePath = "/flow",
-  sessionPath = "/flow/session",
+  onLeadClick,
+  onCallClick,
 }: ScheduleCalendarProps) {
   const navigate = useNavigate();
   const t = useTranslation();
