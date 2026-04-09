@@ -411,7 +411,7 @@ export function ScheduleCalendar({
               </div>
               <div>
                 <label className="text-sm font-medium mb-1.5 block">{t.calTime}</label>
-                <Input type="time" value={scheduleTime} onChange={(e) => setScheduleTime(e.target.value)} />
+                <TimePicker24h value={scheduleTime} onChange={setScheduleTime} />
               </div>
             </div>
           </div>
