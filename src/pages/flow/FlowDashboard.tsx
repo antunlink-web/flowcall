@@ -11,10 +11,10 @@ import { useFlowLeads, useTodayStats } from "@/hooks/useFlowLeads";
 import {
   useNextActions,
   getEffectiveTime,
-  actionTypeLabels,
   type NextAction,
 } from "@/hooks/useNextActions";
 import { format, isToday, isPast } from "date-fns";
+import { useTranslation } from "@/hooks/useTranslation";
 
 const actionIcons: Record<string, typeof Clock> = {
   call: Phone,
@@ -31,9 +31,17 @@ type TaskItem = NextAction & { lead: ReturnType<typeof useFlowLeads>["data"] ext
 
 export default function FlowDashboard() {
   const navigate = useNavigate();
+  const t = useTranslation();
   const { data: leads = [] } = useFlowLeads();
   const { data: stats } = useTodayStats();
   const { data: actions = [], isLoading } = useNextActions();
+
+  const actionTypeLabelsLocalized: Record<string, string> = {
+    call: t.flowActionCall, retry_call: t.flowActionRetry,
+    follow_up_call: t.flowActionFollowUp, send_sms: t.flowActionSms,
+    send_email: t.flowActionEmail, wait_for_reply: t.flowActionWaiting,
+    meeting: t.flowActionMeeting, custom: t.flowActionTask,
+  };
 
   const leadMap = useMemo(() => {
     const m = new Map<string, (typeof leads)[0]>();
@@ -46,13 +54,13 @@ export default function FlowDashboard() {
     const td: TaskItem[] = [];
 
     actions.forEach((a) => {
-      const t = getEffectiveTime(a);
+      const time = getEffectiveTime(a);
       const lead = leadMap.get(a.lead_id);
       const item = { ...a, lead } as TaskItem;
 
-      if (isPast(t) && !isToday(t)) {
+      if (isPast(time) && !isToday(time)) {
         ov.push(item);
-      } else if (isToday(t) || (!a.scheduled_for && !a.due_at && !a.snoozed_until)) {
+      } else if (isToday(time) || (!a.scheduled_for && !a.due_at && !a.snoozed_until)) {
         td.push(item);
       }
     });
@@ -69,15 +77,32 @@ export default function FlowDashboard() {
   const totalTasks = overdue.length + today.length;
   const isEmpty = totalTasks === 0 && !isLoading;
 
+  function getContactLabel(lead: TaskItem["lead"]) {
+    const name = lead?.name?.trim();
+    const company = lead?.company?.trim();
+    const phone = lead?.phone?.trim();
+    const email = lead?.email?.trim();
+
+    const primary = name || company || phone || email || t.flowUnknownContact;
+    const parts: string[] = [];
+    if (name && company) parts.push(company);
+    if (phone) parts.push(phone);
+    else parts.push(t.flowNoPhone);
+    if (email && !name && !company) { /* already used as primary */ }
+    else if (email) parts.push(email);
+
+    return { primary, secondary: parts.join(" · "), hasPhone: !!phone };
+  }
+
   return (
     <div className="max-w-3xl mx-auto px-4 py-8 space-y-6">
       {/* Stats — compact row */}
       <div className="grid grid-cols-4 gap-2">
         {[
-          { label: "Calls", value: stats?.calls ?? 0, icon: Phone },
-          { label: "Pickups", value: stats?.pickups ?? 0, icon: PhoneCall },
-          { label: "Interested", value: stats?.interested ?? 0, icon: ThumbsUp },
-          { label: "Rate", value: `${stats?.conversionPct ?? 0}%`, icon: TrendingUp },
+          { label: t.flowCalls, value: stats?.calls ?? 0, icon: Phone },
+          { label: t.flowPickups, value: stats?.pickups ?? 0, icon: PhoneCall },
+          { label: t.flowInterested, value: stats?.interested ?? 0, icon: ThumbsUp },
+          { label: t.flowRate, value: `${stats?.conversionPct ?? 0}%`, icon: TrendingUp },
         ].map((s) => (
           <div key={s.label} className="flex items-center gap-2 rounded-lg bg-muted/30 px-3 py-2">
             <s.icon className="h-4 w-4 text-muted-foreground" />
@@ -97,7 +122,7 @@ export default function FlowDashboard() {
           onClick={() => navigate("session")}
         >
           <Phone className="h-6 w-6 mr-3" />
-          Pokreni pozive
+          {t.flowStartCalling}
           {callableCount > 0 && (
             <Badge variant="secondary" className="ml-3 text-xs">
               {callableCount}
@@ -111,7 +136,7 @@ export default function FlowDashboard() {
           onClick={() => navigate("calendar")}
         >
           <CalendarDays className="h-6 w-6 mr-3" />
-          Kalendar
+          {t.flowCalendar}
         </Button>
       </div>
 
@@ -121,19 +146,15 @@ export default function FlowDashboard() {
           <CardContent className="py-12 text-center space-y-4">
             <CheckCircle2 className="h-10 w-10 mx-auto text-emerald-400/70" />
             <div>
-              <p className="font-semibold text-lg">You're done for now</p>
-              <p className="text-sm text-muted-foreground mt-1">
-                No pending tasks. Import leads or create a new list to get started.
-              </p>
+              <p className="font-semibold text-lg">{t.flowDoneForNow}</p>
+              <p className="text-sm text-muted-foreground mt-1">{t.flowNoTasks}</p>
             </div>
             <div className="flex items-center justify-center gap-3">
               <Button variant="outline" onClick={() => navigate("/manage/lists")}>
-                <Upload className="h-4 w-4 mr-2" />
-                Import Leads
+                <Upload className="h-4 w-4 mr-2" />{t.flowImportLeads}
               </Button>
               <Button variant="outline" onClick={() => navigate("/manage/lists")}>
-                <Plus className="h-4 w-4 mr-2" />
-                New List
+                <Plus className="h-4 w-4 mr-2" />{t.flowNewList}
               </Button>
             </div>
           </CardContent>
@@ -143,10 +164,14 @@ export default function FlowDashboard() {
       {/* Overdue */}
       {overdue.length > 0 && (
         <TaskQueue
-          title="Overdue"
+          title={t.flowOverdue}
           badge="destructive"
           items={overdue}
           isOverdue
+          overdueLabel={t.flowOverdue}
+          callLabel={t.calCall}
+          actionLabels={actionTypeLabelsLocalized}
+          getContactLabel={getContactLabel}
           onCall={() => navigate("session")}
           onRowClick={(leadId) => navigate(`lead/${leadId}`)}
         />
@@ -155,35 +180,18 @@ export default function FlowDashboard() {
       {/* Today's Calls Queue */}
       {(today.length > 0 || isLoading) && (
         <TaskQueue
-          title="Today's Calls"
+          title={t.flowTodaysCalls}
           items={today}
           isLoading={isLoading}
+          callLabel={t.calCall}
+          actionLabels={actionTypeLabelsLocalized}
+          getContactLabel={getContactLabel}
           onCall={() => navigate("session")}
           onRowClick={(leadId) => navigate(`lead/${leadId}`)}
         />
       )}
     </div>
   );
-}
-
-/* ── Contact display helper ───────────────────────────────────── */
-
-function getContactLabel(lead: TaskItem["lead"]) {
-  const name = lead?.name?.trim();
-  const company = lead?.company?.trim();
-  const phone = lead?.phone?.trim();
-  const email = lead?.email?.trim();
-
-  const primary = name || company || phone || email || "Unknown contact";
-  // Secondary: show company if name was used, then phone, then email
-  const parts: string[] = [];
-  if (name && company) parts.push(company);
-  if (phone) parts.push(phone);
-  else parts.push("No phone number");
-  if (email && !name && !company) { /* already used as primary */ }
-  else if (email) parts.push(email);
-
-  return { primary, secondary: parts.join(" · "), hasPhone: !!phone };
 }
 
 /* ── Task Queue Section ──────────────────────────────────────── */
@@ -194,6 +202,10 @@ function TaskQueue({
   items,
   isOverdue = false,
   isLoading = false,
+  overdueLabel = "Overdue",
+  callLabel = "Call",
+  actionLabels,
+  getContactLabel,
   onCall,
   onRowClick,
 }: {
@@ -202,6 +214,10 @@ function TaskQueue({
   items: TaskItem[];
   isOverdue?: boolean;
   isLoading?: boolean;
+  overdueLabel?: string;
+  callLabel: string;
+  actionLabels: Record<string, string>;
+  getContactLabel: (lead: TaskItem["lead"]) => { primary: string; secondary: string; hasPhone: boolean };
   onCall: () => void;
   onRowClick: (leadId: string) => void;
 }) {
@@ -230,7 +246,7 @@ function TaskQueue({
           {items.map((task) => {
             const ActionIcon = actionIcons[task.action_type] || Phone;
             const effectiveTime = getEffectiveTime(task);
-            const typeLabel = actionTypeLabels[task.action_type] || task.action_type;
+            const typeLabel = actionLabels[task.action_type] || task.action_type;
             const { primary, secondary, hasPhone } = getContactLabel(task.lead);
 
             return (
@@ -258,7 +274,7 @@ function TaskQueue({
                     </Badge>
                     {isOverdue && (
                       <Badge variant="destructive" className="text-[10px] px-1.5 py-0 shrink-0">
-                        Overdue
+                        {overdueLabel}
                       </Badge>
                     )}
                   </div>
@@ -278,7 +294,7 @@ function TaskQueue({
                   }}
                 >
                   <Phone className="h-3.5 w-3.5 mr-1" />
-                  Call
+                  {callLabel}
                 </Button>
               </div>
             );
