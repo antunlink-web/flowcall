@@ -50,7 +50,6 @@ import {
   Settings,
   Flag,
   Lock,
-  CalendarClock,
 } from "lucide-react";
 import {
   Popover,
@@ -1625,6 +1624,7 @@ export function LeadDetailView({ leadId, onClose }: LeadDetailViewProps) {
                     onSuccess: () => {
                       toast({ title: "Akcija zakazana u kalendar" });
                       setShowCalendarDialog(false);
+                      fetchActivity();
                     },
                   }
                 );
