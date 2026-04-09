@@ -420,6 +420,17 @@ export function LeadDetailView({ leadId, onClose }: LeadDetailViewProps) {
       });
     });
 
+    scheduledActions?.forEach(a => {
+      items.push({
+        id: a.id,
+        type: "scheduled",
+        created_at: a.created_at,
+        user_name: a.created_by ? (userMap[a.created_by] || "Unknown") : "System",
+        action_type: a.action_type,
+        scheduled_for: a.scheduled_for || undefined,
+      });
+    });
+
     // Sort by date descending
     items.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
     
