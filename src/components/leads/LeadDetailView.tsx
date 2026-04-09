@@ -147,6 +147,12 @@ export function LeadDetailView({ leadId, onClose }: LeadDetailViewProps) {
   // Get templates for current list
   const { emailTemplates, smsTemplates, loading: templatesLoading } = useListTemplates(list?.id || null);
   const [smsCount, setSmsCount] = useState(0);
+  // Calendar scheduling state
+  const [showCalendarDialog, setShowCalendarDialog] = useState(false);
+  const [calendarDate, setCalendarDate] = useState<Date | undefined>(undefined);
+  const [calendarTime, setCalendarTime] = useState("10:00");
+  const [calendarActionType, setCalendarActionType] = useState<ActionType>("follow_up_call");
+  const createAction = useCreateNextAction();
 
   useEffect(() => {
     fetchLead();
