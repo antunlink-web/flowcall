@@ -20,6 +20,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
+import { TimePicker24h } from "@/components/ui/time-picker-24h";
 import { Label } from "@/components/ui/label";
 import {
   Phone,
@@ -634,10 +635,9 @@ export function LeadCard({
             </div>
             <div className="space-y-2">
               <Label>Time</Label>
-              <Input
-                type="time"
+              <TimePicker24h
                 value={callbackTime}
-                onChange={(e) => setCallbackTime(e.target.value)}
+                onChange={setCallbackTime}
               />
             </div>
             <Button

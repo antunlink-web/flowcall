@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { TimePicker24h } from "@/components/ui/time-picker-24h";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from "@/components/ui/dialog";
@@ -411,7 +412,7 @@ export function ScheduleCalendar({
               </div>
               <div>
                 <label className="text-sm font-medium mb-1.5 block">{t.calTime}</label>
-                <Input type="time" value={scheduleTime} onChange={(e) => setScheduleTime(e.target.value)} />
+                <TimePicker24h value={scheduleTime} onChange={setScheduleTime} />
               </div>
             </div>
           </div>

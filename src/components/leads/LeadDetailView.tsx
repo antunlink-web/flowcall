@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
+import { TimePicker24h } from "@/components/ui/time-picker-24h";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Calendar } from "@/components/ui/calendar";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
@@ -1561,11 +1562,10 @@ export function LeadDetailView({ leadId, onClose }: LeadDetailViewProps) {
               />
             </div>
             <div>
-              <label className="text-sm font-medium mb-1.5 block">Vrijeme</label>
-              <Input
-                type="time"
+              <label className="text-sm font-medium mb-1.5 block">Vrijeme / Time</label>
+              <TimePicker24h
                 value={calendarTime}
-                onChange={(e) => setCalendarTime(e.target.value)}
+                onChange={setCalendarTime}
               />
             </div>
           </div>
