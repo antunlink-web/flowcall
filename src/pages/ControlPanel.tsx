@@ -36,6 +36,7 @@ import { CallingModeBanner } from "@/components/CallingModeBanner";
 import { ModeSelectModal } from "@/components/ModeSelectModal";
 import { Suspense, lazy } from "react";
 import { useTranslation } from "@/hooks/useTranslation";
+import { ScheduleCalendar } from "@/components/calendar/ScheduleCalendar";
 const FlowDashboard = lazy(() => import("@/pages/flow/FlowDashboard"));
 
 type TabType = "main" | "work" | "manage" | "review" | "history" | "scheduled" | "locked" | "due";
@@ -47,11 +48,6 @@ interface RecentLead {
   updated_at: string;
 }
 
-interface ScheduledLead {
-  id: string;
-  company_name: string;
-  callback_scheduled_at: string;
-}
 
 interface LockedLead {
   id: string;
@@ -63,7 +59,7 @@ export default function ControlPanel() {
   const { mode } = useFlowMode();
   const [activeTab, setActiveTab] = useState<TabType>("main");
   const [recentLeads, setRecentLeads] = useState<RecentLead[]>([]);
-  const [scheduledLeads, setScheduledLeads] = useState<ScheduledLead[]>([]);
+  
   const [lockedLeads, setLockedLeads] = useState<LockedLead[]>([]);
   const [dataLoading, setDataLoading] = useState(false);
 
@@ -121,7 +117,6 @@ export default function ControlPanel() {
 
   useEffect(() => {
     if (activeTab === "history") fetchRecentLeads();
-    else if (activeTab === "scheduled") fetchScheduledLeads();
     else if (activeTab === "locked") fetchLockedLeads();
   }, [activeTab, user]);
 
@@ -163,32 +158,6 @@ export default function ControlPanel() {
     }
   };
 
-  const fetchScheduledLeads = async () => {
-    if (!user) return;
-    setDataLoading(true);
-    try {
-      const { data } = await supabase
-        .from("leads")
-        .select("id, data, callback_scheduled_at, list_id, lists(fields)")
-        .eq("claimed_by", user.id)
-        .eq("status", "callback")
-        .not("callback_scheduled_at", "is", null)
-        .order("callback_scheduled_at", { ascending: true })
-        .limit(10);
-
-      if (data) {
-        setScheduledLeads(data.map(lead => ({
-          id: lead.id,
-          company_name: getLeadDisplayName(lead.data, (lead as any).lists?.fields),
-          callback_scheduled_at: lead.callback_scheduled_at!
-        })));
-      }
-    } catch (error) {
-      console.error("Error fetching scheduled leads:", error);
-    } finally {
-      setDataLoading(false);
-    }
-  };
 
   const fetchLockedLeads = async () => {
     if (!user) return;
@@ -447,32 +416,11 @@ export default function ControlPanel() {
           </div>
         )}
 
-        {/* Scheduled Tab */}
+        {/* Scheduled Tab - Full Calendar */}
         {activeTab === "scheduled" && (
           <div className="space-y-6">
             <h2 className="text-2xl font-semibold text-primary">{t.scheduledCallbacksTitle}</h2>
-            {dataLoading ? (
-              <div className="flex justify-center py-12">
-                <div className="animate-spin h-8 w-8 border-2 border-primary border-t-transparent rounded-full" />
-              </div>
-            ) : scheduledLeads.length === 0 ? (
-              <Card><CardContent className="p-8 text-center text-muted-foreground">{t.noScheduledCallbacksLong}</CardContent></Card>
-            ) : (
-              <div className="grid gap-3">
-                {scheduledLeads.map((lead) => (
-                  <Link key={lead.id} to={tPath(`/work?leadId=${lead.id}`)} className="flex items-center justify-between p-4 rounded-lg border bg-card hover:bg-muted transition-colors">
-                    <div className="flex items-center gap-3">
-                      <Calendar className="w-5 h-5 text-primary" />
-                      <div>
-                        <p className="font-medium">{lead.company_name}</p>
-                        <p className="text-sm text-amber-600">{format(new Date(lead.callback_scheduled_at), "MMM d, HH:mm")}</p>
-                      </div>
-                    </div>
-                    <ChevronRight className="w-5 h-5 text-muted-foreground" />
-                  </Link>
-                ))}
-              </div>
-            )}
+            <ScheduleCalendar leadBasePath="" sessionPath="/work?autostart=true" />
           </div>
         )}
 
