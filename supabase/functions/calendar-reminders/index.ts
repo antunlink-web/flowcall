@@ -212,15 +212,14 @@ serve(async (req: Request) => {
 
         // Log each action as sent so we don't re-send
         for (const a of newActions) {
-          await supabase.from("email_logs").insert({
+          await supabase.from("email_logs").insert([{
             lead_id: a.lead_id,
             user_id: userId,
-            subject: "Calendar Reminder",
+            subject: `Calendar Reminder:${a.id}`,
             body: html,
             tenant_id: profile.tenant_id,
             status: "sent",
-            notes: `reminder_${a.id}`,
-          });
+          }]);
         }
 
         emailsSent++;
