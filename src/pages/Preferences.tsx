@@ -4,6 +4,7 @@ import { QRCodeSVG } from "qrcode.react";
 import { useAuth } from "@/hooks/useAuth";
 import { useConnectedDevices } from "@/hooks/useConnectedDevices";
 import { useTour } from "@/hooks/useTour";
+import { useCalendarReminders } from "@/hooks/useCalendarReminders";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { cn } from "@/lib/utils";
 import { 
@@ -176,6 +177,7 @@ export default function Preferences() {
   const { user } = useAuth();
   const { startTour } = useTour();
   const navigate = useTenantNavigate();
+  const { prefs: reminderPrefs, savePrefs: saveReminderPrefs, browserPermission, requestBrowserPermission } = useCalendarReminders();
   const [activeSection, setActiveSection] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -499,6 +501,91 @@ export default function Preferences() {
       case "notifications":
         return (
           <div className="space-y-8">
+            {/* Calendar Reminders */}
+            <div>
+              <h3 className="text-lg font-medium mb-4">Calendar Reminders</h3>
+              <Separator className="mb-6" />
+              <div className="space-y-4 max-w-lg">
+                <div className="grid grid-cols-[150px_1fr] items-center gap-4">
+                  <Label className="text-right">Remind me</Label>
+                  <Select 
+                    value={String(reminderPrefs.reminder_minutes)} 
+                    onValueChange={(v) => saveReminderPrefs({ ...reminderPrefs, reminder_minutes: Number(v) })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="5">5 minutes before</SelectItem>
+                      <SelectItem value="10">10 minutes before</SelectItem>
+                      <SelectItem value="15">15 minutes before</SelectItem>
+                      <SelectItem value="30">30 minutes before</SelectItem>
+                      <SelectItem value="60">1 hour before</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <Separator />
+                <p className="text-sm font-medium text-muted-foreground">Notification channels</p>
+                <div className="flex items-start space-x-3">
+                  <Checkbox 
+                    id="notifyToast" 
+                    checked={reminderPrefs.notify_toast}
+                    onCheckedChange={(checked) => saveReminderPrefs({ ...reminderPrefs, notify_toast: checked as boolean })}
+                  />
+                  <div>
+                    <Label htmlFor="notifyToast" className="cursor-pointer font-medium">In-app popup</Label>
+                    <p className="text-sm text-muted-foreground mt-0.5">Show a toast notification inside the app.</p>
+                  </div>
+                </div>
+                <div className="flex items-start space-x-3">
+                  <Checkbox 
+                    id="notifyBrowser" 
+                    checked={reminderPrefs.notify_browser}
+                    onCheckedChange={(checked) => {
+                      const val = checked as boolean;
+                      if (val && browserPermission !== "granted") {
+                        requestBrowserPermission().then((perm) => {
+                          if (perm === "granted") {
+                            saveReminderPrefs({ ...reminderPrefs, notify_browser: true });
+                          } else {
+                            toast.error("Browser notification permission denied. Please enable it in browser settings.");
+                          }
+                        });
+                      } else {
+                        saveReminderPrefs({ ...reminderPrefs, notify_browser: val });
+                      }
+                    }}
+                  />
+                  <div>
+                    <Label htmlFor="notifyBrowser" className="cursor-pointer font-medium">Browser notifications</Label>
+                    <p className="text-sm text-muted-foreground mt-0.5">
+                      Desktop alerts even when the tab is in the background.
+                      {browserPermission === "denied" && (
+                        <span className="text-amber-600 block mt-1">⚠️ Permission denied. Enable in browser settings.</span>
+                      )}
+                      {browserPermission === "default" && (
+                        <span className="text-blue-600 block mt-1">Will request permission when enabled.</span>
+                      )}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-start space-x-3">
+                  <Checkbox 
+                    id="notifyEmail" 
+                    checked={reminderPrefs.notify_email}
+                    onCheckedChange={(checked) => saveReminderPrefs({ ...reminderPrefs, notify_email: checked as boolean })}
+                  />
+                  <div>
+                    <Label htmlFor="notifyEmail" className="cursor-pointer font-medium">Email reminders</Label>
+                    <p className="text-sm text-muted-foreground mt-0.5">
+                      Receive an email reminder at your registered address ({user?.email}).
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Existing User Notifications */}
             <div>
               <h3 className="text-lg font-medium mb-4">User Notifications</h3>
               <Separator className="mb-6" />
