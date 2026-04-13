@@ -70,14 +70,14 @@ export function useCalendarReminders() {
     if (existing) {
       await supabase
         .from("account_settings")
-        .update({ setting_value: newPrefs as unknown as Record<string, unknown> })
+        .update({ setting_value: JSON.parse(JSON.stringify(newPrefs)) })
         .eq("id", existing.id);
     } else {
-      await supabase.from("account_settings").insert({
+      await supabase.from("account_settings").insert([{
         setting_key: `reminder_prefs_${user.id}`,
-        setting_value: newPrefs as unknown as Record<string, unknown>,
+        setting_value: JSON.parse(JSON.stringify(newPrefs)),
         tenant_id: null,
-      });
+      }]);
     }
   }, [user]);
 
