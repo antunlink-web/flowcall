@@ -3,6 +3,7 @@ import { Navigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useTenantPath } from "@/hooks/useTenantPath";
+import { useCalendarReminders } from "@/hooks/useCalendarReminders";
 import { Loader2 } from "lucide-react";
 
 interface ProtectedRouteProps {
@@ -24,6 +25,8 @@ export function ProtectedRoute({ children, requiredRoles }: ProtectedRouteProps)
   const { roles, loading: rolesLoading } = useUserRole();
   const location = useLocation();
   const { basePath } = useTenantPath();
+  // Initialize calendar reminders polling for all authenticated users
+  useCalendarReminders();
 
   if (authLoading || rolesLoading) {
     return (
