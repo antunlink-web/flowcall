@@ -119,21 +119,24 @@ serve(async (req: Request) => {
 
       if (!actions || actions.length === 0) continue;
 
-      // Check which ones we already emailed (use a simple dedup key in description)
-      // We'll track sent reminders by checking if we recently sent for these action IDs
+      // Check which ones we already emailed using subject pattern
+      const actionIdList = actions.map((a) => a.id);
       const { data: recentLogs } = await supabase
         .from("email_logs")
-        .select("notes")
+        .select("subject")
         .eq("user_id", userId)
-        .eq("subject", "Calendar Reminder")
+        .like("subject", "Calendar Reminder:%")
         .gte("created_at", new Date(now.getTime() - 60 * 60 * 1000).toISOString())
-        .limit(100);
+        .limit(200);
 
-      const alreadySent = new Set(
-        recentLogs?.map((l) => l.notes).filter(Boolean) || []
-      );
+      const alreadySent = new Set<string>();
+      recentLogs?.forEach((l) => {
+        // Subject format: "Calendar Reminder:<actionId>"
+        const id = l.subject.split(":")[1];
+        if (id) alreadySent.add(id);
+      });
 
-      const newActions = actions.filter((a) => !alreadySent.has(`reminder_${a.id}`));
+      const newActions = actions.filter((a) => !alreadySent.has(a.id));
       if (newActions.length === 0) continue;
 
       // Get lead names
