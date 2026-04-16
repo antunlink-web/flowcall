@@ -39,3 +39,6 @@ verify_jwt = false
 [functions.test-smtp]
 verify_jwt = false
 
+[functions.calendar-reminders]
+verify_jwt = false
+
