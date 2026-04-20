@@ -34,27 +34,38 @@ serve(async (req: Request) => {
       });
     }
 
-    // 2. Get SMTP settings from account_settings (platform-wide)
-    const { data: smtpData } = await supabase
+    // 2. Get SMTP settings from account_settings (stored as individual keys)
+    const { data: smtpRows } = await supabase
       .from("account_settings")
-      .select("setting_value")
-      .eq("setting_key", "smtp_settings")
+      .select("setting_key, setting_value")
       .is("tenant_id", null)
-      .maybeSingle();
+      .like("setting_key", "smtp_%");
 
     let smtpConfig: { host: string; port: number; username: string; password: string; from_email: string; from_name?: string; use_tls?: boolean } | null = null;
 
-    if (smtpData?.setting_value) {
-      const sv = smtpData.setting_value as Record<string, unknown>;
-      smtpConfig = {
-        host: sv.host as string,
-        port: sv.port as number,
-        username: sv.username as string,
-        password: sv.password as string,
-        from_email: sv.from_email as string,
-        from_name: sv.from_name as string | undefined,
-        use_tls: sv.use_tls as boolean | undefined,
-      };
+    if (smtpRows && smtpRows.length > 0) {
+      const smtpMap: Record<string, unknown> = {};
+      for (const row of smtpRows) {
+        const key = row.setting_key.replace(/^smtp_/, "");
+        // setting_value is stored as JSON; unwrap primitives
+        smtpMap[key] = row.setting_value;
+      }
+      const host = smtpMap.host as string | undefined;
+      const portRaw = smtpMap.port;
+      const username = smtpMap.username as string | undefined;
+      const password = smtpMap.password as string | undefined;
+      const fromEmail = smtpMap.from_email as string | undefined;
+      if (host && username && password && fromEmail) {
+        smtpConfig = {
+          host,
+          port: typeof portRaw === "number" ? portRaw : parseInt(String(portRaw || "465")),
+          username,
+          password,
+          from_email: fromEmail,
+          from_name: (smtpMap.from_name as string | undefined) || "FlowCall",
+          use_tls: smtpMap.use_tls === undefined ? undefined : Boolean(smtpMap.use_tls),
+        };
+      }
     }
 
     // Fallback to env secrets
