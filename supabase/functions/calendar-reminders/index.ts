@@ -130,21 +130,20 @@ serve(async (req: Request) => {
 
       if (!actions || actions.length === 0) continue;
 
-      // Check which ones we already emailed using subject pattern
-      const actionIdList = actions.map((a) => a.id);
+      // Check which ones we already emailed (marker stored in body prefix)
       const { data: recentLogs } = await supabase
         .from("email_logs")
-        .select("subject")
+        .select("body")
         .eq("user_id", userId)
-        .like("subject", "Calendar Reminder:%")
+        .like("body", "<!--reminder:%")
         .gte("created_at", new Date(now.getTime() - 60 * 60 * 1000).toISOString())
         .limit(200);
 
       const alreadySent = new Set<string>();
       recentLogs?.forEach((l) => {
-        // Subject format: "Calendar Reminder:<actionId>"
-        const id = l.subject.split(":")[1];
-        if (id) alreadySent.add(id);
+        // Body starts with "<!--reminder:<actionId>-->"
+        const m = l.body.match(/^<!--reminder:([^-]+)-->/);
+        if (m) alreadySent.add(m[1]);
       });
 
       const newActions = actions.filter((a) => !alreadySent.has(a.id));
@@ -161,7 +160,7 @@ serve(async (req: Request) => {
       leads?.forEach((l) => {
         const d = l.data as Record<string, unknown> | null;
         if (!d) return;
-        for (const f of ["name", "company", "pavadinimas", "Pavadinimas", "Company"]) {
+        for (const f of ["full_name", "name", "ime", "company", "company_name", "pavadinimas", "Pavadinimas", "Company"]) {
           if (d[f] && typeof d[f] === "string") {
             leadNames.set(l.id, d[f] as string);
             break;
@@ -169,74 +168,86 @@ serve(async (req: Request) => {
         }
       });
 
-      // Build email body
-      const actionRows = newActions.map((a) => {
-        const contact = leadNames.get(a.lead_id) || "Unknown contact";
-        const time = new Date(a.scheduled_for!).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", hour12: false });
+      // Send one email per action with a unique, descriptive subject
+      const useTls = smtpConfig.use_tls !== undefined ? smtpConfig.use_tls : (smtpConfig.port === 465);
+
+      for (const a of newActions) {
+        const contact = leadNames.get(a.lead_id) || "contact";
+        const when = new Date(a.scheduled_for!);
+        const time = when.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", hour12: false });
+        const dateStr = when.toLocaleDateString("en-GB", { day: "2-digit", month: "short" });
         const type = (a.action_type as string).replace(/_/g, " ");
-        return `<tr><td style="padding:8px;border-bottom:1px solid #eee;">${time}</td><td style="padding:8px;border-bottom:1px solid #eee;">${type}</td><td style="padding:8px;border-bottom:1px solid #eee;">${contact}</td></tr>`;
-      }).join("");
+        const typeCap = type.charAt(0).toUpperCase() + type.slice(1);
 
-      const html = `
-        <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;">
-          <h2 style="color:#1a73e8;">📅 Upcoming Calendar Reminders</h2>
-          <p>Hi ${profile.full_name || "there"},</p>
-          <p>You have ${newActions.length} upcoming task${newActions.length > 1 ? "s" : ""} in the next ${reminderMinutes} minutes:</p>
-          <table style="width:100%;border-collapse:collapse;margin:16px 0;">
-            <thead><tr style="background:#f5f5f5;">
-              <th style="padding:8px;text-align:left;">Time</th>
-              <th style="padding:8px;text-align:left;">Type</th>
-              <th style="padding:8px;text-align:left;">Contact</th>
-            </tr></thead>
-            <tbody>${actionRows}</tbody>
-          </table>
-          <p style="color:#666;font-size:12px;">— FlowCall Calendar</p>
-        </div>
-      `;
+        // Unique subject avoids Gmail thread collapsing + looks more personal
+        const subject = `${typeCap} ${contact} at ${time} (${dateStr})`;
 
-      // Send email
-      try {
-        const useTls = smtpConfig.use_tls !== undefined ? smtpConfig.use_tls : (smtpConfig.port === 465);
-        const client = new SMTPClient({
-          connection: {
-            hostname: smtpConfig.host,
-            port: smtpConfig.port,
-            tls: useTls,
-            auth: { username: smtpConfig.username, password: smtpConfig.password },
-          },
-        });
+        const text =
+`Hi ${profile.full_name || "there"},
 
-        const messageId = `<${crypto.randomUUID()}@flowcall.eu>`;
+Reminder: ${typeCap} with ${contact} at ${time} on ${dateStr}.
 
-        await client.send({
-          from: smtpConfig.from_name
+Open FlowCall to view details: https://flowcall.eu
+
+— FlowCall Calendar
+You receive this because calendar reminders are enabled in your Preferences.`;
+
+        const html = `<!--reminder:${a.id}--><div style="font-family:Arial,sans-serif;max-width:560px;margin:0 auto;color:#222;">
+  <p style="font-size:15px;margin:0 0 12px;">Hi ${profile.full_name || "there"},</p>
+  <p style="font-size:15px;margin:0 0 16px;">Reminder: <strong>${typeCap}</strong> with <strong>${contact}</strong> at <strong>${time}</strong> on <strong>${dateStr}</strong>.</p>
+  <p style="margin:0 0 24px;"><a href="https://flowcall.eu" style="background:#1a73e8;color:#fff;padding:10px 18px;border-radius:6px;text-decoration:none;display:inline-block;">Open FlowCall</a></p>
+  <hr style="border:none;border-top:1px solid #eee;margin:24px 0;"/>
+  <p style="color:#888;font-size:12px;margin:0;">— FlowCall Calendar<br/>You receive this because calendar reminders are enabled in your Preferences.</p>
+</div>`;
+
+        try {
+          const client = new SMTPClient({
+            connection: {
+              hostname: smtpConfig.host,
+              port: smtpConfig.port,
+              tls: useTls,
+              auth: { username: smtpConfig.username, password: smtpConfig.password },
+            },
+          });
+
+          const messageId = `<reminder-${a.id}-${Date.now()}@flowcall.eu>`;
+          const fromAddr = smtpConfig.from_name
             ? `${smtpConfig.from_name} <${smtpConfig.from_email}>`
-            : smtpConfig.from_email,
-          to: profile.email,
-          subject: "Calendar Reminder",
-          content: "auto",
-          html,
-          headers: { "Message-ID": messageId },
-        });
+            : smtpConfig.from_email;
 
-        await client.close();
+          await client.send({
+            from: fromAddr,
+            to: profile.email,
+            replyTo: smtpConfig.from_email,
+            subject,
+            content: text,
+            html,
+            headers: {
+              "Message-ID": messageId,
+              "List-Unsubscribe": `<mailto:${smtpConfig.from_email}?subject=unsubscribe>`,
+              "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
+              "X-Entity-Ref-ID": a.id,
+              "Auto-Submitted": "auto-generated",
+              "Precedence": "bulk",
+            },
+          });
 
-        // Log each action as sent so we don't re-send
-        for (const a of newActions) {
+          await client.close();
+
           await supabase.from("email_logs").insert([{
             lead_id: a.lead_id,
             user_id: userId,
-            subject: `Calendar Reminder:${a.id}`,
+            subject,
             body: html,
             tenant_id: profile.tenant_id,
             status: "sent",
           }]);
-        }
 
-        emailsSent++;
-        console.log(`Sent reminder email to ${profile.email} for ${newActions.length} actions`);
-      } catch (emailErr) {
-        console.error(`Failed to send reminder to ${profile.email}:`, emailErr);
+          emailsSent++;
+          console.log(`Sent reminder to ${profile.email}: ${subject}`);
+        } catch (emailErr) {
+          console.error(`Failed reminder to ${profile.email}:`, emailErr);
+        }
       }
     }
 
